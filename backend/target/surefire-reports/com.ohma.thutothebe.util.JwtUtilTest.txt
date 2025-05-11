@@ -1,0 +1,36 @@
+-------------------------------------------------------------------------------
+Test set: com.ohma.thutothebe.util.JwtUtilTest
+-------------------------------------------------------------------------------
+Tests run: 10, Failures: 0, Errors: 3, Skipped: 0, Time elapsed: 0.440 s <<< FAILURE! -- in com.ohma.thutothebe.util.JwtUtilTest
+com.ohma.thutothebe.util.JwtUtilTest.validateToken_ExpiredToken_ShouldReturnFalse -- Time elapsed: 0.004 s <<< ERROR!
+java.lang.Error: 
+Unresolved compilation problem: 
+	The method generateToken(String) in the type JwtUtil is not applicable for the arguments (Map<String,Object>, String, Date)
+
+	at com.ohma.thutothebe.util.JwtUtilTest.generateExpiredToken(JwtUtilTest.java:130)
+	at com.ohma.thutothebe.util.JwtUtilTest.validateToken_ExpiredToken_ShouldReturnFalse(JwtUtilTest.java:110)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+com.ohma.thutothebe.util.JwtUtilTest.generateToken_WithAdditionalClaims_ShouldIncludeClaims -- Time elapsed: 0.002 s <<< ERROR!
+java.lang.Error: 
+Unresolved compilation problem: 
+	The method generateToken(String) in the type JwtUtil is not applicable for the arguments (Map<String,Object>, String)
+
+	at com.ohma.thutothebe.util.JwtUtilTest.generateToken_WithAdditionalClaims_ShouldIncludeClaims(JwtUtilTest.java:121)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+com.ohma.thutothebe.util.JwtUtilTest.validateToken_InvalidSignature_ThrowsSignatureException -- Time elapsed: 0.001 s <<< ERROR!
+io.jsonwebtoken.security.WeakKeyException: The signing key's size is 464 bits which is not secure enough for the HS512 algorithm.  The JWT JWA Specification (RFC 7518, Section 3.2) states that keys used with HS512 MUST have a size >= 512 bits (the key size must be greater than or equal to the hash output size).  Consider using the io.jsonwebtoken.security.Keys class's 'secretKeyFor(SignatureAlgorithm.HS512)' method to create a key guaranteed to be secure enough for HS512.  See https://tools.ietf.org/html/rfc7518#section-3.2 for more information.
+	at io.jsonwebtoken.SignatureAlgorithm.assertValid(SignatureAlgorithm.java:387)
+	at io.jsonwebtoken.SignatureAlgorithm.assertValidSigningKey(SignatureAlgorithm.java:315)
+	at io.jsonwebtoken.impl.DefaultJwtBuilder.signWith(DefaultJwtBuilder.java:112)
+	at com.ohma.thutothebe.util.JwtUtil.generateToken(JwtUtil.java:36)
+	at com.ohma.thutothebe.util.JwtUtilTest.validateToken_InvalidSignature_ThrowsSignatureException(JwtUtilTest.java:66)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+

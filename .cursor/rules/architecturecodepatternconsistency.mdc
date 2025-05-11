@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Cursor Rule: Architecture & Code Pattern Consistency
+
+To maintain consistency across the codebase, follow these implementation patterns:
+
+- **Entities** must extend `BaseEntity`.
+- **Mappers** must implement `BaseDtoMapper`.
+  - ❗ Do **not** use MapStruct.
+- **Service interfaces** must extend `BaseService`.
+- **Service implementation classes** must extend `BaseServiceImpl`.
+- **Controllers** must extend `BaseController`.
+
+> ⚠️ Always align with the current codebase structure. Consistency is key.

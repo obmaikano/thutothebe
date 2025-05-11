@@ -1,0 +1,64 @@
+2025-05-12 01:23:17,722 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (1, 2025-05-12 01:23:17.686834, 2025-05-12 01:23:17.686849, 0, t, null, null, Test Course, null).
+2025-05-12 01:23:17,743 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (2, 2025-05-12 01:23:17.74097, 2025-05-12 01:23:17.740976, 0, t, null, null, Test Course, null).
+2025-05-12 01:23:17,754 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (3, 2025-05-12 01:23:17.75147, 2025-05-12 01:23:17.751485, 0, t, null, null, Test Course, null).
+2025-05-12 01:23:17,764 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (4, 2025-05-12 01:23:17.762496, 2025-05-12 01:23:17.762503, 0, t, null, null, Test Course, null).
+2025-05-12 01:23:17,775 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (5, 2025-05-12 01:23:17.772386, 2025-05-12 01:23:17.772393, 0, t, null, null, Test Course, null).
+2025-05-12 01:23:17,784 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (6, 2025-05-12 01:23:17.782404, 2025-05-12 01:23:17.782415, 0, t, null, null, Test Course, null).
+2025-05-12 01:23:17,794 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (7, 2025-05-12 01:23:17.792745, 2025-05-12 01:23:17.792749, 0, t, null, null, Test Course, null).
+2025-05-12 01:23:17,804 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (8, 2025-05-12 01:23:17.802026, 2025-05-12 01:23:17.802031, 0, t, null, null, Test Course, null).
+2025-05-12 01:24:13,015 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (9, 2025-05-12 01:24:12.977955, 2025-05-12 01:24:12.977974, 0, t, null, null, Test Course, null).
+2025-05-12 01:24:13,036 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (10, 2025-05-12 01:24:13.034539, 2025-05-12 01:24:13.034545, 0, t, null, null, Test Course, null).
+2025-05-12 01:24:13,050 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (11, 2025-05-12 01:24:13.047752, 2025-05-12 01:24:13.04776, 0, t, null, null, Test Course, null).
+2025-05-12 01:24:13,062 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (12, 2025-05-12 01:24:13.058376, 2025-05-12 01:24:13.058381, 0, t, null, null, Test Course, null).
+2025-05-12 01:24:13,076 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (13, 2025-05-12 01:24:13.07316, 2025-05-12 01:24:13.073167, 0, t, null, null, Test Course, null).
+2025-05-12 01:24:13,090 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (14, 2025-05-12 01:24:13.087542, 2025-05-12 01:24:13.08755, 0, t, null, null, Test Course, null).
+2025-05-12 01:24:13,102 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (15, 2025-05-12 01:24:13.098929, 2025-05-12 01:24:13.098938, 0, t, null, null, Test Course, null).
+2025-05-12 01:24:13,111 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (16, 2025-05-12 01:24:13.109604, 2025-05-12 01:24:13.10961, 0, t, null, null, Test Course, null).
+2025-05-12 01:27:57,027 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (17, 2025-05-12 01:27:56.980219, 2025-05-12 01:27:56.980242, 0, t, null, null, Test Course, null).
+2025-05-12 01:27:57,055 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (18, 2025-05-12 01:27:57.051585, 2025-05-12 01:27:57.051595, 0, t, null, null, Test Course, null).
+2025-05-12 01:27:57,070 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (19, 2025-05-12 01:27:57.067366, 2025-05-12 01:27:57.067372, 0, t, null, null, Test Course, null).
+2025-05-12 01:27:57,084 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (20, 2025-05-12 01:27:57.081023, 2025-05-12 01:27:57.081032, 0, t, null, null, Test Course, null).
+2025-05-12 01:27:57,094 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (21, 2025-05-12 01:27:57.09221, 2025-05-12 01:27:57.092216, 0, t, null, null, Test Course, null).
+2025-05-12 01:27:57,106 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (22, 2025-05-12 01:27:57.103412, 2025-05-12 01:27:57.103431, 0, t, null, null, Test Course, null).
+2025-05-12 01:27:57,119 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (23, 2025-05-12 01:27:57.116274, 2025-05-12 01:27:57.116278, 0, t, null, null, Test Course, null).
+2025-05-12 01:27:57,132 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "code" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (24, 2025-05-12 01:27:57.129835, 2025-05-12 01:27:57.12984, 0, t, null, null, Test Course, null).
+2025-05-12 01:29:32,349 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "teacher_id" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (25, 2025-05-12 01:29:32.313128, 2025-05-12 01:29:32.313147, 0, t, TEST101, Test Description, Test Course, null).
+2025-05-12 01:29:32,371 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "teacher_id" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (26, 2025-05-12 01:29:32.369095, 2025-05-12 01:29:32.369102, 0, t, TEST101, Test Description, Test Course, null).
+2025-05-12 01:29:32,382 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "teacher_id" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (27, 2025-05-12 01:29:32.379333, 2025-05-12 01:29:32.37934, 0, t, TEST101, Test Description, Test Course, null).
+2025-05-12 01:29:32,392 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "teacher_id" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (28, 2025-05-12 01:29:32.390339, 2025-05-12 01:29:32.390345, 0, t, TEST101, Test Description, Test Course, null).
+2025-05-12 01:29:32,403 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "teacher_id" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (29, 2025-05-12 01:29:32.400528, 2025-05-12 01:29:32.400541, 0, t, TEST101, Test Description, Test Course, null).
+2025-05-12 01:29:32,414 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "teacher_id" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (30, 2025-05-12 01:29:32.411352, 2025-05-12 01:29:32.411358, 0, t, TEST101, Test Description, Test Course, null).
+2025-05-12 01:29:32,427 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "teacher_id" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (31, 2025-05-12 01:29:32.424993, 2025-05-12 01:29:32.424997, 0, t, TEST101, Test Description, Test Course, null).
+2025-05-12 01:29:32,437 ERROR [main] o.h.e.j.s.SqlExceptionHelper: ERROR: null value in column "teacher_id" of relation "courses" violates not-null constraint
+  Detail: Failing row contains (32, 2025-05-12 01:29:32.435488, 2025-05-12 01:29:32.435492, 0, t, TEST101, Test Description, Test Course, null).
