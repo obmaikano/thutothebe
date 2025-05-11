@@ -1,0 +1,20 @@
+# Java build artifacts
+/backend/target/
+/backend/logs/
+*.log
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE files
+/.idea/
+*.iml
+/.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Other
+/logs/ 
