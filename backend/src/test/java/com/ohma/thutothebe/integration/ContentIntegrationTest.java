@@ -11,15 +11,25 @@ import com.ohma.thutothebe.repository.CourseRepository;
 import com.ohma.thutothebe.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import com.ohma.thutothebe.dto.AuthRequest;
+import com.ohma.thutothebe.dto.AuthResponse;
+import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.UserRole;
+import com.ohma.thutothebe.controller.AuthController;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -30,204 +40,263 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class ContentIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+        @Autowired
+        private ObjectMapper objectMapper;
 
-    @Autowired
-    private ContentRepository contentRepository;
+        @Autowired
+        private ContentRepository contentRepository;
 
-    @Autowired
-    private CourseRepository courseRepository;
+        @Autowired
+        private CourseRepository courseRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+        @Autowired
+        private UserRepository userRepository;
 
-    private ContentDTO contentDTO;
-    private Long courseId;
-    private Long userId;
+        @Autowired
+        private AuthController authController;
 
-    @BeforeEach
-    void setUp() {
-        // Create test user (teacher)
-        User teacher = new User();
-        teacher.setUsername("testteacher");
-        teacher.setEmail("teacher@example.com");
-        teacher.setPassword("password");
-        teacher.setFirstName("TeacherFirst");
-        teacher.setLastName("TeacherLast");
-        teacher = userRepository.save(teacher);
+        @Autowired
+        private BCryptPasswordEncoder passwordEncoder;
 
-        // Create test course
-        Course course = new Course();
-        course.setName("Test Course");
-        course.setCode("TEST101");
-        course.setDescription("Test Description");
-        course.setTeacher(teacher);
-        course = courseRepository.save(course);
-        courseId = course.getId();
+        private HttpHeaders headers;
 
-        // Create test user (content creator)
-        User user = new User();
-        user.setUsername("testuser");
-        user.setEmail("test@example.com");
-        user.setPassword("password");
-        user.setFirstName("UserFirst");
-        user.setLastName("UserLast");
-        user = userRepository.save(user);
-        userId = user.getId();
+        private ContentDTO contentDTO;
+        private Long courseId;
+        private Long userId;
 
-        // Create test content DTO
-        contentDTO = new ContentDTO(
-            null,
-            "Test Content",
-            "Test Description",
-            ContentType.DOCUMENT,
-            "http://test.com",
-            courseId,
-            userId,
-            LocalDateTime.now(),
-            true
-        );
-    }
+        @BeforeEach
+        void setUp() throws Exception {
+            headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-    @Test
-    void whenCreateContent_thenReturnCreatedContent() throws Exception {
-        mockMvc.perform(post("/content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(contentDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value(contentDTO.title()))
-                .andExpect(jsonPath("$.type").value(contentDTO.type().toString()));
-    }
+            // Generate a short unique suffix
+            String uniqueSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
 
-    @Test
-    void whenGetContentByCourse_thenReturnContentList() throws Exception {
-        // Create test content
-        mockMvc.perform(post("/content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(contentDTO)))
-                .andExpect(status().isOk());
+            // Create test teacher
+            String teacherEmail = "testteacher_" + uniqueSuffix + "@example.com";
+            String teacherUsername = "testteacher_" + uniqueSuffix;
+            User user = new User();
+            user.setEmail(teacherEmail);
+            user.setPassword(passwordEncoder.encode("password"));
+            user.setRole(UserRole.TEACHER);
+            user.setUsername(teacherUsername);
+            user.setFirstName("Test");
+            user.setLastName("Teacher");
+            userRepository.save(user);
 
-        // Get content by course
-        mockMvc.perform(get("/content/course/{courseId}", courseId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].title").value(contentDTO.title()))
-                .andExpect(jsonPath("$[0].type").value(contentDTO.type().toString()));
-    }
+            // Login to get JWT token
+            AuthRequest authRequest = new AuthRequest(teacherEmail, "password");
+            var loginResponse = mockMvc.perform(post("/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(authRequest)))
+                            .andExpect(status().isOk())
+                            .andReturn();
+            var responseBody = objectMapper.readValue(loginResponse.getResponse().getContentAsString(),
+                            OhmaApiResponse.class);
+            var authResponse = objectMapper.convertValue(responseBody.getData(), AuthResponse.class);
+            String token = authResponse.token();
+            headers.setBearerAuth(token);
 
-    @Test
-    void whenGetContentByType_thenReturnContentList() throws Exception {
-        // Create test content
-        mockMvc.perform(post("/content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(contentDTO)))
-                .andExpect(status().isOk());
+            // Generate course code (max 10 characters)
+            String courseCode = ("TST" + uniqueSuffix);
+            if (courseCode.length() > 10) {
+                    courseCode = courseCode.substring(0, 10);
+            }
 
-        // Get content by type
-        mockMvc.perform(get("/content/course/{courseId}/type/{type}", courseId, ContentType.DOCUMENT))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].title").value(contentDTO.title()))
-                .andExpect(jsonPath("$[0].type").value(contentDTO.type().toString()));
-    }
+            // Create test course
+            Course course = new Course();
+            course.setName("Test Course");
+            course.setDescription("Test Description");
+            course.setCode(courseCode);
+            course.setTeacher(user);
+            courseRepository.save(course);
+            courseId = course.getId();
 
-    @Test
-    void whenGetActiveContentByCourse_thenReturnContentList() throws Exception {
-        // Create test content
-        mockMvc.perform(post("/content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(contentDTO)))
-                .andExpect(status().isOk());
+            // Create test content creator user
+            String creatorEmail = "testcreator_" + uniqueSuffix + "@example.com";
+            String creatorUsername = "testuser_" + uniqueSuffix;
+            User userCreator = new User();
+            userCreator.setUsername(creatorUsername);
+            userCreator.setEmail(creatorEmail);
+            userCreator.setPassword(passwordEncoder.encode("password"));
+            userCreator.setFirstName("UserFirst");
+            userCreator.setLastName("UserLast");
+            userCreator = userRepository.save(userCreator);
+            userId = userCreator.getId();
 
-        // Get active content by course
-        mockMvc.perform(get("/content/course/{courseId}/active", courseId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].title").value(contentDTO.title()))
-                .andExpect(jsonPath("$[0].type").value(contentDTO.type().toString()));
-    }
+            // Create test content DTO
+            contentDTO = new ContentDTO(
+                            null,
+                            "Test Content",
+                            "Test Description",
+                            ContentType.DOCUMENT,
+                            "http://test.com",
+                            courseId,
+                            userId,
+                            LocalDateTime.now(),
+                            true);
+        }
 
-    @Test
-    void whenGetActiveContentByType_thenReturnContentList() throws Exception {
-        // Create test content
-        mockMvc.perform(post("/content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(contentDTO)))
-                .andExpect(status().isOk());
+        @Test
+        void whenCreateContent_thenReturnCreatedContent() throws Exception {
+                mockMvc.perform(post("/content")
+                                .headers(headers)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(contentDTO)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.title").value(contentDTO.title()))
+                                .andExpect(jsonPath("$.type").value(contentDTO.type().toString()));
+        }
 
-        // Get active content by type
-        mockMvc.perform(get("/content/course/{courseId}/type/{type}/active", courseId, ContentType.DOCUMENT))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].title").value(contentDTO.title()))
-                .andExpect(jsonPath("$[0].type").value(contentDTO.type().toString()));
-    }
+        @Test
+        void whenGetContentByCourse_thenReturnContentList() throws Exception {
+                // Create test content
+                mockMvc.perform(post("/content")
+                                .headers(headers)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(contentDTO)))
+                                .andExpect(status().isOk());
 
-    @Test
-    void whenCheckContentExists_thenReturnTrue() throws Exception {
-        // Create test content
-        mockMvc.perform(post("/content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(contentDTO)))
-                .andExpect(status().isOk());
+                // Get content by course
+                mockMvc.perform(get("/content/course/{courseId}", courseId)
+                                .headers(headers))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].title").value(contentDTO.title()))
+                                .andExpect(jsonPath("$[0].type").value(contentDTO.type().toString()));
+        }
 
-        // Check if content exists
-        mockMvc.perform(get("/content/exists")
-                .param("title", contentDTO.title())
-                .param("courseId", courseId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(content().string("true"));
-    }
+        @Test
+        void whenGetContentByType_thenReturnContentList() throws Exception {
+                // Create test content
+                mockMvc.perform(post("/content")
+                                .headers(headers)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(contentDTO)))
+                                .andExpect(status().isOk());
 
-    @Test
-    void whenUpdateContent_thenReturnUpdatedContent() throws Exception {
-        // Create test content
-        var response = mockMvc.perform(post("/content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(contentDTO)))
-                .andExpect(status().isOk())
-                .andReturn();
+                // Get content by type
+                mockMvc.perform(get("/content/course/{courseId}/type/{type}", courseId, ContentType.DOCUMENT)
+                                .headers(headers))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].title").value(contentDTO.title()))
+                                .andExpect(jsonPath("$[0].type").value(contentDTO.type().toString()));
+        }
 
-        var createdContent = objectMapper.readValue(response.getResponse().getContentAsString(), ContentDTO.class);
+        @Test
+        void whenGetActiveContentByCourse_thenReturnContentList() throws Exception {
+                // Create test content
+                mockMvc.perform(post("/content")
+                                .headers(headers)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(contentDTO)))
+                                .andExpect(status().isOk());
 
-        // Update content
-        var updatedDTO = new ContentDTO(
-            createdContent.id(),
-            "Updated Content",
-            "Updated Description",
-            ContentType.VIDEO,
-            "http://updated.com",
-            courseId,
-            userId,
-            LocalDateTime.now(),
-            true
-        );
+                // Get active content by course
+                mockMvc.perform(get("/content/course/{courseId}/active", courseId)
+                                .headers(headers))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].title").value(contentDTO.title()))
+                                .andExpect(jsonPath("$[0].type").value(contentDTO.type().toString()));
+        }
 
-        mockMvc.perform(put("/content/{id}", createdContent.id())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updatedDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value(updatedDTO.title()))
-                .andExpect(jsonPath("$.type").value(updatedDTO.type().toString()));
-    }
+        @Test
+        void whenGetActiveContentByType_thenReturnContentList() throws Exception {
+                // Create test content
+                mockMvc.perform(post("/content")
+                                .headers(headers)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(contentDTO)))
+                                .andExpect(status().isOk());
 
-    @Test
-    void whenDeleteContent_thenReturnOk() throws Exception {
-        // Create test content
-        var response = mockMvc.perform(post("/content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(contentDTO)))
-                .andExpect(status().isOk())
-                .andReturn();
+                // Get active content by type
+                mockMvc.perform(get("/content/course/{courseId}/type/{type}/active", courseId, ContentType.DOCUMENT)
+                                .headers(headers))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$[0].title").value(contentDTO.title()))
+                                .andExpect(jsonPath("$[0].type").value(contentDTO.type().toString()));
+        }
 
-        var createdContent = objectMapper.readValue(response.getResponse().getContentAsString(), ContentDTO.class);
+        @Test
+        void whenCheckContentExists_thenReturnTrue() throws Exception {
+                // Create test content
+                mockMvc.perform(post("/content")
+                                .headers(headers)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(contentDTO)))
+                                .andExpect(status().isOk());
 
-        // Delete content
-        mockMvc.perform(delete("/content/{id}", createdContent.id()))
-                .andExpect(status().isOk());
+                // Check if content exists
+                mockMvc.perform(get("/content/exists")
+                                .headers(headers)
+                                .param("title", contentDTO.title())
+                                .param("courseId", courseId.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(content().string("true"));
+        }
 
-        // Verify content is deleted
-        mockMvc.perform(get("/content/{id}", createdContent.id()))
-                .andExpect(status().isBadRequest());
-    }
+        @Test
+        void whenUpdateContent_thenReturnUpdatedContent() throws Exception {
+                // Create test content
+                var response = mockMvc.perform(post("/content")
+                                .headers(headers)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(contentDTO)))
+                                .andExpect(status().isOk())
+                                .andReturn();
+
+                var createdContent = objectMapper.readValue(response.getResponse().getContentAsString(),
+                                ContentDTO.class);
+
+                // Update content
+                var updatedDTO = new ContentDTO(
+                                createdContent.id(),
+                                "Updated Content",
+                                "Updated Description",
+                                ContentType.VIDEO,
+                                "http://updated.com",
+                                courseId,
+                                userId,
+                                LocalDateTime.now(),
+                                true);
+
+                mockMvc.perform(put("/content/{id}", createdContent.id())
+                                .headers(headers)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updatedDTO)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.title").value(updatedDTO.title()))
+                                .andExpect(jsonPath("$.type").value(updatedDTO.type().toString()));
+        }
+
+        @Test
+        void whenDeleteContent_thenReturnOk() throws Exception {
+                // Create test content
+                var response = mockMvc.perform(post("/content")
+                                .headers(headers)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(contentDTO)))
+                                .andExpect(status().isOk())
+                                .andReturn();
+
+                var createdContent = objectMapper.readValue(response.getResponse().getContentAsString(),
+                                ContentDTO.class);
+
+                // Delete content
+                mockMvc.perform(delete("/content/{id}", createdContent.id())
+                                .headers(headers))
+                                .andExpect(status().isOk());
+
+                // Verify content is deleted
+                mockMvc.perform(get("/content/{id}", createdContent.id())
+                                .headers(headers))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @AfterEach
+        void tearDown() {
+                userRepository.deleteAll();
+        }
 }

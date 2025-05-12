@@ -54,8 +54,8 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    new AntPathRequestMatcher("/api/v1/auth/register"),
-                    new AntPathRequestMatcher("/api/v1/auth/login"),
+                    new AntPathRequestMatcher("/auth/register"),
+                    new AntPathRequestMatcher("/auth/login"),
                     new AntPathRequestMatcher("/api-docs/**"),
                     new AntPathRequestMatcher("/swagger-ui/**"),
                     new AntPathRequestMatcher("/swagger-ui.html")

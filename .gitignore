@@ -11,6 +11,8 @@
 /.idea/
 *.iml
 /.vscode/
+*.mdc
+*.cursorrules
 
 # OS files
 .DS_Store
