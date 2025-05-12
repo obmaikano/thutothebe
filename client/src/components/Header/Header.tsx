@@ -1,0 +1,17 @@
+import React from 'react';
+import { HeaderState } from '../../app/types';
+import { useAppSelector } from '../../app/hooks';
+
+const Header: React.FC = () => {
+    const { pageTitle } = useAppSelector((state) => state.header as HeaderState);
+
+    return (
+        <header className="bg-white shadow">
+            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <h1 className="text-3xl font-bold tracking-tight text-gray-900">{pageTitle}</h1>
+            </div>
+        </header>
+    );
+};
+
+export default Header; 
