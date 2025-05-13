@@ -9,7 +9,8 @@ public record CourseDTO(
     String description,
     Long teacherId,
     Set<Long> studentIds,
-    boolean active
+    boolean active,
+    Long version
 ) {
     public CourseDTO {
         if (code == null || code.isBlank()) {

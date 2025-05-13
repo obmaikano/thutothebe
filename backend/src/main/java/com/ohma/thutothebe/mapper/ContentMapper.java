@@ -54,11 +54,24 @@ public class ContentMapper implements BaseDtoMapper<Content, ContentDTO> {
             return;
         }
 
-        content.setId(dto.id());
+        // Preserve the version field
+        Long currentVersion = content.getVersion();
+
         content.setTitle(dto.title());
         content.setDescription(dto.description());
         content.setType(dto.type());
         content.setUrl(dto.url());
-
+        content.setActive(dto.active());
+        
+        // Preserve the course and createdBy relationships
+        if (content.getCourse() == null && dto.courseId() != null) {
+            content.setCourse(courseRepository.findById(dto.courseId())
+                .orElseThrow(() -> new IllegalArgumentException("Course not found with id: " + dto.courseId())));
+        }
+        
+        if (content.getCreatedBy() == null && dto.createdById() != null) {
+            content.setCreatedBy(userRepository.findById(dto.createdById())
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + dto.createdById())));
+        }
     }
 } 

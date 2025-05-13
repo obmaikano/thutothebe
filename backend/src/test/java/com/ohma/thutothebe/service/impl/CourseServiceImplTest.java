@@ -71,7 +71,8 @@ class CourseServiceImplTest {
             "Basic computer science concepts",
             1L,
             Set.of(2L),
-            true
+            true,
+                1L
         );
     }
 

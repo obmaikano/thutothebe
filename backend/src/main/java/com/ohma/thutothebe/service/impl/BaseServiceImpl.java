@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -73,11 +74,18 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
         E entity = repository.findById(id)
             .orElseThrow(() -> notFoundException((Long) id));
         
+        // Store the current version
+        Long currentVersion = entity.getVersion();
+        
         updateEntity(entity, dto);
         entity.setModifiedAt(LocalDateTime.now());
         
-        E savedEntity = repository.save(entity);
-        return mapToDto(savedEntity);
+        try {
+            E savedEntity = repository.save(entity);
+            return mapToDto(savedEntity);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            throw new IllegalStateException("The resource was modified by another user. Please refresh and try again.");
+        }
     }
 
     @Override

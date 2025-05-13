@@ -33,7 +33,7 @@ spring:
         connection-test-query: SELECT 1
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: update
     properties:

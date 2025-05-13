@@ -29,7 +29,8 @@ public class CourseMapper implements BaseDtoMapper<Course, CourseDTO> {
                     .map(student -> student.getId())
                     .collect(Collectors.toSet()) : 
                 null,
-            course.isActive()
+            course.isActive(),
+            course.getVersion()
         );
     }
 
@@ -45,6 +46,7 @@ public class CourseMapper implements BaseDtoMapper<Course, CourseDTO> {
         course.setName(dto.name());
         course.setDescription(dto.description());
         course.setActive(dto.active());
+        course.setVersion(dto.version());
         return course;
     }
 
@@ -55,6 +57,9 @@ public class CourseMapper implements BaseDtoMapper<Course, CourseDTO> {
 
         course.setName(dto.name());
         course.setDescription(dto.description());
+        course.setActive(dto.active());
+        course.setCode(dto.code());
+        course.setVersion(dto.version());
 
         if (dto.teacherId() != null) {
             User instructor = new User();

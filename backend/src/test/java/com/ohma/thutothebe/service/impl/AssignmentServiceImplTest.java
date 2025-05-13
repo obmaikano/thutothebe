@@ -77,7 +77,7 @@ class AssignmentServiceImplTest {
         instructor.setUsername("testInstructor");
 
         courseDTO = new com.ohma.thutothebe.dto.CourseDTO(
-            1L, "CODE1", "Test Course", "desc", 1L, java.util.Set.of(), true
+            1L, "CODE1", "Test Course", "desc", 1L, java.util.Set.of(), true, 1L
         );
         instructorDTO = new com.ohma.thutothebe.dto.UserDTO(
             1L, "First", "Last", "email@test.com", "password", com.ohma.thutothebe.entity.UserRole.TEACHER

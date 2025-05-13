@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { useAuthError } from '../hooks/useAuthError';
 import { authService } from '../services/authService';
 
@@ -21,7 +21,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+    children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const { error, setAuthError, clearError } = useAuthError();
 
@@ -43,17 +47,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearError();
     }, [clearError]);
 
+    const value = {
+        user,
+        isAuthenticated: !!user,
+        error,
+        login,
+        logout,
+        clearError,
+    };
+
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                isAuthenticated: !!user,
-                error,
-                login,
-                logout,
-                clearError,
-            }}
-        >
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );
