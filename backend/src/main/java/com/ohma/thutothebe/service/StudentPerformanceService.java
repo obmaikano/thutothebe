@@ -1,13 +1,12 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.StudentPerformanceDTO;
-import com.ohma.thutothebe.entity.StudentPerformance;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface StudentPerformanceService extends BaseService<StudentPerformance, Long> {
+public interface StudentPerformanceService extends BaseService<StudentPerformanceDTO, Long> {
     
     StudentPerformanceDTO getStudentPerformance(Long studentId, Long courseId);
     

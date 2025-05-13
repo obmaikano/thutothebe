@@ -1,13 +1,12 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.SystemUsageDTO;
-import com.ohma.thutothebe.entity.SystemUsage;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface SystemUsageService extends BaseService<SystemUsage, Long> {
+public interface SystemUsageService extends BaseService<SystemUsageDTO, Long> {
     
     SystemUsageDTO getCurrentUsage();
     

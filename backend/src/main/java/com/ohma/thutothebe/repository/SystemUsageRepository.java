@@ -7,9 +7,12 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SystemUsageRepository extends JpaRepository<SystemUsage, Long> {
+    
+    Optional<SystemUsage> findFirstByOrderByTimestampDesc();
     
     @Query("SELECT su FROM SystemUsage su WHERE su.timestamp >= :startDate AND su.timestamp <= :endDate ORDER BY su.timestamp DESC")
     List<SystemUsage> findByDateRange(LocalDateTime startDate, LocalDateTime endDate);
