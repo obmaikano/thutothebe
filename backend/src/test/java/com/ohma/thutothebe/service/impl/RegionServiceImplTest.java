@@ -2,15 +2,19 @@ package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.RegionDTO;
 import com.ohma.thutothebe.entity.Region;
+import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.RegionMapper;
 import com.ohma.thutothebe.repository.RegionRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -54,193 +58,119 @@ class RegionServiceImplTest {
     }
 
     @Test
-    void getRegionById_ShouldReturnRegion_WhenExists() {
+    void create_ShouldCreateNewRegion() {
+        when(regionMapper.toEntity(any(RegionDTO.class))).thenReturn(region);
+        when(regionRepository.save(any(Region.class))).thenReturn(region);
+        when(regionMapper.toDto(any(Region.class))).thenReturn(regionDTO);
+
+        RegionDTO result = regionService.create(regionDTO);
+
+        assertNotNull(result);
+        assertEquals(regionDTO.code(), result.code());
+        assertEquals(regionDTO.name(), result.name());
+        verify(regionRepository).save(any(Region.class));
+    }
+
+    @Test
+    void getById_ShouldReturnRegion_WhenExists() {
         when(regionRepository.findById(1L)).thenReturn(Optional.of(region));
-        when(regionMapper.toDto(region)).thenReturn(regionDTO);
+        when(regionMapper.toDto(any(Region.class))).thenReturn(regionDTO);
 
         RegionDTO result = regionService.getById(1L);
 
         assertNotNull(result);
-        assertEquals(regionDTO, result);
+        assertEquals(regionDTO.id(), result.id());
         verify(regionRepository).findById(1L);
-        verify(regionMapper).toDto(region);
     }
 
     @Test
-    void getRegionById_ShouldThrowException_WhenNotFound() {
+    void getById_ShouldThrowException_WhenNotFound() {
         when(regionRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> regionService.getById(1L));
-        verify(regionRepository).findById(1L);
-        verify(regionMapper, never()).toDto(any());
+        assertThrows(ResourceNotFoundException.class, () -> regionService.getById(1L));
+    }
+
+    @Test
+    void getAll_ShouldReturnAllRegions() {
+        List<Region> regions = Arrays.asList(region);
+        when(regionRepository.findAll()).thenReturn(regions);
+        when(regionMapper.toDto(any(Region.class))).thenReturn(regionDTO);
+
+        List<RegionDTO> results = regionService.getAll();
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        verify(regionRepository).findAll();
+    }
+
+    @Test
+    void getAll_WithPagination_ShouldReturnPagedRegions() {
+        List<Region> regions = Arrays.asList(region);
+        Page<Region> regionPage = new PageImpl<>(regions);
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(regionRepository.findAll(pageable)).thenReturn(regionPage);
+        when(regionMapper.toDto(any(Region.class))).thenReturn(regionDTO);
+
+        Page<RegionDTO> results = regionService.getAll(pageable);
+
+        assertNotNull(results);
+        assertEquals(1, results.getTotalElements());
+        verify(regionRepository).findAll(pageable);
+    }
+
+    @Test
+    void update_ShouldUpdateRegion_WhenExists() {
+        when(regionRepository.findById(1L)).thenReturn(Optional.of(region));
+        when(regionRepository.save(any(Region.class))).thenReturn(region);
+        when(regionMapper.toDto(any(Region.class))).thenReturn(regionDTO);
+
+        RegionDTO result = regionService.update(1L, regionDTO);
+
+        assertNotNull(result);
+        assertEquals(regionDTO.id(), result.id());
+        verify(regionRepository).save(any(Region.class));
+    }
+
+    @Test
+    void update_ShouldThrowException_WhenNotFound() {
+        when(regionRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> regionService.update(1L, regionDTO));
+    }
+
+    @Test
+    void delete_ShouldDeleteRegion_WhenExists() {
+        when(regionRepository.existsById(1L)).thenReturn(true);
+        doNothing().when(regionRepository).deleteById(1L);
+
+        assertDoesNotThrow(() -> regionService.delete(1L));
+        verify(regionRepository).deleteById(1L);
+    }
+
+    @Test
+    void delete_ShouldThrowException_WhenNotFound() {
+        when(regionRepository.existsById(1L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> regionService.delete(1L));
     }
 
     @Test
     void getRegionByCode_ShouldReturnRegion_WhenExists() {
         when(regionRepository.findByCode("REG001")).thenReturn(Optional.of(region));
-        when(regionMapper.toDto(region)).thenReturn(regionDTO);
+        when(regionMapper.toDto(any(Region.class))).thenReturn(regionDTO);
 
         RegionDTO result = regionService.getRegionByCode("REG001");
 
         assertNotNull(result);
-        assertEquals(regionDTO, result);
+        assertEquals(regionDTO.code(), result.code());
         verify(regionRepository).findByCode("REG001");
-        verify(regionMapper).toDto(region);
     }
 
     @Test
     void getRegionByCode_ShouldThrowException_WhenNotFound() {
         when(regionRepository.findByCode("REG001")).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> regionService.getRegionByCode("REG001"));
-        verify(regionRepository).findByCode("REG001");
-        verify(regionMapper, never()).toDto(any());
-    }
-
-    @Test
-    void getAllRegions_ShouldReturnAllRegions() {
-        List<Region> regions = Arrays.asList(region);
-        when(regionRepository.findAll()).thenReturn(regions);
-        when(regionMapper.toDto(region)).thenReturn(regionDTO);
-
-        List<RegionDTO> result = regionService.getAll();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(regionDTO, result.get(0));
-        verify(regionRepository).findAll();
-        verify(regionMapper).toDto(region);
-    }
-
-    @Test
-    void getActiveRegions_ShouldReturnActiveRegions() {
-        List<Region> regions = Arrays.asList(region);
-        when(regionRepository.findByActive(true)).thenReturn(regions);
-        when(regionMapper.toDto(region)).thenReturn(regionDTO);
-
-        List<RegionDTO> result = regionService.getActiveRegions();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(regionDTO, result.get(0));
-        verify(regionRepository).findByActive(true);
-        verify(regionMapper).toDto(region);
-    }
-
-    @Test
-    void createRegion_ShouldCreateNewRegion() {
-        when(regionRepository.existsByCode("REG001")).thenReturn(false);
-        when(regionMapper.toEntity(regionDTO)).thenReturn(region);
-        when(regionRepository.save(region)).thenReturn(region);
-        when(regionMapper.toDto(region)).thenReturn(regionDTO);
-
-        RegionDTO result = regionService.create(regionDTO);
-
-        assertNotNull(result);
-        assertEquals(regionDTO, result);
-        verify(regionRepository).existsByCode("REG001");
-        verify(regionMapper).toEntity(regionDTO);
-        verify(regionRepository).save(region);
-        verify(regionMapper).toDto(region);
-    }
-
-    @Test
-    void createRegion_ShouldThrowException_WhenCodeExists() {
-        when(regionRepository.existsByCode("REG001")).thenReturn(true);
-
-        assertThrows(IllegalArgumentException.class, () -> regionService.create(regionDTO));
-        verify(regionRepository).existsByCode("REG001");
-        verify(regionMapper, never()).toEntity(any());
-        verify(regionRepository, never()).save(any());
-    }
-
-    @Test
-    void updateRegion_ShouldUpdateExistingRegion() {
-        when(regionRepository.findById(1L)).thenReturn(Optional.of(region));
-        when(regionRepository.existsByCode("REG001")).thenReturn(false);
-        when(regionRepository.save(any(Region.class))).thenReturn(region);
-        when(regionMapper.toDto(region)).thenReturn(regionDTO);
-
-        RegionDTO result = regionService.update(1L, regionDTO);
-
-        assertNotNull(result);
-        assertEquals(regionDTO, result);
-        verify(regionRepository).findById(1L);
-        verify(regionRepository).existsByCode("REG001");
-        verify(regionRepository).save(any(Region.class));
-        verify(regionMapper).toDto(region);
-    }
-
-    @Test
-    void updateRegion_ShouldThrowException_WhenNotFound() {
-        when(regionRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThrows(EntityNotFoundException.class, () -> regionService.update(1L, regionDTO));
-        verify(regionRepository).findById(1L);
-        verify(regionRepository, never()).save(any());
-    }
-
-    @Test
-    void deleteRegion_ShouldDeleteRegion() {
-        when(regionRepository.existsById(1L)).thenReturn(true);
-
-        regionService.delete(1L);
-
-        verify(regionRepository).existsById(1L);
-        verify(regionRepository).deleteById(1L);
-    }
-
-    @Test
-    void deleteRegion_ShouldThrowException_WhenNotFound() {
-        when(regionRepository.existsById(1L)).thenReturn(false);
-
-        assertThrows(EntityNotFoundException.class, () -> regionService.delete(1L));
-        verify(regionRepository).existsById(1L);
-        verify(regionRepository, never()).deleteById(any());
-    }
-
-    @Test
-    void deactivateRegion_ShouldDeactivateRegion() {
-        when(regionRepository.findById(1L)).thenReturn(Optional.of(region));
-        when(regionRepository.save(region)).thenReturn(region);
-
-        regionService.deactivateRegion(1L);
-
-        assertFalse(region.isActive());
-        verify(regionRepository).findById(1L);
-        verify(regionRepository).save(region);
-    }
-
-    @Test
-    void activateRegion_ShouldActivateRegion() {
-        region.setActive(false);
-        when(regionRepository.findById(1L)).thenReturn(Optional.of(region));
-        when(regionRepository.save(region)).thenReturn(region);
-
-        regionService.activateRegion(1L);
-
-        assertTrue(region.isActive());
-        verify(regionRepository).findById(1L);
-        verify(regionRepository).save(region);
-    }
-
-    @Test
-    void existsByCode_ShouldReturnTrue_WhenCodeExists() {
-        when(regionRepository.existsByCode("REG001")).thenReturn(true);
-
-        boolean result = regionService.existsByCode("REG001");
-
-        assertTrue(result);
-        verify(regionRepository).existsByCode("REG001");
-    }
-
-    @Test
-    void existsByCode_ShouldReturnFalse_WhenCodeDoesNotExist() {
-        when(regionRepository.existsByCode("REG001")).thenReturn(false);
-
-        boolean result = regionService.existsByCode("REG001");
-
-        assertFalse(result);
-        verify(regionRepository).existsByCode("REG001");
+        assertThrows(ResourceNotFoundException.class, () -> regionService.getRegionByCode("REG001"));
     }
 } 

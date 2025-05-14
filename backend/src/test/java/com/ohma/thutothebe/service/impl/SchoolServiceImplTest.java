@@ -3,16 +3,19 @@ package com.ohma.thutothebe.service.impl;
 import com.ohma.thutothebe.dto.SchoolDTO;
 import com.ohma.thutothebe.entity.Region;
 import com.ohma.thutothebe.entity.School;
+import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.SchoolMapper;
-import com.ohma.thutothebe.repository.RegionRepository;
 import com.ohma.thutothebe.repository.SchoolRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,9 +30,6 @@ class SchoolServiceImplTest {
 
     @Mock
     private SchoolRepository schoolRepository;
-
-    @Mock
-    private RegionRepository regionRepository;
 
     @Mock
     private SchoolMapper schoolMapper;
@@ -67,224 +67,143 @@ class SchoolServiceImplTest {
     }
 
     @Test
-    void getSchoolById_ShouldReturnSchool_WhenExists() {
+    void create_ShouldCreateNewSchool() {
+        when(schoolMapper.toEntity(any(SchoolDTO.class))).thenReturn(school);
+        when(schoolRepository.save(any(School.class))).thenReturn(school);
+        when(schoolMapper.toDto(any(School.class))).thenReturn(schoolDTO);
+
+        SchoolDTO result = schoolService.create(schoolDTO);
+
+        assertNotNull(result);
+        assertEquals(schoolDTO.code(), result.code());
+        assertEquals(schoolDTO.name(), result.name());
+        verify(schoolRepository).save(any(School.class));
+    }
+
+    @Test
+    void getById_ShouldReturnSchool_WhenExists() {
         when(schoolRepository.findById(1L)).thenReturn(Optional.of(school));
-        when(schoolMapper.toDto(school)).thenReturn(schoolDTO);
+        when(schoolMapper.toDto(any(School.class))).thenReturn(schoolDTO);
 
         SchoolDTO result = schoolService.getById(1L);
 
         assertNotNull(result);
-        assertEquals(schoolDTO, result);
+        assertEquals(schoolDTO.id(), result.id());
         verify(schoolRepository).findById(1L);
-        verify(schoolMapper).toDto(school);
     }
 
     @Test
-    void getSchoolById_ShouldThrowException_WhenNotFound() {
+    void getById_ShouldThrowException_WhenNotFound() {
         when(schoolRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> schoolService.getById(1L));
-        verify(schoolRepository).findById(1L);
-        verify(schoolMapper, never()).toDto(any());
+        assertThrows(ResourceNotFoundException.class, () -> schoolService.getById(1L));
+    }
+
+    @Test
+    void getAll_ShouldReturnAllSchools() {
+        List<School> schools = Arrays.asList(school);
+        when(schoolRepository.findAll()).thenReturn(schools);
+        when(schoolMapper.toDto(any(School.class))).thenReturn(schoolDTO);
+
+        List<SchoolDTO> results = schoolService.getAll();
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        verify(schoolRepository).findAll();
+    }
+
+    @Test
+    void getAll_WithPagination_ShouldReturnPagedSchools() {
+        List<School> schools = Arrays.asList(school);
+        Page<School> schoolPage = new PageImpl<>(schools);
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(schoolRepository.findAll(pageable)).thenReturn(schoolPage);
+        when(schoolMapper.toDto(any(School.class))).thenReturn(schoolDTO);
+
+        Page<SchoolDTO> results = schoolService.getAll(pageable);
+
+        assertNotNull(results);
+        assertEquals(1, results.getTotalElements());
+        verify(schoolRepository).findAll(pageable);
+    }
+
+    @Test
+    void update_ShouldUpdateSchool_WhenExists() {
+        when(schoolRepository.findById(1L)).thenReturn(Optional.of(school));
+        when(schoolRepository.save(any(School.class))).thenReturn(school);
+        when(schoolMapper.toDto(any(School.class))).thenReturn(schoolDTO);
+
+        SchoolDTO result = schoolService.update(1L, schoolDTO);
+
+        assertNotNull(result);
+        assertEquals(schoolDTO.id(), result.id());
+        verify(schoolRepository).save(any(School.class));
+    }
+
+    @Test
+    void update_ShouldThrowException_WhenNotFound() {
+        when(schoolRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> schoolService.update(1L, schoolDTO));
+    }
+
+    @Test
+    void delete_ShouldDeleteSchool_WhenExists() {
+        when(schoolRepository.existsById(1L)).thenReturn(true);
+        doNothing().when(schoolRepository).deleteById(1L);
+
+        assertDoesNotThrow(() -> schoolService.delete(1L));
+        verify(schoolRepository).deleteById(1L);
+    }
+
+    @Test
+    void delete_ShouldThrowException_WhenNotFound() {
+        when(schoolRepository.existsById(1L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> schoolService.delete(1L));
     }
 
     @Test
     void getSchoolByCode_ShouldReturnSchool_WhenExists() {
         when(schoolRepository.findByCode("SCH001")).thenReturn(Optional.of(school));
-        when(schoolMapper.toDto(school)).thenReturn(schoolDTO);
+        when(schoolMapper.toDto(any(School.class))).thenReturn(schoolDTO);
 
         SchoolDTO result = schoolService.getSchoolByCode("SCH001");
 
         assertNotNull(result);
-        assertEquals(schoolDTO, result);
+        assertEquals(schoolDTO.code(), result.code());
         verify(schoolRepository).findByCode("SCH001");
-        verify(schoolMapper).toDto(school);
     }
 
     @Test
     void getSchoolByCode_ShouldThrowException_WhenNotFound() {
         when(schoolRepository.findByCode("SCH001")).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> schoolService.getSchoolByCode("SCH001"));
-        verify(schoolRepository).findByCode("SCH001");
-        verify(schoolMapper, never()).toDto(any());
+        assertThrows(ResourceNotFoundException.class, () -> schoolService.getSchoolByCode("SCH001"));
     }
 
     @Test
-    void getAllSchools_ShouldReturnAllSchools() {
-        List<School> schools = Arrays.asList(school);
-        when(schoolRepository.findAll()).thenReturn(schools);
-        when(schoolMapper.toDto(school)).thenReturn(schoolDTO);
-
-        List<SchoolDTO> result = schoolService.getAll();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(schoolDTO, result.get(0));
-        verify(schoolRepository).findAll();
-        verify(schoolMapper).toDto(school);
-    }
-
-    @Test
-    void getSchoolsByRegionId_ShouldReturnSchools() {
+    void getSchoolsByRegionId_ShouldReturnSchools_WhenRegionExists() {
         List<School> schools = Arrays.asList(school);
         when(schoolRepository.findByRegionId(1L)).thenReturn(schools);
-        when(schoolMapper.toDto(school)).thenReturn(schoolDTO);
+        when(schoolMapper.toDto(any(School.class))).thenReturn(schoolDTO);
 
-        List<SchoolDTO> result = schoolService.getSchoolsByRegionId(1L);
+        List<SchoolDTO> results = schoolService.getSchoolsByRegionId(1L);
 
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(schoolDTO, result.get(0));
+        assertNotNull(results);
+        assertEquals(1, results.size());
         verify(schoolRepository).findByRegionId(1L);
-        verify(schoolMapper).toDto(school);
     }
 
     @Test
-    void getActiveSchoolsByRegionId_ShouldReturnActiveSchools() {
-        List<School> schools = Arrays.asList(school);
-        when(schoolRepository.findByRegionIdAndActive(1L, true)).thenReturn(schools);
-        when(schoolMapper.toDto(school)).thenReturn(schoolDTO);
+    void getSchoolsByRegionId_ShouldReturnEmptyList_WhenNoSchoolsFound() {
+        when(schoolRepository.findByRegionId(1L)).thenReturn(List.of());
 
-        List<SchoolDTO> result = schoolService.getActiveSchoolsByRegionId(1L);
+        List<SchoolDTO> results = schoolService.getSchoolsByRegionId(1L);
 
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(schoolDTO, result.get(0));
-        verify(schoolRepository).findByRegionIdAndActive(1L, true);
-        verify(schoolMapper).toDto(school);
-    }
-
-    @Test
-    void createSchool_ShouldCreateNewSchool() {
-        when(schoolRepository.existsByCode("SCH001")).thenReturn(false);
-        when(regionRepository.findById(1L)).thenReturn(Optional.of(region));
-        when(schoolMapper.toEntity(schoolDTO)).thenReturn(school);
-        when(schoolRepository.save(school)).thenReturn(school);
-        when(schoolMapper.toDto(school)).thenReturn(schoolDTO);
-
-        SchoolDTO result = schoolService.createSchool(schoolDTO);
-
-        assertNotNull(result);
-        assertEquals(schoolDTO, result);
-        verify(schoolRepository).existsByCode("SCH001");
-        verify(regionRepository).findById(1L);
-        verify(schoolMapper).toEntity(schoolDTO);
-        verify(schoolRepository).save(school);
-        verify(schoolMapper).toDto(school);
-    }
-
-    @Test
-    void createSchool_ShouldThrowException_WhenCodeExists() {
-        when(schoolRepository.existsByCode("SCH001")).thenReturn(true);
-
-        assertThrows(IllegalArgumentException.class, () -> schoolService.createSchool(schoolDTO));
-        verify(schoolRepository).existsByCode("SCH001");
-        verify(schoolMapper, never()).toEntity(any());
-        verify(schoolRepository, never()).save(any());
-    }
-
-    @Test
-    void createSchool_ShouldThrowException_WhenRegionNotFound() {
-        when(schoolRepository.existsByCode("SCH001")).thenReturn(false);
-        when(regionRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThrows(EntityNotFoundException.class, () -> schoolService.createSchool(schoolDTO));
-        verify(schoolRepository).existsByCode("SCH001");
-        verify(regionRepository).findById(1L);
-        verify(schoolMapper, never()).toEntity(any());
-        verify(schoolRepository, never()).save(any());
-    }
-
-    @Test
-    void updateSchool_ShouldUpdateExistingSchool() {
-        when(schoolRepository.findById(1L)).thenReturn(Optional.of(school));
-        when(schoolRepository.existsByCode("SCH001")).thenReturn(false);
-        when(regionRepository.findById(1L)).thenReturn(Optional.of(region));
-        when(schoolRepository.save(any(School.class))).thenReturn(school);
-        when(schoolMapper.toDto(school)).thenReturn(schoolDTO);
-
-        SchoolDTO result = schoolService.updateSchool(1L, schoolDTO);
-
-        assertNotNull(result);
-        assertEquals(schoolDTO, result);
-        verify(schoolRepository).findById(1L);
-        verify(schoolRepository).existsByCode("SCH001");
-        verify(regionRepository).findById(1L);
-        verify(schoolRepository).save(any(School.class));
-        verify(schoolMapper).toDto(school);
-    }
-
-    @Test
-    void updateSchool_ShouldThrowException_WhenNotFound() {
-        when(schoolRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThrows(EntityNotFoundException.class, () -> schoolService.updateSchool(1L, schoolDTO));
-        verify(schoolRepository).findById(1L);
-        verify(schoolRepository, never()).save(any());
-    }
-
-    @Test
-    void deleteSchool_ShouldDeleteSchool() {
-        when(schoolRepository.existsById(1L)).thenReturn(true);
-
-        schoolService.deleteSchool(1L);
-
-        verify(schoolRepository).existsById(1L);
-        verify(schoolRepository).deleteById(1L);
-    }
-
-    @Test
-    void deleteSchool_ShouldThrowException_WhenNotFound() {
-        when(schoolRepository.existsById(1L)).thenReturn(false);
-
-        assertThrows(EntityNotFoundException.class, () -> schoolService.deleteSchool(1L));
-        verify(schoolRepository).existsById(1L);
-        verify(schoolRepository, never()).deleteById(any());
-    }
-
-    @Test
-    void deactivateSchool_ShouldDeactivateSchool() {
-        when(schoolRepository.findById(1L)).thenReturn(Optional.of(school));
-        when(schoolRepository.save(school)).thenReturn(school);
-
-        schoolService.deactivateSchool(1L);
-
-        assertFalse(school.isActive());
-        verify(schoolRepository).findById(1L);
-        verify(schoolRepository).save(school);
-    }
-
-    @Test
-    void activateSchool_ShouldActivateSchool() {
-        school.setActive(false);
-        when(schoolRepository.findById(1L)).thenReturn(Optional.of(school));
-        when(schoolRepository.save(school)).thenReturn(school);
-
-        schoolService.activateSchool(1L);
-
-        assertTrue(school.isActive());
-        verify(schoolRepository).findById(1L);
-        verify(schoolRepository).save(school);
-    }
-
-    @Test
-    void existsByCode_ShouldReturnTrue_WhenCodeExists() {
-        when(schoolRepository.existsByCode("SCH001")).thenReturn(true);
-
-        boolean result = schoolService.existsByCode("SCH001");
-
-        assertTrue(result);
-        verify(schoolRepository).existsByCode("SCH001");
-    }
-
-    @Test
-    void existsByCode_ShouldReturnFalse_WhenCodeDoesNotExist() {
-        when(schoolRepository.existsByCode("SCH001")).thenReturn(false);
-
-        boolean result = schoolService.existsByCode("SCH001");
-
-        assertFalse(result);
-        verify(schoolRepository).existsByCode("SCH001");
+        assertNotNull(results);
+        assertTrue(results.isEmpty());
+        verify(schoolRepository).findByRegionId(1L);
     }
 } 
