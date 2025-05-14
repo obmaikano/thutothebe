@@ -1,7 +1,7 @@
 package com.ohma.thutothebe.entity;
 
 public enum UserRole {
-    STUDENT,
+    ADMIN,
     TEACHER,
-    ADMIN
+    STUDENT
 } 

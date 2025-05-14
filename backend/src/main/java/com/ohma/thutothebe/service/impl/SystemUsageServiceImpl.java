@@ -69,43 +69,41 @@ public class SystemUsageServiceImpl extends BaseServiceImpl<SystemUsage, SystemU
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SystemUsageDTO getCurrentUsage() {
-        SystemUsage usage = systemUsageRepository.findFirstByOrderByTimestampDesc()
-                .orElseThrow(() -> new ResourceNotFoundException("No system usage data found"));
-        return systemUsageMapper.toDto(usage);
+        return systemUsageRepository.findFirstByOrderByTimestampDesc()
+            .map(systemUsageMapper::toDto)
+            .orElseThrow(() -> new ResourceNotFoundException("No system usage data available"));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SystemUsageDTO> getUsageByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
-        List<SystemUsage> usage = systemUsageRepository.findByDateRange(startDate, endDate);
-        return usage.stream()
-                .map(systemUsageMapper::toDto)
-                .collect(Collectors.toList());
+        return systemUsageRepository.findByDateRange(startDate, endDate).stream()
+            .map(systemUsageMapper::toDto)
+            .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SystemUsageDTO> getPeakUsageByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
-        List<SystemUsage> usage = systemUsageRepository.findPeakUsageByDateRange(startDate, endDate);
-        return usage.stream()
-                .map(systemUsageMapper::toDto)
-                .collect(Collectors.toList());
+        return systemUsageRepository.findPeakUsageByDateRange(startDate, endDate).stream()
+            .map(systemUsageMapper::toDto)
+            .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SystemUsageDTO> getLoginTrendsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
-        List<SystemUsage> trends = systemUsageRepository.findLoginTrendsByDateRange(startDate, endDate);
-        return trends.stream()
-                .map(systemUsageMapper::toDto)
-                .collect(Collectors.toList());
+        return systemUsageRepository.findLoginTrendsByDateRange(startDate, endDate).stream()
+            .map(systemUsageMapper::toDto)
+            .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
     public void updateSystemUsage() {
         SystemUsage usage = new SystemUsage();
-        usage.setTimestamp(LocalDateTime.now());
-        
-        // Calculate current statistics
         usage.setActiveUsers(calculateActiveUsers());
         usage.setTotalLogins(calculateTotalLogins());
         usage.setInstructorCount(calculateInstructorCount());
@@ -113,7 +111,8 @@ public class SystemUsageServiceImpl extends BaseServiceImpl<SystemUsage, SystemU
         usage.setAdminCount(calculateAdminCount());
         usage.setPeakModule(calculatePeakModule());
         usage.setPeakCourse(calculatePeakCourse());
-
+        usage.setTimestamp(LocalDateTime.now());
+        
         systemUsageRepository.save(usage);
         log.info("Updated system usage statistics");
     }
@@ -128,42 +127,40 @@ public class SystemUsageServiceImpl extends BaseServiceImpl<SystemUsage, SystemU
         }
     }
 
-    protected Integer calculateActiveUsers() {
-        LocalDateTime fifteenMinutesAgo = LocalDateTime.now().minusMinutes(15);
-        return userRepository.countByLastLoginTimeAfter(fifteenMinutesAgo);
+    protected int calculateActiveUsers() {
+        return userRepository.countByLastLoginTimeAfter(LocalDateTime.now().minusHours(24));
     }
 
-    protected Integer calculateTotalLogins() {
-        LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
-        return userRepository.countByLastLoginTimeAfter(today);
+    protected int calculateTotalLogins() {
+        return userRepository.countByLastLoginTimeAfter(LocalDateTime.now().withHour(0).withMinute(0).withSecond(0));
     }
 
-    protected Integer calculateInstructorCount() {
+    protected int calculateInstructorCount() {
         return userRepository.countByRole(UserRole.TEACHER);
     }
 
-    protected Integer calculateStudentCount() {
+    protected int calculateStudentCount() {
         return userRepository.countByRole(UserRole.STUDENT);
     }
 
-    protected Integer calculateAdminCount() {
+    protected int calculateAdminCount() {
         return userRepository.countByRole(UserRole.ADMIN);
     }
 
     protected String calculatePeakModule() {
         return moduleRepository.findMostAccessed().stream()
-                .findFirst()
-                .map(module -> module.getTitle())
-                .orElse("N/A");
+            .findFirst()
+            .map(module -> module.getTitle())
+            .orElse("N/A");
     }
 
     protected String calculatePeakCourse() {
         return courseRepository.findByActiveTrue().stream()
-                .max((c1, c2) -> Long.compare(
-                    c1.getStudents().size(),
-                    c2.getStudents().size()
-                ))
-                .map(course -> course.getName())
-                .orElse("N/A");
+            .max((c1, c2) -> Long.compare(
+                c1.getStudents().size(),
+                c2.getStudents().size()
+            ))
+            .map(course -> course.getName())
+            .orElse("N/A");
     }
 } 

@@ -79,7 +79,8 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
         
         updateEntity(entity, dto);
         entity.setModifiedAt(LocalDateTime.now());
-        
+        entity.setVersion(currentVersion + 1);
+
         try {
             E savedEntity = repository.save(entity);
             return mapToDto(savedEntity);

@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -35,6 +37,21 @@ public class User extends BaseEntity {
     @NotNull
     @Enumerated(EnumType.STRING)
     private UserRole role = UserRole.STUDENT;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id")
+    private Region region;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id")
+    private School school;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private User parent;
+
+    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
+    private Set<User> children = new HashSet<>();
 
     private boolean active = true;
 
