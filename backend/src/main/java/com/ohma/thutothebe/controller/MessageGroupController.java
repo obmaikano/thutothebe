@@ -16,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/message-groups")
+@RequestMapping("/message-groups")
 @Tag(name = "Message Group Controller", description = "APIs for managing message groups")
 public class MessageGroupController extends BaseController<MessageGroupDTO, Long> {
 
@@ -101,55 +101,6 @@ public class MessageGroupController extends BaseController<MessageGroupDTO, Long
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Group retrieved successfully", group, null));
         } catch (Exception e) {
             log.error("Error retrieving group: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PostMapping
-    @Operation(summary = "Create a new message group")
-    @PreAuthorize("hasRole('ADMIN') or #group.creatorId() == authentication.principal.id")
-    public ResponseEntity<OhmaApiResponse<MessageGroupDTO>> createGroup(
-            @Parameter(description = "Group data") @RequestBody MessageGroupDTO group) {
-        try {
-            // Validate creator exists
-            userService.getById(group.creatorId());
-            
-            MessageGroupDTO created = messageGroupService.create(group);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Group created successfully", created, null));
-        } catch (Exception e) {
-            log.error("Error creating group: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Update a message group")
-    @PreAuthorize("hasRole('ADMIN') or @messageGroupService.isGroupCreator(#id, authentication.principal.id)")
-    public ResponseEntity<OhmaApiResponse<MessageGroupDTO>> updateGroup(
-            @Parameter(description = "Group ID") @PathVariable Long id,
-            @Parameter(description = "Group data") @RequestBody MessageGroupDTO group) {
-        try {
-            MessageGroupDTO updated = messageGroupService.update(id, group);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Group updated successfully", updated, null));
-        } catch (Exception e) {
-            log.error("Error updating group: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a message group")
-    @PreAuthorize("hasRole('ADMIN') or @messageGroupService.isGroupCreator(#id, authentication.principal.id)")
-    public ResponseEntity<OhmaApiResponse<Void>> deleteGroup(
-            @Parameter(description = "Group ID") @PathVariable Long id) {
-        try {
-            messageGroupService.delete(id);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Group deleted successfully", null, null));
-        } catch (Exception e) {
-            log.error("Error deleting group: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

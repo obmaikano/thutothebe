@@ -3,6 +3,8 @@ package com.ohma.thutothebe.repository;
 import com.ohma.thutothebe.entity.Assignment;
 import com.ohma.thutothebe.entity.Submission;
 import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.entity.enums.SubmissionPhase;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,4 +29,20 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Submission> findGradedByStudent(@Param("student") User student);
     
     boolean existsByAssignmentAndStudent(Assignment assignment, User student);
+
+    @EntityGraph(attributePaths = {"user", "course", "assessments"})
+    List<Submission> findByStudentId(Long userId);
+
+    @EntityGraph(attributePaths = {"user", "course", "assessments"})
+    List<Submission> findByCourseId(Long courseId);
+
+    @EntityGraph(attributePaths = {"user", "course", "assessments"})
+    List<Submission> findByCourseIdAndPhase(Long courseId, SubmissionPhase phase);
+
+    @Query("SELECT s FROM Submission s WHERE s.course.id = :courseId AND s.student.id != :userId")
+    @EntityGraph(attributePaths = {"user", "course", "assessments"})
+    List<Submission> findOtherSubmissionsByCourseId(Long courseId, Long userId);
+
+    @Query("SELECT COUNT(s) FROM Submission s WHERE s.course.id = :courseId")
+    long countSubmissionsByCourseId(Long courseId);
 } 

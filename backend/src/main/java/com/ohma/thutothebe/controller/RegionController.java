@@ -15,7 +15,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/regions")
+@RequestMapping("/regions")
 @Tag(name = "Region Management", description = "APIs for managing regions")
 public class RegionController extends BaseController<RegionDTO, Long> {
 

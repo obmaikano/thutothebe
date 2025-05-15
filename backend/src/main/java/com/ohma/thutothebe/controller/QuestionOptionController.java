@@ -13,7 +13,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/question-options")
+@RequestMapping("/question-options")
 @Tag(name = "Question Option Management", description = "APIs for managing question options")
 public class QuestionOptionController extends BaseController<QuestionOptionDTO, Long> {
 

@@ -15,7 +15,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/schools")
+@RequestMapping("/schools")
 @Tag(name = "School Management", description = "APIs for managing schools")
 public class SchoolController extends BaseController<SchoolDTO, Long> {
 
@@ -63,50 +63,6 @@ public class SchoolController extends BaseController<SchoolDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active schools retrieved successfully", schools, null));
         } catch (Exception e) {
             log.error("Error retrieving active schools: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PostMapping
-    @Operation(summary = "Create a new school")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<SchoolDTO>> createSchool(@Valid @RequestBody SchoolDTO schoolDTO) {
-        try {
-            SchoolDTO created = schoolService.createSchool(schoolDTO);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School created successfully", created, null));
-        } catch (Exception e) {
-            log.error("Error creating school: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Update an existing school")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<SchoolDTO>> updateSchool(
-            @PathVariable Long id,
-            @Valid @RequestBody SchoolDTO schoolDTO) {
-        try {
-            SchoolDTO updated = schoolService.updateSchool(id, schoolDTO);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School updated successfully", updated, null));
-        } catch (Exception e) {
-            log.error("Error updating school: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a school")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<Void>> deleteSchool(@PathVariable Long id) {
-        try {
-            schoolService.deleteSchool(id);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School deleted successfully", null, null));
-        } catch (Exception e) {
-            log.error("Error deleting school: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

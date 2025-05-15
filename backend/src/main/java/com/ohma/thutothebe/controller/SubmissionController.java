@@ -2,10 +2,6 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.dto.SubmissionDTO;
-import com.ohma.thutothebe.entity.Assignment;
-import com.ohma.thutothebe.entity.Course;
-import com.ohma.thutothebe.entity.Submission;
-import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.mapper.AssignmentMapper;
 import com.ohma.thutothebe.mapper.CourseMapper;
 import com.ohma.thutothebe.mapper.UserMapper;
@@ -13,7 +9,6 @@ import com.ohma.thutothebe.service.AssignmentService;
 import com.ohma.thutothebe.service.CourseService;
 import com.ohma.thutothebe.service.SubmissionService;
 import com.ohma.thutothebe.service.UserService;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -64,7 +59,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
             var assignment = assignmentMapper.toEntity(assignmentDTO);
             var studentDTO = userService.getById(studentId);
             var student = userMapper.toEntity(studentDTO);
-            SubmissionDTO submission = submissionService.getSubmissionByAssignmentAndStudent(assignment, student);
+            SubmissionDTO submission = submissionService.getSubmissionByAssignmentAndStudent(assignment.getId(), student.getId());
             return ResponseEntity.ok(OhmaApiResponse.success(submission));
         } catch (Exception e) {
             log.error("Error getting submission: ", e);
@@ -83,7 +78,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
             var instructorDTO = userService.getById(assignmentDTO.instructorId());
             var instructor = userMapper.toEntity(instructorDTO);
             var assignment = assignmentMapper.toEntity(assignmentDTO);
-            List<SubmissionDTO> submissions = submissionService.getSubmissionsByAssignment(assignment);
+            List<SubmissionDTO> submissions = submissionService.getSubmissionsByAssignment(assignment.getId());
             return ResponseEntity.ok(OhmaApiResponse.success(submissions));
         } catch (Exception e) {
             log.error("Error getting submissions by assignment: ", e);
@@ -98,7 +93,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
         try {
             var studentDTO = userService.getById(studentId);
             var student = userMapper.toEntity(studentDTO);
-            List<SubmissionDTO> submissions = submissionService.getSubmissionsByStudent(student);
+            List<SubmissionDTO> submissions = submissionService.getSubmissionsByStudent(student.getId());
             return ResponseEntity.ok(OhmaApiResponse.success(submissions));
         } catch (Exception e) {
             log.error("Error getting submissions by student: ", e);
@@ -117,7 +112,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
             var instructorDTO = userService.getById(assignmentDTO.instructorId());
             var instructor = userMapper.toEntity(instructorDTO);
             var assignment = assignmentMapper.toEntity(assignmentDTO);
-            List<SubmissionDTO> submissions = submissionService.getGradedSubmissionsByAssignment(assignment);
+            List<SubmissionDTO> submissions = submissionService.getGradedSubmissionsByAssignment(assignment.getId());
             return ResponseEntity.ok(OhmaApiResponse.success(submissions));
         } catch (Exception e) {
             log.error("Error getting graded submissions by assignment: ", e);
@@ -132,7 +127,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
         try {
             var studentDTO = userService.getById(studentId);
             var student = userMapper.toEntity(studentDTO);
-            List<SubmissionDTO> submissions = submissionService.getGradedSubmissionsByStudent(student);
+            List<SubmissionDTO> submissions = submissionService.getGradedSubmissionsByStudent(student.getId());
             return ResponseEntity.ok(OhmaApiResponse.success(submissions));
         } catch (Exception e) {
             log.error("Error getting graded submissions by student: ", e);

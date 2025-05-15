@@ -2,6 +2,7 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.AssignmentDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.Assignment;
 import com.ohma.thutothebe.service.AssignmentService;
 import com.ohma.thutothebe.service.CourseService;
 import com.ohma.thutothebe.service.UserService;
@@ -16,7 +17,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/assignments")
-public class AssignmentController {
+public class AssignmentController extends BaseController<AssignmentDTO, Long> {
 
     private final AssignmentService assignmentService;
     private final CourseService courseService;
@@ -25,6 +26,7 @@ public class AssignmentController {
     public AssignmentController(AssignmentService assignmentService,
                               CourseService courseService,
                               UserService userService) {
+        super(assignmentService);
         this.assignmentService = assignmentService;
         this.courseService = courseService;
         this.userService = userService;

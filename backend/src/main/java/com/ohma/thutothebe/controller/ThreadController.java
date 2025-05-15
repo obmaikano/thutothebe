@@ -15,7 +15,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/threads")
+@RequestMapping("/threads")
 @Tag(name = "Thread Management", description = "APIs for managing discussion threads")
 public class ThreadController extends BaseController<ThreadDTO, Long> {
 

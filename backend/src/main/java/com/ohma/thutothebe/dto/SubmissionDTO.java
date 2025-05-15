@@ -1,34 +1,41 @@
 package com.ohma.thutothebe.dto;
 
 import com.ohma.thutothebe.entity.SubmissionStatus;
-import jakarta.validation.constraints.NotNull;
+import com.ohma.thutothebe.entity.enums.SubmissionPhase;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record SubmissionDTO(
     Long id,
-    @NotNull Long assignmentId,
-    @NotNull Long studentId,
+    Long studentId,
+    Long courseId,
+    Long assignmentId,
     String content,
-    String fileUrl,
-    @NotNull LocalDateTime submittedAt,
-    LocalDateTime gradedAt,
-    Integer score,
+    LocalDateTime submittedAt,
+    SubmissionPhase phase,
+    SubmissionStatus status,
+    List<AssessmentDto> assessments,
+    Double finalScore,
     String feedback,
-    SubmissionStatus status
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt
 ) {
     public SubmissionDTO {
-        if (assignmentId == null) {
-            throw new IllegalArgumentException("Assignment ID cannot be null");
-        }
         if (studentId == null) {
-            throw new IllegalArgumentException("Student ID cannot be null");
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
+        if (courseId == null) {
+            throw new IllegalArgumentException("Course ID cannot be null");
+        }
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("Content cannot be null or blank");
         }
         if (submittedAt == null) {
             throw new IllegalArgumentException("Submission date cannot be null");
         }
-        if (score != null && score < 0) {
-            throw new IllegalArgumentException("Score cannot be negative");
+        if (phase == null) {
+            throw new IllegalArgumentException("Phase cannot be null");
         }
     }
 } 

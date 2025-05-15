@@ -13,7 +13,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/comments")
+@RequestMapping("/comments")
 @Tag(name = "Comment Management", description = "APIs for managing comments")
 public class CommentController extends BaseController<CommentDTO, Long> {
 

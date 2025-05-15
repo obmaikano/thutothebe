@@ -13,7 +13,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/question-responses")
+@RequestMapping("/question-responses")
 @Tag(name = "Question Response Management", description = "APIs for managing question responses")
 public class QuestionResponseController extends BaseController<QuestionResponseDTO, Long> {
 

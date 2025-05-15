@@ -1,17 +1,39 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.SubmissionDTO;
-import com.ohma.thutothebe.entity.Assignment;
-import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.entity.enums.SubmissionPhase;
 
 import java.util.List;
 
 public interface SubmissionService extends BaseService<SubmissionDTO, Long> {
-    SubmissionDTO getSubmissionByAssignmentAndStudent(Assignment assignment, User student);
-    List<SubmissionDTO> getSubmissionsByAssignment(Assignment assignment);
-    List<SubmissionDTO> getSubmissionsByStudent(User student);
-    List<SubmissionDTO> getGradedSubmissionsByAssignment(Assignment assignment);
-    List<SubmissionDTO> getGradedSubmissionsByStudent(User student);
-    boolean existsByAssignmentAndStudent(Assignment assignment, User student);
-    SubmissionDTO gradeSubmission(Long id, Integer score, String feedback);
+    
+    List<SubmissionDTO> getSubmissionsByUserId(Long userId);
+    
+    List<SubmissionDTO> getSubmissionsByCourseId(Long courseId);
+    
+    List<SubmissionDTO> getSubmissionsByCourseIdAndPhase(Long courseId, SubmissionPhase phase);
+    
+    SubmissionDTO updateSubmissionPhase(Long id, SubmissionPhase phase);
+    
+    List<SubmissionDTO> getOtherSubmissionsByCourseId(Long courseId, Long userId);
+    
+    long countSubmissionsByCourseId(Long courseId);
+    
+    SubmissionDTO calculateFinalScore(Long id);
+
+    SubmissionDTO getSubmissionByAssignmentAndStudent(Long assignmentId, Long studentId);
+
+    List<SubmissionDTO> getSubmissionsByAssignment(Long assignmentId);
+
+    List<SubmissionDTO> getSubmissionsByStudent(Long studentId);
+
+    List<SubmissionDTO> getGradedSubmissionsByAssignment(Long assignmentId);
+
+    List<SubmissionDTO> getGradedSubmissionsByStudent(Long studentId);
+
+    SubmissionDTO gradeSubmission(Long submissionId, int score, String feedback);
+
+    boolean existsByAssignmentAndStudent(Long assignmentId, Long studentId);
+
+
 } 

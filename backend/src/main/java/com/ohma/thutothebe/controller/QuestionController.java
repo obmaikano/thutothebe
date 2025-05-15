@@ -14,7 +14,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/questions")
+@RequestMapping("/questions")
 @Tag(name = "Question Management", description = "APIs for managing questions")
 public class QuestionController extends BaseController<QuestionDTO, Long> {
 

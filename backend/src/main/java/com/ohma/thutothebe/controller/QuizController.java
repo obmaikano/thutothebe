@@ -14,7 +14,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/quizzes")
+@RequestMapping("/quizzes")
 @Tag(name = "Quiz Management", description = "APIs for managing quizzes")
 public class QuizController extends BaseController<QuizDTO, Long> {
 

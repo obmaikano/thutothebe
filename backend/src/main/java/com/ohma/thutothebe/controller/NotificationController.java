@@ -18,7 +18,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/notifications")
+@RequestMapping("/notifications")
 @Tag(name = "Notification Controller", description = "APIs for managing notifications")
 public class NotificationController extends BaseController<NotificationDTO, Long> {
 

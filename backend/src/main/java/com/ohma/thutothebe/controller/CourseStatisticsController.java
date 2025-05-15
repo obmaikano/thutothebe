@@ -16,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/analytics/course-statistics")
+@RequestMapping("/analytics/course-statistics")
 @Tag(name = "Course Statistics", description = "APIs for managing course statistics")
 public class CourseStatisticsController extends BaseController<CourseStatisticsDTO, Long> {
 

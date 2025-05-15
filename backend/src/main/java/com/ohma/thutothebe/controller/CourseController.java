@@ -3,7 +3,6 @@ package com.ohma.thutothebe.controller;
 import com.ohma.thutothebe.dto.CourseDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.dto.UserDTO;
-import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.service.CourseService;
 import com.ohma.thutothebe.service.UserService;
 import com.ohma.thutothebe.mapper.UserMapper;
@@ -17,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/courses")
+@RequestMapping("/courses")
 public class CourseController extends BaseController<CourseDTO, Long> {
 
     private final CourseService courseService;
