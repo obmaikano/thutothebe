@@ -12,7 +12,8 @@ public record ContentDTO(
     Long courseId,
     Long createdById,
     LocalDateTime createdAt,
-    boolean active
+    boolean active,
+    Long version
 ) {
     public ContentDTO {
         if (title == null || title.isBlank()) {

@@ -2,8 +2,6 @@ package com.ohma.thutothebe.mapper;
 
 import com.ohma.thutothebe.dto.ContentDTO;
 import com.ohma.thutothebe.entity.Content;
-import com.ohma.thutothebe.entity.Course;
-import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.repository.CourseRepository;
 import com.ohma.thutothebe.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +27,8 @@ public class ContentMapper implements BaseDtoMapper<Content, ContentDTO> {
             content.getCourse().getId(),
             content.getCreatedBy().getId(),
             content.getCreatedAt(),
-            content.isActive()
+            content.isActive(),
+            content.getVersion()
         );
     }
 
@@ -46,6 +45,7 @@ public class ContentMapper implements BaseDtoMapper<Content, ContentDTO> {
         content.setCreatedBy(userRepository.findById(dto.createdById())
             .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + dto.createdById())));
         content.setActive(dto.active());
+        content.setVersion(dto.version());
         return content;
     }
 
@@ -54,14 +54,12 @@ public class ContentMapper implements BaseDtoMapper<Content, ContentDTO> {
             return;
         }
 
-        // Preserve the version field
-        Long currentVersion = content.getVersion();
-
         content.setTitle(dto.title());
         content.setDescription(dto.description());
         content.setType(dto.type());
         content.setUrl(dto.url());
         content.setActive(dto.active());
+        // content.setVersion(dto.version());
         
         // Preserve the course and createdBy relationships
         if (content.getCourse() == null && dto.courseId() != null) {

@@ -72,22 +72,21 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
     @Transactional
     public D update(ID id, D dto) {
         E entity = repository.findById(id)
-            .orElseThrow(() -> notFoundException((Long) id));
-        
-        // Store the current version
-        Long currentVersion = entity.getVersion();
-        
+                .orElseThrow(() -> notFoundException((Long) id));
+
         updateEntity(entity, dto);
-        entity.setModifiedAt(LocalDateTime.now());
-        entity.setVersion(currentVersion + 1);
+        // entity.setModifiedAt(LocalDateTime.now());
 
         try {
-            E savedEntity = repository.save(entity);
+            E savedEntity = repository.save(entity); // JPA handles version check here
+            log.warn("Saved entity version: " + savedEntity.getVersion());
             return mapToDto(savedEntity);
         } catch (ObjectOptimisticLockingFailureException e) {
+            log.error(e.getMessage());
             throw new IllegalStateException("The resource was modified by another user. Please refresh and try again.");
         }
     }
+
 
     @Override
     public void delete(ID id) {

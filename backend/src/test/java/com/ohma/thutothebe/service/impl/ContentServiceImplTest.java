@@ -80,7 +80,8 @@ class ContentServiceImplTest {
             1L,
             1L,
             LocalDateTime.now(),
-            true
+            true,
+                1L
         );
 
         courseDTO = new CourseDTO(
