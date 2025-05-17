@@ -1,22 +1,56 @@
-# Java build artifacts
-/backend/target/
-/backend/logs/
-*.log
-*.class
-*.jar
-*.war
-*.ear
+# === FRONTEND (React) ===
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.env
+frontend/.env.*.local
+frontend/.npmrc
+frontend/yarn.lock
+frontend/package-lock.json
+frontend/.cache/
+frontend/.vite/
+frontend/coverage/
+frontend/*.tsbuildinfo
 
-# IDE files
-/.idea/
+# === BACKEND (Spring Boot - Java) ===
+backend/target/
+backend/build/
+backend/.mvn/
+backend/*.log
+backend/*.class
+backend/*.jar
+backend/*.war
+backend/*.ear
+
+# Maven specific
+backend/pom.xml.tag
+backend/pom.xml.releaseBackup
+backend/pom.xml.versionsBackup
+backend/pom.xml.next
+backend/release.properties
+
+# Gradle specific
+backend/.gradle/
+backend/gradle-app.setting
+
+# Spring Boot devtools
+backend/spring-boot-devtools.properties
+backend/spring-boot-devtools.jar
+
+# === IDEs / Editors ===
+.idea/
 *.iml
-/.vscode/
-*.mdc
-*.cursorrules
+*.ipr
+*.iws
+.vscode/
 
-# OS files
+# === System ===
 .DS_Store
 Thumbs.db
 
-# Other
-/logs/ 
+# === Logs ===
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

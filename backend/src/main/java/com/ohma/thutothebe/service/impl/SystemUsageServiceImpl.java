@@ -144,7 +144,7 @@ public class SystemUsageServiceImpl extends BaseServiceImpl<SystemUsage, SystemU
     }
 
     protected int calculateAdminCount() {
-        return userRepository.countByRole(UserRole.ADMIN);
+        return userRepository.countByRole(UserRole.SUPER_ADMIN);
     }
 
     protected String calculatePeakModule() {

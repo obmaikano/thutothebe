@@ -18,32 +18,32 @@ import java.util.Set;
 @Table(name = "courses")
 public class Course extends BaseEntity {
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 20)
     private String code;
 
-    @NotBlank(message = "Course name is required")
-    @Size(min = 3, max = 100, message = "Course name must be between 3 and 100 characters")
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Size(max = 500, message = "Description cannot exceed 500 characters")
-    @Column(length = 500)
-    private String description;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id", nullable = false)
+    private Subject subject;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id", nullable = false)
-    private User teacher;
+    @JoinColumn(name = "class_id", nullable = false)
+    private Class classEntity;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "course_students",
-        joinColumns = @JoinColumn(name = "course_id"),
-        inverseJoinColumns = @JoinColumn(name = "student_id")
-    )
-    private Set<User> students = new HashSet<>();
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Term term;
+
+    @Column(nullable = false)
+    private Integer year;
 
     @Column(nullable = false)
     private boolean active = true;
+
+    @OneToMany(mappedBy = "course")
+    private Set<CourseInstructor> courseInstructors = new HashSet<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
