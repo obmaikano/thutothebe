@@ -48,7 +48,7 @@ public class CourseController extends BaseController<CourseDTO, Long> {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getActiveCourses() {
         try {
-            List<CourseDTO> courses = courseService.getActiveCourses();
+            List<CourseDTO> courses = courseService.getActiveCourses().stream().toList();
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses retrieved successfully", courses, null));
         } catch (Exception e) {
             log.error("Error retrieving active courses: {}", e.getMessage(), e);

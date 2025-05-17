@@ -155,10 +155,10 @@ public class SystemUsageServiceImpl extends BaseServiceImpl<SystemUsage, SystemU
     }
 
     protected String calculatePeakCourse() {
-        return courseRepository.findByActiveTrue().stream()
+        return courseRepository.findByActive(true).stream()
             .max((c1, c2) -> Long.compare(
-                c1.getStudents().size(),
-                c2.getStudents().size()
+                c1.getCourseInstructors().size(),
+                c2.getCourseInstructors().size()
             ))
             .map(course -> course.getName())
             .orElse("N/A");

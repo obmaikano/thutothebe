@@ -37,7 +37,7 @@ public class AssignmentServiceImpl extends BaseServiceImpl<Assignment, Assignmen
     @Autowired
     public AssignmentServiceImpl(AssignmentRepository assignmentRepository, AssignmentMapper assignmentMapper,
                                  CourseService courseService, UserService userService, CourseRepository courseRepository,
-                                 UserMapper userMapper) {
+                                 UserMapper userMapper, CourseMapper courseMapper) {
         super(assignmentRepository);
         this.assignmentRepository = assignmentRepository;
         this.assignmentMapper = assignmentMapper;
@@ -45,7 +45,7 @@ public class AssignmentServiceImpl extends BaseServiceImpl<Assignment, Assignmen
         this.userService = userService;
         this.courseRepository = courseRepository;
         this.userMapper = userMapper;
-        this.courseMapper = new CourseMapper();
+        this.courseMapper = courseMapper;
     }
 
     @Override
