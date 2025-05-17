@@ -2,6 +2,7 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.CourseDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.CourseType;
 import com.ohma.thutothebe.entity.Term;
 import com.ohma.thutothebe.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -164,6 +165,34 @@ public class CourseController extends BaseController<CourseDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses for year retrieved successfully", courses, null));
         } catch (Exception e) {
             log.error("Error retrieving courses for year: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+    
+    @GetMapping("/type/{type}")
+    @Operation(summary = "Get courses by type (CORE or ELECTIVE)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getCoursesByType(@PathVariable CourseType type) {
+        try {
+            List<CourseDTO> courses = courseService.getCoursesByType(type);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses for type retrieved successfully", courses, null));
+        } catch (Exception e) {
+            log.error("Error retrieving courses for type: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+    
+    @GetMapping("/type/{type}/active")
+    @Operation(summary = "Get active courses by type (CORE or ELECTIVE)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getActiveCoursesByType(@PathVariable CourseType type) {
+        try {
+            List<CourseDTO> courses = courseService.getActiveCoursesByType(type);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses for type retrieved successfully", courses, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active courses for type: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

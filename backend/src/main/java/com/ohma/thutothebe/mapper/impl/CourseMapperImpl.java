@@ -35,6 +35,7 @@ public class CourseMapperImpl implements CourseMapper {
         course.setYear(dto.year());
         course.setTerm(dto.term());
         course.setActive(dto.active());
+        course.setType(dto.type());
         
         if (dto.subjectId() != null) {
             Subject subject = new Subject();
@@ -72,6 +73,7 @@ public class CourseMapperImpl implements CourseMapper {
             entity.getTerm(),
             entity.getYear(),
             entity.isActive(),
+            entity.getType(),
             instructorIds
         );
     }
@@ -87,6 +89,7 @@ public class CourseMapperImpl implements CourseMapper {
         course.setTerm(dto.term());
         course.setYear(dto.year());
         course.setActive(dto.active());
+        course.setType(dto.type());
         
         if (dto.subjectId() != null) {
             Subject subject = new Subject();

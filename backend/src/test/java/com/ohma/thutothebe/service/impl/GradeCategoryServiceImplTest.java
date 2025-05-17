@@ -1,12 +1,14 @@
 package com.ohma.thutothebe.service.impl;
 
-import com.ohma.thutothebe.dto.GradeCategoryDTO;
 import com.ohma.thutothebe.dto.CourseDTO;
-import com.ohma.thutothebe.entity.GradeCategory;
+import com.ohma.thutothebe.dto.GradeCategoryDTO;
 import com.ohma.thutothebe.entity.Course;
+import com.ohma.thutothebe.entity.CourseType;
+import com.ohma.thutothebe.entity.GradeCategory;
+import com.ohma.thutothebe.entity.Term;
 import com.ohma.thutothebe.exception.GradeCategoryNotFoundException;
-import com.ohma.thutothebe.mapper.GradeCategoryMapper;
 import com.ohma.thutothebe.mapper.CourseMapper;
+import com.ohma.thutothebe.mapper.GradeCategoryMapper;
 import com.ohma.thutothebe.repository.GradeCategoryRepository;
 import com.ohma.thutothebe.service.CourseService;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -55,16 +58,21 @@ class GradeCategoryServiceImplTest {
         testCourse.setId(1L);
         testCourse.setName("Test Course");
 
-        // Setup test course DTO
+        // Setup test course DTO with correct parameters
+        Set<Long> instructorIds = new HashSet<>();
+        instructorIds.add(1L);
+        
         testCourseDTO = new CourseDTO(
-            1L,
-            "TEST101",
-            "Test Course",
-            "Test Description",
-            1L,
-            Set.of(),
-            true,
-            1L
+            1L,                // id
+            "TEST101",         // code
+            "Test Course",     // name
+            1L,                // subjectId
+            1L,                // classId
+            Term.FIRST_TERM,   // term
+            2023,              // year
+            true,              // active
+                CourseType.CORE,
+            instructorIds      // instructorIds
         );
 
         // Setup test category

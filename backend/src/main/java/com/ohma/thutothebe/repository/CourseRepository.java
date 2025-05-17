@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.repository;
 
 import com.ohma.thutothebe.entity.Course;
+import com.ohma.thutothebe.entity.CourseType;
 import com.ohma.thutothebe.entity.Subject;
 import com.ohma.thutothebe.entity.Term;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,6 +30,10 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<Course> findByTerm(Term term);
     
     List<Course> findByYear(Integer year);
+    
+    List<Course> findByType(CourseType type);
+    
+    List<Course> findByTypeAndActive(CourseType type, boolean active);
     
     boolean existsByCode(String code);
     

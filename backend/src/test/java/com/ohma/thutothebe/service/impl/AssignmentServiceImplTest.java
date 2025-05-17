@@ -1,10 +1,9 @@
 package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.AssignmentDTO;
-import com.ohma.thutothebe.entity.Assignment;
-import com.ohma.thutothebe.entity.AssignmentStatus;
-import com.ohma.thutothebe.entity.Course;
-import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.dto.CourseDTO;
+import com.ohma.thutothebe.dto.UserDTO;
+import com.ohma.thutothebe.entity.*;
 import com.ohma.thutothebe.exception.AssignmentNotFoundException;
 import com.ohma.thutothebe.mapper.AssignmentMapper;
 import com.ohma.thutothebe.mapper.CourseMapper;
@@ -22,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,8 +63,8 @@ class AssignmentServiceImplTest {
     private AssignmentDTO assignmentDTO;
     private Course course;
     private User instructor;
-    private com.ohma.thutothebe.dto.CourseDTO courseDTO;
-    private com.ohma.thutothebe.dto.UserDTO instructorDTO;
+    private CourseDTO courseDTO;
+    private UserDTO instructorDTO;
 
     @BeforeEach
     void setUp() {
@@ -76,11 +76,20 @@ class AssignmentServiceImplTest {
         instructor.setId(1L);
         instructor.setUsername("testInstructor");
 
-        courseDTO = new com.ohma.thutothebe.dto.CourseDTO(
-            1L, "CODE1", "Test Course", "desc", 1L, java.util.Set.of(), true, 1L
+        courseDTO = new CourseDTO(
+            1L, 
+            "CODE1", 
+            "Test Course", 
+            1L,    // subjectId
+            1L,    // classId
+            Term.FIRST_TERM,
+            2023,  // year
+            true,  // active
+                CourseType.ELECTIVE,
+            new HashSet<>(Arrays.asList(1L)) // instructorIds
         );
-        instructorDTO = new com.ohma.thutothebe.dto.UserDTO(
-            1L, "First", "Last", "email@test.com", "password", com.ohma.thutothebe.entity.UserRole.TEACHER
+        instructorDTO = new UserDTO(
+            1L, "First", "Last", "email@test.com", "password", UserRole.TEACHER
         );
 
         assignment = new Assignment();

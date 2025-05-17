@@ -3,9 +3,7 @@ package com.ohma.thutothebe.service.impl;
 import com.ohma.thutothebe.dto.ProgressDTO;
 import com.ohma.thutothebe.dto.CourseDTO;
 import com.ohma.thutothebe.dto.UserDTO;
-import com.ohma.thutothebe.entity.Progress;
-import com.ohma.thutothebe.entity.Course;
-import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.entity.*;
 import com.ohma.thutothebe.exception.ProgressNotFoundException;
 import com.ohma.thutothebe.mapper.ProgressMapper;
 import com.ohma.thutothebe.mapper.CourseMapper;
@@ -26,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,11 +89,13 @@ class ProgressServiceImplTest {
             1L,
             "TEST101",
             "Test Course",
-            "Test Description",
-            1L,
-            null,
-            true,
-            1L
+            1L,             // subjectId
+            1L,             // classId
+            Term.FIRST_TERM,
+            2023,           // year
+            true,           // active
+                CourseType.CORE,
+            new HashSet<>(Arrays.asList(1L)) // instructorIds
         );
 
         // Setup test progress

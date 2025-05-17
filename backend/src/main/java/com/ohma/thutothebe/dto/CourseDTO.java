@@ -1,5 +1,6 @@
 package com.ohma.thutothebe.dto;
 
+import com.ohma.thutothebe.entity.CourseType;
 import com.ohma.thutothebe.entity.Term;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -35,6 +36,9 @@ public record CourseDTO(
     
     boolean active,
     
+    @NotNull(message = "Course type is required")
+    CourseType type,
+    
     Set<Long> instructorIds
 ) {
     public CourseDTO {
@@ -43,6 +47,9 @@ public record CourseDTO(
         }
         if (instructorIds == null) {
             instructorIds = new HashSet<>();
+        }
+        if (type == null) {
+            type = CourseType.CORE;
         }
     }
 } 

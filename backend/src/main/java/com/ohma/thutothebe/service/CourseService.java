@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.CourseDTO;
+import com.ohma.thutothebe.entity.CourseType;
 import com.ohma.thutothebe.entity.Term;
 import com.ohma.thutothebe.entity.User;
 
@@ -24,6 +25,8 @@ public interface CourseService extends BaseService<CourseDTO, Long> {
     List<CourseDTO> getActiveCoursesByTeacherId(Long teacherId);
     List<CourseDTO> getCoursesByTerm(Term term);
     List<CourseDTO> getCoursesByYear(Integer year);
+    List<CourseDTO> getCoursesByType(CourseType type);
+    List<CourseDTO> getActiveCoursesByType(CourseType type);
     CourseDTO createCourse(CourseDTO courseDTO);
     CourseDTO updateCourse(Long id, CourseDTO courseDTO);
     void deleteCourse(Long id);

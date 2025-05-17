@@ -28,6 +28,7 @@ import com.ohma.thutothebe.repository.CourseInstructorRepository;
 import com.ohma.thutothebe.entity.CourseInstructor;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.repository.TeacherRepository;
+import com.ohma.thutothebe.entity.CourseType;
 
 @Slf4j
 @Service
@@ -212,9 +213,28 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, CourseDTO, Long> 
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getCoursesByYear(Integer year) {
+        log.debug("Getting courses for year: {}", year);
         return courseRepository.findByYear(year).stream()
-            .map(courseMapper::toDto)
-            .collect(Collectors.toList());
+                .map(courseMapper::toDto)
+                .toList();
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesByType(CourseType type) {
+        log.debug("Getting courses for type: {}", type);
+        return courseRepository.findByType(type).stream()
+                .map(courseMapper::toDto)
+                .toList();
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getActiveCoursesByType(CourseType type) {
+        log.debug("Getting active courses for type: {}", type);
+        return courseRepository.findByTypeAndActive(type, true).stream()
+                .map(courseMapper::toDto)
+                .toList();
     }
     
     @Override

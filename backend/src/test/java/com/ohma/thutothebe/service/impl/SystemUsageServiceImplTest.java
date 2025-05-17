@@ -96,7 +96,7 @@ class SystemUsageServiceImplTest {
 
         admin = new User();
         admin.setId(3L);
-        admin.setRole(UserRole.ADMIN);
+        admin.setRole(UserRole.SUPER_ADMIN);
         admin.setCreatedAt(now);
 
         // Setup Course
@@ -104,7 +104,6 @@ class SystemUsageServiceImplTest {
         course.setId(1L);
         course.setName("Test Course");
         course.setActive(true);
-        course.setStudents(new HashSet<>(Arrays.asList(student)));
 
         // Setup Module
         module = new Module();
@@ -168,14 +167,14 @@ class SystemUsageServiceImplTest {
             .thenReturn(5);
         when(userRepository.countByRole(UserRole.STUDENT))
             .thenReturn(40);
-        when(userRepository.countByRole(UserRole.ADMIN))
+        when(userRepository.countByRole(UserRole.SUPER_ADMIN))
             .thenReturn(2);
 
         // Mock module and course data
         when(moduleRepository.findMostAccessed())
             .thenReturn(Arrays.asList(module));
-        when(courseRepository.findByActiveTrue())
-            .thenReturn(new HashSet<>(Arrays.asList(course)));
+        when(courseRepository.findByActive(true))
+            .thenReturn(Arrays.asList(course));
 
         // Mock save operation
         when(systemUsageRepository.save(any(SystemUsage.class)))
@@ -187,9 +186,9 @@ class SystemUsageServiceImplTest {
         verify(userRepository, times(2)).countByLastLoginTimeAfter(any(LocalDateTime.class));
         verify(userRepository).countByRole(UserRole.TEACHER);
         verify(userRepository).countByRole(UserRole.STUDENT);
-        verify(userRepository).countByRole(UserRole.ADMIN);
+        verify(userRepository).countByRole(UserRole.SUPER_ADMIN);
         verify(moduleRepository).findMostAccessed();
-        verify(courseRepository).findByActiveTrue();
+        verify(courseRepository).findByActive(true);
     }
 
     @Test
@@ -251,23 +250,23 @@ class SystemUsageServiceImplTest {
 
     @Test
     void calculatePeakCourse_ShouldReturnCourseWithMostStudents() {
-        when(courseRepository.findByActiveTrue())
-            .thenReturn(new HashSet<>(Arrays.asList(course)));
+        when(courseRepository.findByActive(true))
+            .thenReturn(Arrays.asList(course));
 
         String result = systemUsageService.calculatePeakCourse();
 
         assertThat(result).isEqualTo("Test Course");
-        verify(courseRepository).findByActiveTrue();
+        verify(courseRepository).findByActive(true);
     }
 
     @Test
     void calculatePeakCourse_ShouldReturnNA_WhenNoCourses() {
-        when(courseRepository.findByActiveTrue())
-            .thenReturn(Collections.emptySet());
+        when(courseRepository.findByActive(true))
+            .thenReturn(Collections.emptyList());
 
         String result = systemUsageService.calculatePeakCourse();
 
         assertThat(result).isEqualTo("N/A");
-        verify(courseRepository).findByActiveTrue();
+        verify(courseRepository).findByActive(true);
     }
 } 

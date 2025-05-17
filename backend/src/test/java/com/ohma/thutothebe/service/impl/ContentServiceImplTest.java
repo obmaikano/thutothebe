@@ -2,10 +2,7 @@ package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.ContentDTO;
 import com.ohma.thutothebe.dto.CourseDTO;
-import com.ohma.thutothebe.entity.Content;
-import com.ohma.thutothebe.entity.ContentType;
-import com.ohma.thutothebe.entity.Course;
-import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.entity.*;
 import com.ohma.thutothebe.exception.ContentNotFoundException;
 import com.ohma.thutothebe.mapper.ContentMapper;
 import com.ohma.thutothebe.mapper.CourseMapper;
@@ -22,6 +19,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -86,13 +85,15 @@ class ContentServiceImplTest {
 
         courseDTO = new CourseDTO(
             1L,
+            "TEST101",
             "Test Course",
-            "Test Description",
-            "Test Code",
-            1L,
-            Set.of(1L),
-            true,
-                1L
+            1L,             // subjectId
+            1L,             // classId
+            Term.FIRST_TERM,
+            2023,           // year
+            true,           // active
+                CourseType.CORE,
+            new HashSet<>(Arrays.asList(1L)) // instructorIds
         );
     }
 

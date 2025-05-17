@@ -104,10 +104,7 @@ class ContentIntegrationTest {
             // Create test course
             Course course = new Course();
             course.setName("Test Course");
-            course.setDescription("Test Description");
             course.setCode(courseCode);
-            course.setTeacher(user);
-            course.setVersion(1L);
             course.setActive(true);
             course = courseRepository.save(course);
             courseId = course.getId();

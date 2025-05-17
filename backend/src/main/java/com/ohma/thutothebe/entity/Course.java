@@ -41,6 +41,10 @@ public class Course extends BaseEntity {
 
     @Column(nullable = false)
     private boolean active = true;
+    
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private CourseType type = CourseType.CORE;
 
     @OneToMany(mappedBy = "course")
     private Set<CourseInstructor> courseInstructors = new HashSet<>();

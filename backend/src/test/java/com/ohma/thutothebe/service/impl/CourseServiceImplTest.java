@@ -1,12 +1,13 @@
 package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.CourseDTO;
-import com.ohma.thutothebe.entity.Class;
 import com.ohma.thutothebe.entity.Course;
 import com.ohma.thutothebe.entity.CourseInstructor;
+import com.ohma.thutothebe.entity.CourseType;
 import com.ohma.thutothebe.entity.Subject;
 import com.ohma.thutothebe.entity.Teacher;
 import com.ohma.thutothebe.entity.Term;
+import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.CourseMapper;
 import com.ohma.thutothebe.repository.ClassRepository;
@@ -14,6 +15,7 @@ import com.ohma.thutothebe.repository.CourseInstructorRepository;
 import com.ohma.thutothebe.repository.CourseRepository;
 import com.ohma.thutothebe.repository.SubjectRepository;
 import com.ohma.thutothebe.repository.TeacherRepository;
+import com.ohma.thutothebe.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,9 @@ class CourseServiceImplTest {
     private TeacherRepository teacherRepository;
 
     @Mock
+    private UserRepository userRepository;
+
+    @Mock
     private CourseInstructorRepository courseInstructorRepository;
 
     @Mock
@@ -60,8 +65,9 @@ class CourseServiceImplTest {
     private Course course;
     private CourseDTO courseDTO;
     private Subject subject;
-    private Class classEntity;
+    private com.ohma.thutothebe.entity.Class classEntity;
     private Teacher teacher;
+    private User user;
     private CourseInstructor courseInstructor;
 
     @BeforeEach
@@ -72,7 +78,7 @@ class CourseServiceImplTest {
         subject.setCode("MATH");
         subject.setName("Mathematics");
         
-        classEntity = new Class();
+        classEntity = new com.ohma.thutothebe.entity.Class();
         classEntity.setId(1L);
         classEntity.setName("Class 1A");
         
@@ -81,6 +87,9 @@ class CourseServiceImplTest {
         teacher.setStaffId("TCH001");
         teacher.setFirstName("John");
         teacher.setLastName("Doe");
+        
+        user = new User();
+        user.setId(1L);
         
         course = new Course();
         course.setId(1L);
@@ -91,6 +100,7 @@ class CourseServiceImplTest {
         course.setTerm(Term.FIRST_TERM);
         course.setYear(2023);
         course.setActive(true);
+        course.setType(CourseType.CORE);
         
         courseInstructor = new CourseInstructor();
         courseInstructor.setId(1L);
@@ -110,6 +120,7 @@ class CourseServiceImplTest {
                 Term.FIRST_TERM,
                 2023,
                 true,
+                CourseType.CORE,
                 instructorIds
         );
     }
@@ -163,6 +174,26 @@ class CourseServiceImplTest {
     @Test
     @DisplayName("Test getCoursesBySubjectId")
     void getCoursesBySubjectId_ShouldReturnCourses() {
+        // Arrange
+        List<Course> courses = Arrays.asList(course);
+        when(subjectRepository.findById(anyLong())).thenReturn(Optional.of(subject));
+        when(courseRepository.findBySubject(any(Subject.class))).thenReturn(courses);
+        when(courseMapper.toDto(any(Course.class))).thenReturn(courseDTO);
+
+        // Act
+        List<CourseDTO> result = courseService.getCoursesBySubjectId(1L);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("MATH101", result.get(0).code());
+        verify(subjectRepository, times(1)).findById(1L);
+        verify(courseRepository, times(1)).findBySubject(any(Subject.class));
+    }
+
+    @Test
+    @DisplayName("Test getActiveCoursesbySubjectId")
+    void getActiveCoursesbySubjectId_ShouldReturnActiveCourses() {
         // Arrange
         List<Course> courses = Arrays.asList(course);
         when(courseRepository.findBySubjectIdAndActive(anyLong(), anyBoolean())).thenReturn(courses);
@@ -497,5 +528,24 @@ class CourseServiceImplTest {
         // Assert
         assertFalse(result);
         verify(courseRepository, times(1)).existsByCode("NONEXISTENT");
+    }
+
+    @Test
+    @DisplayName("Test getCoursesByType")
+    void getCoursesByType_ShouldReturnCourses() {
+        // Arrange
+        List<Course> courses = Arrays.asList(course);
+        when(courseRepository.findByType(any(CourseType.class))).thenReturn(courses);
+        when(courseMapper.toDto(any(Course.class))).thenReturn(courseDTO);
+
+        // Act
+        List<CourseDTO> result = courseService.getCoursesByType(CourseType.CORE);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("MATH101", result.get(0).code());
+        assertEquals(CourseType.CORE, result.get(0).type());
+        verify(courseRepository, times(1)).findByType(CourseType.CORE);
     }
 } 
