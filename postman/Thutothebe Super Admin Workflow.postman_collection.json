@@ -23,7 +23,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"email\": \"admin@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SUPER_ADMIN\"\n}"
+							"raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"email\": \"admin@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SUPER_ADMIN\",\n  \"person\": {\n    \"firstName\": \"Admin\",\n    \"surname\": \"User\",\n    \"gender\": \"MALE\",\n    \"nationality\": \"CITIZEN\",\n    \"dateOfBirth\": \"1980-01-01\",\n    \"identityNumber\": \"1234567890\"\n  }\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -237,7 +237,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Sarah\",\n  \"lastName\": \"Molefe\",\n  \"email\": \"sarah.molefe@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SCHOOL_ADMIN\",\n  \"schoolId\": 1\n}"
+							"raw": "{\n  \"firstName\": \"Sarah\",\n  \"lastName\": \"Molefe\",\n  \"email\": \"sarah.molefe@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SCHOOL_ADMIN\",\n  \"schoolId\": 1,\n  \"person\": {\n    \"firstName\": \"Sarah\",\n    \"surname\": \"Molefe\",\n    \"gender\": \"FEMALE\",\n    \"nationality\": \"CITIZEN\",\n    \"dateOfBirth\": \"1985-05-15\",\n    \"identityNumber\": \"2345678901\"\n  }\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -269,7 +269,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Dube\",\n  \"email\": \"john.dube@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"TEACHER\",\n  \"schoolId\": 1\n}"
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Dube\",\n  \"email\": \"john.dube@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"TEACHER\",\n  \"schoolId\": 1,\n  \"person\": {\n    \"firstName\": \"John\",\n    \"surname\": \"Dube\",\n    \"gender\": \"MALE\",\n    \"nationality\": \"CITIZEN\",\n    \"dateOfBirth\": \"1990-03-20\",\n    \"identityNumber\": \"3456789012\",\n    \"qualification\": \"BSc in Mathematics\"\n  }\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -301,7 +301,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": 1\n}"
+							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": 1,\n  \"surname\": \"Kgosi\",\n  \"gender\": \"MALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"2007-08-10\",\n  \"birthCertificateNumber\": \"BC123456\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -313,7 +313,7 @@
 								"register"
 							]
 						},
-						"description": "Register a student in the school"
+						"description": "Register a student in the school. Student ID will be automatically generated in format STU-YYYY-NNNN (e.g., STU-2024-0001)"
 					},
 					"response": []
 				},
@@ -333,7 +333,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Mpho\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"mpho.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"PARENT\"\n}"
+							"raw": "{\n  \"firstName\": \"Mpho\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"mpho.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"PARENT\",\n  \"person\": {\n    \"firstName\": \"Mpho\",\n    \"surname\": \"Kgosi\",\n    \"gender\": \"FEMALE\",\n    \"nationality\": \"CITIZEN\",\n    \"dateOfBirth\": \"1982-11-25\",\n    \"identityNumber\": \"4567890123\"\n  }\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -365,7 +365,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": 1,\n  \"parentId\": 5\n}"
+							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": 1,\n  \"parentId\": 5,\n  \"surname\": \"Kgosi\",\n  \"gender\": \"MALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"2007-08-10\",\n  \"birthCertificateNumber\": \"BC123456\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/users/4",
@@ -377,7 +377,7 @@
 								"4"
 							]
 						},
-						"description": "Associate a student with their parent"
+						"description": "Associate a student with their parent. Student ID format: STU-YYYY-NNNN"
 					},
 					"response": []
 				}

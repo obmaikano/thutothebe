@@ -2,6 +2,7 @@ package com.ohma.thutothebe.mapper;
 
 import com.ohma.thutothebe.dto.UserDTO;
 import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.entity.Person;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,14 +19,27 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
     public UserDTO toDto(User entity) {
         if (entity == null) return null;
 
-        return new UserDTO(
-            entity.getId(),
-            entity.getFirstName(),
-            entity.getLastName(),
-            entity.getEmail(),
-            entity.getPassword(),
-            entity.getRole()
-        );
+        UserDTO dto = new UserDTO();
+        dto.setId(entity.getId());
+        dto.setFirstName(entity.getFirstName());
+        dto.setLastName(entity.getLastName());
+        dto.setEmail(entity.getEmail());
+        dto.setPassword(entity.getPassword());
+        dto.setRole(entity.getRole());
+        dto.setSchoolId(entity.getSchool() != null ? entity.getSchool().getId() : null);
+
+        if (entity.getPerson() != null) {
+            Person person = entity.getPerson();
+            dto.setSurname(person.getSurname());
+            dto.setGender(person.getGender());
+            dto.setNationality(person.getNationality());
+            dto.setDateOfBirth(person.getDateOfBirth());
+            dto.setIdentityNumber(person.getIdentityNumber());
+            dto.setBirthCertificateNumber(person.getBirthCertificateNumber());
+            dto.setQualification(person.getQualification());
+        }
+
+        return dto;
     }
 
     @Override
@@ -38,12 +52,28 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
     }
 
     public void updateEntity(User entity, UserDTO dto) {
-        entity.setFirstName(dto.firstName());
-        entity.setLastName(dto.lastName());
-        entity.setEmail(dto.email());
-        entity.setPassword(dto.password());
-        entity.setRole(dto.role());
-        entity.setUsername(dto.email());
+        entity.setFirstName(dto.getFirstName());
+        entity.setLastName(dto.getLastName());
+        entity.setEmail(dto.getEmail());
+        entity.setPassword(dto.getPassword());
+        entity.setRole(dto.getRole());
+        entity.setUsername(dto.getEmail());
+
+        // Create or update Person entity
+        Person person = entity.getPerson();
+        if (person == null) {
+            person = new Person();
+            entity.setPerson(person);
+        }
+
+        person.setFirstName(dto.getFirstName());
+        person.setSurname(dto.getSurname());
+        person.setGender(dto.getGender());
+        person.setNationality(dto.getNationality());
+        person.setDateOfBirth(dto.getDateOfBirth());
+        person.setIdentityNumber(dto.getIdentityNumber());
+        person.setBirthCertificateNumber(dto.getBirthCertificateNumber());
+        person.setQualification(dto.getQualification());
     }
 
     /**

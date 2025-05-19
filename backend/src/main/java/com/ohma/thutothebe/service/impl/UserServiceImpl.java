@@ -24,6 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -65,7 +67,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
     @Override
     protected User mapToEntity(UserDTO dto) {
         User user = userMapper.toEntity(dto);
-        user.setPassword(passwordEncoder.encode(dto.password()));
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         return user;
     }
 
@@ -77,27 +79,63 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
     @Override
     protected void updateEntity(User entity, UserDTO dto) {
         userMapper.updateEntityFromDto(entity, dto);
-        if (dto.password() != null && !dto.password().isEmpty()) {
-            entity.setPassword(passwordEncoder.encode(dto.password()));
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            entity.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
     }
 
     @Override
     @Transactional
     public UserDTO create(UserDTO dto) {
+        // Validate person information based on role and age
+        validatePersonInformation(dto);
+
         User user = mapToEntity(dto);
         beforeCreate(user);
         User savedUser = userRepository.save(user);
         UserDTO userDTO = mapToDto(savedUser);
         
         // Handle role-specific entity creation/linking
-        if (dto.role() == UserRole.TEACHER) {
+        if (dto.getRole() == UserRole.TEACHER) {
             handleTeacherRoleForUser(savedUser);
-        } else if (dto.role() == UserRole.STUDENT) {
+        } else if (dto.getRole() == UserRole.STUDENT) {
             handleStudentRoleForUser(savedUser);
         }
         
         return userDTO;
+    }
+
+    private void validatePersonInformation(UserDTO dto) {
+        // Calculate age
+        int age = Period.between(dto.getDateOfBirth(), LocalDate.now()).getYears();
+
+        // Validate based on role and age
+        switch (dto.getRole()) {
+            case STUDENT:
+                break;
+            case TEACHER:
+            case SCHOOL_ADMIN:
+            case SUPER_ADMIN:
+                if (age < 18) {
+                    throw new IllegalArgumentException("Teachers and administrators must be 18 years or older");
+                }
+                if (dto.getIdentityNumber() == null || dto.getIdentityNumber().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Identity number is required for teachers and administrators");
+                }
+                if (dto.getRole() == UserRole.TEACHER && (dto.getQualification() == null || dto.getQualification().trim().isEmpty())) {
+                    throw new IllegalArgumentException("Qualification is required for teachers");
+                }
+                break;
+
+            case PARENT:
+                if (age < 18) {
+                    throw new IllegalArgumentException("Parents must be 18 years or older");
+                }
+                if (dto.getIdentityNumber() == null || dto.getIdentityNumber().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Identity number is required for parents");
+                }
+                break;
+        }
     }
 
     private void handleTeacherRoleForUser(User user) {
@@ -123,7 +161,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
                         user.getFirstName(),
                         user.getLastName(),
                         user.getEmail(),
-                        null, // qualification
+                        user.getPerson().getQualification(),
                         user.getSchool().getId(),
                         user.getId(),
                         true
@@ -171,15 +209,16 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
         }
     }
 
-
     private String generateStaffId() {
-        // Generate a unique staff ID
         return "STF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
     
     private String generateStudentId() {
-        // Generate a unique student ID
-        return "STU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        int currentYear = LocalDate.now().getYear();
+        // Get count of students enrolled this year
+        long studentCount = studentRepository.countByEnrollmentYear(currentYear);
+        // Format with leading zeros to ensure 4 digits
+        return String.format("STU-%d-%04d", currentYear, studentCount + 1);
     }
 
     @Override
@@ -211,13 +250,8 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
     @Override
     public void updatePassword(Long userId, String newPassword) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> UserNotFoundException.withId(userId));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-    }
-
-    @Override
-    protected RuntimeException notFoundException(Long id) {
-        return UserNotFoundException.withId(id);
     }
 } 

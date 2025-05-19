@@ -2,6 +2,8 @@ package com.ohma.thutothebe.repository;
 
 import com.ohma.thutothebe.entity.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,4 +25,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     boolean existsByStudentId(String studentId);
     
     boolean existsByEmail(String email);
+    
+    @Query("SELECT COUNT(s) FROM Student s WHERE EXTRACT(YEAR FROM s.createdAt) = :year")
+    long countByEnrollmentYear(@Param("year") int year);
 } 

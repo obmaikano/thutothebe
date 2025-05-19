@@ -1,44 +1,60 @@
 package com.ohma.thutothebe.dto;
 
-import com.ohma.thutothebe.entity.UserRole;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import com.ohma.thutothebe.enums.Gender;
+import com.ohma.thutothebe.enums.Nationality;
+import com.ohma.thutothebe.enums.UserRole;
+import jakarta.validation.constraints.*;
+import lombok.Data;
 
-public record UserDTO(
-    Long id,
-    
+import java.time.LocalDate;
+
+@Data
+public class UserDTO {
+    private Long id;
+
     @NotBlank(message = "First name is required")
     @Size(min = 2, max = 50, message = "First name must be between 2 and 50 characters")
-    String firstName,
-    
+    private String firstName;
+
     @NotBlank(message = "Last name is required")
     @Size(min = 2, max = 50, message = "Last name must be between 2 and 50 characters")
-    String lastName,
-    
+    private String lastName;
+
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
-    String email,
-    
+    private String email;
+
     @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
-    String password,
-    
+    @Size(min = 8, message = "Password must be at least 8 characters")
+    private String password;
+
     @NotNull(message = "Role is required")
-    UserRole role,
-    
-    @NotNull(message = "School ID is required for teachers and students")
-    Long schoolId
-) {
-    public UserDTO {
-        if (firstName != null) firstName = firstName.trim();
-        if (lastName != null) lastName = lastName.trim();
-        if (email != null) email = email.trim();
-        
-        // Validate school ID is provided for teachers and students
-        if ((role == UserRole.TEACHER || role == UserRole.STUDENT) && schoolId == null) {
-            throw new IllegalArgumentException("School ID is required for teachers and students");
-        }
-    }
+    private UserRole role;
+
+    private Long schoolId;
+
+    // Person fields
+    @NotBlank(message = "Surname is required")
+    @Size(min = 2, max = 50, message = "Surname must be between 2 and 50 characters")
+    private String surname;
+
+    @NotNull(message = "Gender is required")
+    private Gender gender;
+
+    @NotNull(message = "Nationality is required")
+    private Nationality nationality;
+
+    @NotNull(message = "Date of birth is required")
+    @Past(message = "Date of birth must be in the past")
+    private LocalDate dateOfBirth;
+
+    // Identity document fields - one of these must be provided based on age
+    private String identityNumber;
+    private String birthCertificateNumber;
+
+    // Additional fields for teachers
+    private String qualification;
+
+    // Additional fields for students
+    private Long parentId;
 } 
