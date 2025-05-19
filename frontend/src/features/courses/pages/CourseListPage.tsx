@@ -4,21 +4,22 @@ import { Search, Plus, Filter, ArrowUpDown } from 'lucide-react';
 import { useCourses } from '../hooks';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { Course } from '../../../api/services/courseApi';
 
-type SortField = 'name' | 'code' | 'department' | 'startDate' | 'credits';
+type SortField = 'name' | 'code' | 'term' | 'year' | 'type';
 type SortOrder = 'asc' | 'desc';
 
 const CourseListPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterDepartment, setFilterDepartment] = useState('');
+  const [filterType, setFilterType] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   
-  const { courses, loading, error, fetchCourses } = useCourses();
+  const { courses, loading, error, getCourses } = useCourses();
   
   useEffect(() => {
-    fetchCourses({ searchTerm, department: filterDepartment, sortField, sortOrder });
-  }, [fetchCourses, searchTerm, filterDepartment, sortField, sortOrder]);
+    getCourses();
+  }, [getCourses]);
   
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -29,20 +30,30 @@ const CourseListPage: React.FC = () => {
     }
   };
   
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'upcoming':
-        return 'bg-blue-100 text-blue-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusColor = (active: boolean) => {
+    return active 
+      ? 'bg-green-100 text-green-800' 
+      : 'bg-gray-100 text-gray-800';
   };
+
+  const filteredCourses = Array.isArray(courses) 
+    ? courses.filter(course => 
+        course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.code.toLowerCase().includes(searchTerm.toLowerCase()))
+      .filter(course => !filterType || course.type === filterType)
+      .sort((a, b) => {
+        const valueA = a[sortField];
+        const valueB = b[sortField];
+        
+        if (valueA < valueB) {
+          return sortOrder === 'asc' ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return sortOrder === 'asc' ? 1 : -1;
+        }
+        return 0;
+      })
+    : [];
   
   return (
     <div className="p-6">
@@ -72,16 +83,13 @@ const CourseListPage: React.FC = () => {
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <select
-              value={filterDepartment}
-              onChange={(e) => setFilterDepartment(e.target.value)}
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
               className="pl-10 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
-              <option value="">All Departments</option>
-              <option value="Mathematics">Mathematics</option>
-              <option value="Science">Science</option>
-              <option value="English">English</option>
-              <option value="History">History</option>
-              <option value="Computer Science">Computer Science</option>
+              <option value="">All Types</option>
+              <option value="CORE">Core</option>
+              <option value="ELECTIVE">Elective</option>
             </select>
           </div>
         </div>
@@ -91,7 +99,7 @@ const CourseListPage: React.FC = () => {
         <div className="flex justify-center p-8">Loading courses...</div>
       ) : error ? (
         <div className="text-red-500 p-4">Error: {error}</div>
-      ) : courses?.length === 0 ? (
+      ) : !filteredCourses || filteredCourses.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <p className="text-gray-500 mb-4">No courses found</p>
           <Link to="/courses/new">
@@ -134,11 +142,11 @@ const CourseListPage: React.FC = () => {
                   <th 
                     scope="col" 
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('department')}
+                    onClick={() => handleSort('term')}
                   >
                     <div className="flex items-center">
-                      Department
-                      {sortField === 'department' && (
+                      Term
+                      {sortField === 'term' && (
                         <ArrowUpDown className="w-4 h-4 ml-1" />
                       )}
                     </div>
@@ -146,11 +154,11 @@ const CourseListPage: React.FC = () => {
                   <th 
                     scope="col" 
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('startDate')}
+                    onClick={() => handleSort('year')}
                   >
                     <div className="flex items-center">
-                      Start Date
-                      {sortField === 'startDate' && (
+                      Year
+                      {sortField === 'year' && (
                         <ArrowUpDown className="w-4 h-4 ml-1" />
                       )}
                     </div>
@@ -158,11 +166,11 @@ const CourseListPage: React.FC = () => {
                   <th 
                     scope="col" 
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('credits')}
+                    onClick={() => handleSort('type')}
                   >
                     <div className="flex items-center">
-                      Credits
-                      {sortField === 'credits' && (
+                      Type
+                      {sortField === 'type' && (
                         <ArrowUpDown className="w-4 h-4 ml-1" />
                       )}
                     </div>
@@ -182,7 +190,7 @@ const CourseListPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {courses?.map((course) => (
+                {filteredCourses.map((course: Course) => (
                   <tr key={course.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900">
@@ -195,17 +203,17 @@ const CourseListPage: React.FC = () => {
                       {course.code}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {course.department}
+                      {course.term}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(course.startDate).toLocaleDateString()}
+                      {course.year}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {course.credits}
+                      {course.type}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(course.status)}`}>
-                        {course.status}
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(course.active)}`}>
+                        {course.active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

@@ -2,10 +2,13 @@ package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.TeacherDTO;
 import com.ohma.thutothebe.entity.Teacher;
+import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.TeacherMapper;
 import com.ohma.thutothebe.repository.CourseInstructorRepository;
+import com.ohma.thutothebe.repository.SchoolRepository;
 import com.ohma.thutothebe.repository.TeacherRepository;
+import com.ohma.thutothebe.repository.UserRepository;
 import com.ohma.thutothebe.service.TeacherService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,16 +23,22 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
     private final TeacherRepository teacherRepository;
     private final CourseInstructorRepository courseInstructorRepository;
     private final TeacherMapper teacherMapper;
+    private final SchoolRepository schoolRepository;
+    private final UserRepository userRepository;
 
     @Autowired
     public TeacherServiceImpl(
             TeacherRepository teacherRepository,
             CourseInstructorRepository courseInstructorRepository,
-            TeacherMapper teacherMapper) {
+            TeacherMapper teacherMapper,
+            SchoolRepository schoolRepository,
+            UserRepository userRepository) {
         super(teacherRepository);
         this.teacherRepository = teacherRepository;
         this.courseInstructorRepository = courseInstructorRepository;
         this.teacherMapper = teacherMapper;
+        this.schoolRepository = schoolRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -50,6 +59,16 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
         entity.setEmail(dto.email());
         entity.setQualification(dto.qualification());
         entity.setActive(dto.active());
+        
+        if (dto.schoolId() != null && (entity.getSchool() == null || !entity.getSchool().getId().equals(dto.schoolId()))) {
+            schoolRepository.findById(dto.schoolId())
+                .ifPresent(entity::setSchool);
+        }
+        
+        if (dto.userId() != null && (entity.getUser() == null || !entity.getUser().getId().equals(dto.userId()))) {
+            userRepository.findById(dto.userId())
+                .ifPresent(entity::setUser);
+        }
     }
 
     @Override
@@ -156,5 +175,36 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
         return courseInstructorRepository.findByCourseId(courseId).stream()
             .map(ci -> teacherMapper.toDto(ci.getTeacher()))
             .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TeacherDTO getTeacherByUserId(Long userId) {
+        return teacherRepository.findByUser_Id(userId)
+            .map(teacherMapper::toDto)
+            .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with user ID: " + userId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TeacherDTO> getTeachersBySchoolId(Long schoolId) {
+        return teacherRepository.findBySchool_Id(schoolId).stream()
+            .map(teacherMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public TeacherDTO linkToUser(Long teacherId, Long userId) {
+        Teacher teacher = teacherRepository.findById(teacherId)
+            .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + teacherId));
+        
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        
+        teacher.setUser(user);
+        Teacher savedTeacher = teacherRepository.save(teacher);
+        
+        return teacherMapper.toDto(savedTeacher);
     }
 } 

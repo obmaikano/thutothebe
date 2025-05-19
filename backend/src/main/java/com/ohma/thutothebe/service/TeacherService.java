@@ -10,7 +10,11 @@ public interface TeacherService extends BaseService<TeacherDTO, Long> {
     
     TeacherDTO getTeacherByEmail(String email);
     
+    TeacherDTO getTeacherByUserId(Long userId);
+    
     List<TeacherDTO> getActiveTeachers();
+    
+    List<TeacherDTO> getTeachersBySchoolId(Long schoolId);
     
     TeacherDTO createTeacher(TeacherDTO teacherDTO);
     
@@ -27,4 +31,6 @@ public interface TeacherService extends BaseService<TeacherDTO, Long> {
     boolean existsByEmail(String email);
     
     List<TeacherDTO> getTeachersByCourseId(Long courseId);
+    
+    TeacherDTO linkToUser(Long teacherId, Long userId);
 } 

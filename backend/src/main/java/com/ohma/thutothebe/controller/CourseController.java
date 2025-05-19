@@ -18,7 +18,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/courses")
+@RequestMapping("/courses")
 @Tag(name = "Course Management", description = "APIs for managing courses")
 public class CourseController extends BaseController<CourseDTO, Long> {
 
@@ -198,50 +198,6 @@ public class CourseController extends BaseController<CourseDTO, Long> {
         }
     }
 
-    @PostMapping
-    @Operation(summary = "Create a new course")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<CourseDTO>> createCourse(@Valid @RequestBody CourseDTO courseDTO) {
-        try {
-            CourseDTO created = courseService.createCourse(courseDTO);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course created successfully", created, null));
-        } catch (Exception e) {
-            log.error("Error creating course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Update an existing course")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<CourseDTO>> updateCourse(
-            @PathVariable Long id,
-            @Valid @RequestBody CourseDTO courseDTO) {
-        try {
-            CourseDTO updated = courseService.updateCourse(id, courseDTO);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course updated successfully", updated, null));
-        } catch (Exception e) {
-            log.error("Error updating course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a course")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<Void>> deleteCourse(@PathVariable Long id) {
-        try {
-            courseService.deleteCourse(id);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course deleted successfully", null, null));
-        } catch (Exception e) {
-            log.error("Error deleting course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
     @PostMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate a course")
     @PreAuthorize("hasRole('ADMIN')")
@@ -272,7 +228,6 @@ public class CourseController extends BaseController<CourseDTO, Long> {
     
     @PostMapping("/{courseId}/teacher/{teacherId}")
     @Operation(summary = "Add a teacher to a course")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> addTeacherToCourse(
             @PathVariable Long courseId,
             @PathVariable Long teacherId,

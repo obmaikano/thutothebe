@@ -1,67 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { 
   Calendar, Award, User, BookOpen, Clock, 
   ArrowLeft, Edit, Trash2, ExternalLink, 
   Users, AlertTriangle, Book
 } from 'lucide-react';
-import { useCourseDetails, useCourses } from '../hooks';
+import { useCourseDetails } from '../hooks';
 import { Button } from '../../../components/common/Button';
-import { useAppDispatch } from '../../../app/hooks';
-import { deleteCourse } from '../coursesSlice';
+import { Course } from '../../../api/services/courseApi';
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { course, loading, error } = useCourseDetails(id || '');
-  const { removeCourse } = useCourses();
+  const { course, loading, error, fetchCourseDetails, deleteCourse } = useCourseDetails(parseInt(id || '0', 10));
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Format date to a more readable format
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  useEffect(() => {
+    fetchCourseDetails();
+  }, [fetchCourseDetails]);
 
-  // Get status badge color
-  const getStatusColor = (status?: string) => {
-    if (!status) return 'bg-gray-100 text-gray-800';
-    
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
-      case 'upcoming':
-        return 'bg-blue-100 text-blue-800';
-      case 'completed':
-        return 'bg-purple-100 text-purple-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusColor = (active: boolean) => {
+    return active 
+      ? 'bg-green-100 text-green-800' 
+      : 'bg-gray-100 text-gray-800';
   };
 
   const handleDelete = async () => {
     if (!course) return;
     
-    if (window.confirm(`Are you sure you want to delete the course "${course.name}"?`)) {
-      setIsDeleting(true);
-      try {
-        await dispatch(deleteCourse(course.id)).unwrap();
-        navigate('/app/courses');
-      } catch (error) {
-        console.error('Error deleting course:', error);
-        setIsDeleting(false);
-        setShowDeleteConfirm(false);
-      }
+    setIsDeleting(true);
+    try {
+      await deleteCourse();
+      navigate('/app/courses');
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -142,8 +117,8 @@ const CourseDetailPage: React.FC = () => {
               <div className="flex items-center space-x-2 mt-1">
                 <span className="text-gray-500 text-sm">{course.code}</span>
                 <span className="text-gray-300">•</span>
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(course.status)}`}>
-                  {course.status}
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(course.active)}`}>
+                  {course.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
@@ -174,28 +149,30 @@ const CourseDetailPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="md:col-span-2 space-y-6">
-            {/* Description */}
+            {/* Description - Generic info section */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Description</h2>
-              <p className="text-gray-700 whitespace-pre-line">{course.description}</p>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Course Information</h2>
+              <p className="text-gray-700">
+                This is a {course.type.toLowerCase()} course for the {course.term.toLowerCase()} term of {course.year}.
+              </p>
             </div>
             
-            {/* Schedule */}
+            {/* Class & Subject Info */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Schedule</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Academic Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start">
-                  <Calendar className="h-5 w-5 text-gray-400 mr-2" />
+                  <BookOpen className="h-5 w-5 text-gray-400 mr-2" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Start Date</p>
-                    <p className="text-gray-900">{formatDate(course.startDate)}</p>
+                    <p className="text-sm font-medium text-gray-500">Subject ID</p>
+                    <p className="text-gray-900">{course.subjectId}</p>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <Calendar className="h-5 w-5 text-gray-400 mr-2" />
+                  <Users className="h-5 w-5 text-gray-400 mr-2" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">End Date</p>
-                    <p className="text-gray-900">{formatDate(course.endDate)}</p>
+                    <p className="text-sm font-medium text-gray-500">Class ID</p>
+                    <p className="text-gray-900">{course.classId}</p>
                   </div>
                 </div>
               </div>
@@ -203,13 +180,21 @@ const CourseDetailPage: React.FC = () => {
             
             {/* Instructor Information */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Instructor</h2>
-              <div className="flex items-start">
-                <User className="h-5 w-5 text-gray-400 mr-2" />
-                <div>
-                  <p className="text-gray-900">{course.instructor}</p>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Instructors</h2>
+              {course.instructorIds && course.instructorIds.length > 0 ? (
+                <div className="space-y-4">
+                  {course.instructorIds.map(instructorId => (
+                    <div key={instructorId} className="flex items-start">
+                      <User className="h-5 w-5 text-gray-400 mr-2" />
+                      <div>
+                        <p className="text-gray-900">Instructor ID: {instructorId}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <p className="text-gray-500">No instructors assigned yet.</p>
+              )}
             </div>
           </div>
           
@@ -220,24 +205,24 @@ const CourseDetailPage: React.FC = () => {
               <h2 className="text-lg font-medium text-gray-900 mb-4">Course Details</h2>
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <BookOpen className="h-5 w-5 text-gray-400 mr-2" />
+                  <Calendar className="h-5 w-5 text-gray-400 mr-2" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Department</p>
-                    <p className="text-gray-900">{course.department}</p>
+                    <p className="text-sm font-medium text-gray-500">Term</p>
+                    <p className="text-gray-900">{course.term}</p>
                   </div>
                 </div>
                 <div className="flex items-start">
                   <Clock className="h-5 w-5 text-gray-400 mr-2" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Credits</p>
-                    <p className="text-gray-900">{course.credits}</p>
+                    <p className="text-sm font-medium text-gray-500">Year</p>
+                    <p className="text-gray-900">{course.year}</p>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <Users className="h-5 w-5 text-gray-400 mr-2" />
+                  <Award className="h-5 w-5 text-gray-400 mr-2" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Enrollment</p>
-                    <p className="text-gray-900">{course.enrollmentCount} students</p>
+                    <p className="text-sm font-medium text-gray-500">Type</p>
+                    <p className="text-gray-900">{course.type}</p>
                   </div>
                 </div>
               </div>

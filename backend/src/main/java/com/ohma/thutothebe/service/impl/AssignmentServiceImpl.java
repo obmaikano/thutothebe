@@ -110,8 +110,7 @@ public class AssignmentServiceImpl extends BaseServiceImpl<Assignment, Assignmen
     @Override
     @Transactional(readOnly = true)
     public List<AssignmentDTO> getByCourse(Long courseId) {
-        var courseDTO = courseService.getById(courseId);
-        var course = courseMapper.toEntity(courseDTO);
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
         return assignmentRepository.findByCourse(course).stream()
             .map(assignmentMapper::toDto)
             .collect(Collectors.toList());
@@ -136,8 +135,7 @@ public class AssignmentServiceImpl extends BaseServiceImpl<Assignment, Assignmen
     @Override
     @Transactional(readOnly = true)
     public List<AssignmentDTO> getActiveByCourse(Long courseId) {
-        var courseDTO = courseService.getById(courseId);
-        var course = courseMapper.toEntity(courseDTO);
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
         return assignmentRepository.findActiveByCourse(course).stream()
             .map(assignmentMapper::toDto)
             .collect(Collectors.toList());

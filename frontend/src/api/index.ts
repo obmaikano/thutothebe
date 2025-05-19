@@ -3,8 +3,8 @@ import { getToken } from '../features/auth/authUtils';
 
 // Use import.meta.env for Vite or set a default URL
 const baseURL = typeof import.meta !== 'undefined' 
-  ? import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
-  : 'http://localhost:5000/api';
+  ? import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'
+  : 'http://localhost:8080/api/v1';
 
 export const api = axios.create({
   baseURL,

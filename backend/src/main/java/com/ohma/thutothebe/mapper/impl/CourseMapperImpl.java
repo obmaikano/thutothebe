@@ -5,7 +5,9 @@ import com.ohma.thutothebe.entity.Course;
 import com.ohma.thutothebe.entity.Subject;
 import com.ohma.thutothebe.entity.Class;
 import com.ohma.thutothebe.mapper.CourseMapper;
+import com.ohma.thutothebe.repository.ClassRepository;
 import com.ohma.thutothebe.repository.CourseInstructorRepository;
+import com.ohma.thutothebe.repository.SubjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,9 +19,14 @@ public class CourseMapperImpl implements CourseMapper {
 
     private final CourseInstructorRepository courseInstructorRepository;
 
+    private final SubjectRepository subjectRepository;
+    private final ClassRepository classRepository;
+
     @Autowired
-    public CourseMapperImpl(CourseInstructorRepository courseInstructorRepository) {
+    public CourseMapperImpl(CourseInstructorRepository courseInstructorRepository, SubjectRepository subjectRepository, ClassRepository classRepository) {
         this.courseInstructorRepository = courseInstructorRepository;
+        this.subjectRepository = subjectRepository;
+        this.classRepository = classRepository;
     }
 
     @Override
@@ -36,18 +43,9 @@ public class CourseMapperImpl implements CourseMapper {
         course.setTerm(dto.term());
         course.setActive(dto.active());
         course.setType(dto.type());
-        
-        if (dto.subjectId() != null) {
-            Subject subject = new Subject();
-            subject.setId(dto.subjectId());
-            course.setSubject(subject);
-        }
-        
-        if (dto.classId() != null) {
-            Class classEntity = new Class();
-            classEntity.setId(dto.classId());
-            course.setClassEntity(classEntity);
-        }
+
+        course.setSubject(dto.subjectId() != null ? subjectRepository.findById(dto.subjectId()).get() : null);
+        course.setClassEntity(dto.classId() != null ? classRepository.findById(dto.classId()).get() : null);
         
         return course;
     }
@@ -77,7 +75,7 @@ public class CourseMapperImpl implements CourseMapper {
             instructorIds
         );
     }
-    
+
     @Override
     public void updateEntityFromDto(CourseDTO dto, Course course) {
         if (dto == null || course == null) {
@@ -91,16 +89,8 @@ public class CourseMapperImpl implements CourseMapper {
         course.setActive(dto.active());
         course.setType(dto.type());
         
-        if (dto.subjectId() != null) {
-            Subject subject = new Subject();
-            subject.setId(dto.subjectId());
-            course.setSubject(subject);
-        }
-        
-        if (dto.classId() != null) {
-            Class classEntity = new Class();
-            classEntity.setId(dto.classId());
-            course.setClassEntity(classEntity);
-        }
+        course.setSubject(dto.subjectId() != null ? subjectRepository.findById(dto.subjectId()).get() : null);
+        course.setClassEntity(dto.classId() != null ? classRepository.findById(dto.classId()).get() : null);
+
     }
 } 

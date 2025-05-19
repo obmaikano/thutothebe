@@ -16,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/subjects")
+@RequestMapping("/subjects")
 @Tag(name = "Subject Management", description = "APIs for managing academic subjects")
 public class SubjectController extends BaseController<SubjectDTO, Long> {
 
@@ -51,50 +51,6 @@ public class SubjectController extends BaseController<SubjectDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active subjects retrieved successfully", subjects, null));
         } catch (Exception e) {
             log.error("Error retrieving active subjects: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PostMapping
-    @Operation(summary = "Create a new subject")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<SubjectDTO>> createSubject(@Valid @RequestBody SubjectDTO subjectDTO) {
-        try {
-            SubjectDTO created = subjectService.createSubject(subjectDTO);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Subject created successfully", created, null));
-        } catch (Exception e) {
-            log.error("Error creating subject: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Update an existing subject")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<SubjectDTO>> updateSubject(
-            @PathVariable Long id,
-            @Valid @RequestBody SubjectDTO subjectDTO) {
-        try {
-            SubjectDTO updated = subjectService.updateSubject(id, subjectDTO);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Subject updated successfully", updated, null));
-        } catch (Exception e) {
-            log.error("Error updating subject: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a subject")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<Void>> deleteSubject(@PathVariable Long id) {
-        try {
-            subjectService.deleteSubject(id);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Subject deleted successfully", null, null));
-        } catch (Exception e) {
-            log.error("Error deleting subject: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

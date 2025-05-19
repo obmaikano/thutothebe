@@ -1,0 +1,24 @@
+-- -- Add school_id and user_id columns to teachers table
+-- ALTER TABLE teachers ADD COLUMN IF NOT EXISTS school_id BIGINT;
+-- ALTER TABLE teachers ADD COLUMN IF NOT EXISTS user_id BIGINT;
+--
+-- -- Add foreign key constraints
+-- ALTER TABLE teachers ADD CONSTRAINT fk_teachers_school FOREIGN KEY (school_id) REFERENCES schools (id);
+-- ALTER TABLE teachers ADD CONSTRAINT fk_teachers_user FOREIGN KEY (user_id) REFERENCES users (id);
+--
+-- -- Create students table
+-- CREATE TABLE IF NOT EXISTS students (
+--     id BIGSERIAL PRIMARY KEY,
+--     version BIGINT,
+--     student_id VARCHAR(20) NOT NULL UNIQUE,
+--     first_name VARCHAR(100) NOT NULL,
+--     last_name VARCHAR(100) NOT NULL,
+--     email VARCHAR(100) NOT NULL UNIQUE,
+--     school_id BIGINT,
+--     user_id BIGINT,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--
+--     FOREIGN KEY (school_id) REFERENCES schools(id),
+--     FOREIGN KEY (user_id) REFERENCES users(id)
+-- );

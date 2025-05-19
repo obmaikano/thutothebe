@@ -244,6 +244,7 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, CourseDTO, Long> 
             throw new IllegalArgumentException("Course with code " + courseDTO.code() + " already exists");
         }
         Course course = mapToEntity(courseDTO);
+        beforeCreate(course);
         Course savedCourse = courseRepository.save(course);
         return mapToDto(savedCourse);
     }

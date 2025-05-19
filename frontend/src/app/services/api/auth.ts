@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { config } from '../../config';
+import { getToken, setToken, clearToken, isTokenValid } from '../../../features/auth/authUtils';
 
 const API_URL = `${config.api.baseUrl}/auth`;
 
@@ -31,7 +32,7 @@ class AuthService {
 
     constructor() {
         // Initialize token from localStorage on service creation
-        this.token = localStorage.getItem('token');
+        this.token = getToken();
         
         // Set up axios interceptors
         this.setupInterceptors();
@@ -40,10 +41,45 @@ class AuthService {
     async login(loginRequest: LoginRequest): Promise<AuthResponse> {
         try {
             const response = await axios.post(`${API_URL}/login`, loginRequest);
-            // The backend wraps the actual data in response.data.data
-            const { token, user } = response.data.data;
-            this.setToken(token);
-            return { token, user };
+            
+            try {
+                // Handle different API response structures
+                let token, user;
+                
+                // Check for OhmaApiResponse format
+                if (response.data && response.data.status === 'SUCCESS') {
+                    if (response.data.data?.token && response.data.data?.user) {
+                        // Data directly contains token and user
+                        ({ token, user } = response.data.data);
+                    } else if (typeof response.data.data === 'string') {
+                        // Data might be just the token
+                        token = response.data.data;
+                        // In this case, we might need to fetch user info separately
+                        // For now, create a minimal user object
+                        user = { id: 0, email: loginRequest.email, role: 'USER' };
+                    } else {
+                        console.error('Unexpected API response format:', response.data);
+                        throw new Error('Invalid response format');
+                    }
+                } else if (response.data?.token) {
+                    // Direct response format
+                    ({ token, user } = response.data);
+                } else {
+                    console.error('Unexpected API response format:', response.data);
+                    throw new Error('Invalid response format');
+                }
+                
+                // Validate token before storing
+                if (token && typeof token === 'string') {
+                    this.setToken(token);
+                    return { token, user };
+                } else {
+                    throw new Error('Invalid token received from server');
+                }
+            } catch (parseError) {
+                console.error('Error parsing login response:', parseError, response.data);
+                throw new Error('Failed to process server response');
+            }
         } catch (error) {
             throw this.handleError(error);
         }
@@ -52,8 +88,15 @@ class AuthService {
     async register(registerRequest: RegisterRequest): Promise<AuthResponse> {
         try {
             const response = await axios.post<AuthResponse>(`${API_URL}/register`, registerRequest);
-            this.setToken(response.data.token);
-            return response.data;
+            
+            // Validate token before storing
+            const token = response.data.token;
+            if (token && typeof token === 'string') {
+                this.setToken(token);
+                return response.data;
+            } else {
+                throw new Error('Invalid token received from server');
+            }
         } catch (error) {
             throw this.handleError(error);
         }
@@ -61,20 +104,22 @@ class AuthService {
 
     logout(): void {
         this.token = null;
-        localStorage.removeItem('token');
+        clearToken();
     }
 
     getToken(): string | null {
-        return this.token || localStorage.getItem('token');
+        // First check the instance variable, then localStorage
+        return this.token || getToken();
     }
 
     isAuthenticated(): boolean {
-        return !!this.getToken();
+        const token = this.getToken();
+        return isTokenValid(token);
     }
 
     private setToken(token: string): void {
         this.token = token;
-        localStorage.setItem('token', token);
+        setToken(token);
     }
 
     private handleError(error: any): Error {

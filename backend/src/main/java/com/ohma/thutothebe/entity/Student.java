@@ -5,23 +5,19 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Data
 @Entity
-@Table(name = "teachers")
+@Table(name = "students")
 @EqualsAndHashCode(callSuper = true)
-public class Teacher extends BaseEntity {
+public class Student extends BaseEntity {
 
     @Column(unique = true, nullable = false, length = 20)
-    private String staffId;
+    private String studentId;
 
     @Column(nullable = false, length = 100)
     private String firstName;
@@ -32,20 +28,14 @@ public class Teacher extends BaseEntity {
     @Column(unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(length = 200)
-    private String qualification;
-    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "school_id", nullable = false)
     private School school;
-    
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
     @Column(nullable = false)
     private boolean active = true;
-
-    @OneToMany(mappedBy = "teacher")
-    private Set<CourseInstructor> courseInstructors = new HashSet<>();
 } 

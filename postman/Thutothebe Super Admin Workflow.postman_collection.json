@@ -1,0 +1,583 @@
+{
+	"info": {
+		"_postman_id": "4017ec92-df21-453d-9edc-6bc82b054d86",
+		"name": "Thutothebe Super Admin Workflow",
+		"description": "Complete workflow for a Super Admin to set up the Thutothebe education management system",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "22261394",
+		"_collection_link": "https://crimson-space-826975.postman.co/workspace/thuto~eb4cff9a-fba1-4913-b078-423b5630aaa9/collection/22261394-4017ec92-df21-453d-9edc-6bc82b054d86?action=share&source=collection_link&creator=22261394"
+	},
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Register Super Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"email\": \"admin@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SUPER_ADMIN\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register the initial Super Admin user"
+					},
+					"response": []
+				},
+				{
+					"name": "Login as Super Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"auth_token\", jsonData.data.token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@thutothebe.org\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login to get authentication token"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for Super Admin"
+		},
+		{
+			"name": "2. Setup Locations",
+			"item": [
+				{
+					"name": "Create Region",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"South East\",\n  \"code\": \"SE\",\n  \"description\": \"South East region of Botswana\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/regions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"regions"
+							]
+						},
+						"description": "Create a region where schools are located"
+					},
+					"response": []
+				},
+				{
+					"name": "Create School",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Gaborone Senior Secondary School\",\n  \"code\": \"GSSS\",\n  \"regionId\": 1,\n  \"address\": \"Plot 1234, Gaborone\",\n  \"phone\": \"+267 3900123\",\n  \"email\": \"gsss@gov.bw\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/schools",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"schools"
+							]
+						},
+						"description": "Create a school within a region"
+					},
+					"response": []
+				}
+			],
+			"description": "Setting up locations (regions and schools)"
+		},
+		{
+			"name": "3. Setup Academic Structure",
+			"item": [
+				{
+					"name": "Create Subject",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Mathematics\",\n  \"code\": \"MATH\",\n  \"description\": \"General Mathematics\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/subjects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subjects"
+							]
+						},
+						"description": "Create a subject to be taught"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Class",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Form 5A\",\n  \"code\": \"F5A\",\n  \"schoolId\": 1,\n  \"academicYear\": 2023,\n  \"capacity\": 35\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/classes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"classes"
+							]
+						},
+						"description": "Create a class within a school"
+					},
+					"response": []
+				}
+			],
+			"description": "Setting up academic structure (subjects and classes)"
+		},
+		{
+			"name": "4. User Management",
+			"item": [
+				{
+					"name": "Create School Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Sarah\",\n  \"lastName\": \"Molefe\",\n  \"email\": \"sarah.molefe@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SCHOOL_ADMIN\",\n  \"schoolId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Create a school administrator"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Teacher",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Dube\",\n  \"email\": \"john.dube@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"TEACHER\",\n  \"schoolId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a teacher in the school"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Student",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a student in the school"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Parent",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Mpho\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"mpho.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"PARENT\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a parent in the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Associate Student with Parent",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": 1,\n  \"parentId\": 5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/4",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"4"
+							]
+						},
+						"description": "Associate a student with their parent"
+					},
+					"response": []
+				}
+			],
+			"description": "Managing users (admins, teachers, students, parents)"
+		},
+		{
+			"name": "5. Course Management",
+			"item": [
+				{
+					"name": "Create Course",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Mathematics Form 5A\",\n  \"code\": \"MATH-F5A\",\n  \"subjectId\": 1,\n  \"classId\": 1,\n  \"term\": \"FIRST_TERM\",\n  \"year\": 2023,\n  \"type\": \"CORE\",\n  \"description\": \"Core mathematics course for Form 5A\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/courses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"courses"
+							]
+						},
+						"description": "Create a course for a subject in a class"
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Teacher to Course",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/courses/1/teacher/3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"courses",
+								"1",
+								"teacher",
+								"3"
+							]
+						},
+						"description": "Assign a teacher to a course"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Student to Class",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/classes/1/student/4",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"classes",
+								"1",
+								"student",
+								"4"
+							]
+						},
+						"description": "Add a student to a class"
+					},
+					"response": []
+				}
+			],
+			"description": "Managing courses, teachers, and students"
+		},
+		{
+			"name": "6. Academic Content",
+			"item": [
+				{
+					"name": "Create Assignment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Mid-Term Exam\",\n  \"description\": \"Comprehensive exam covering topics 1-5\",\n  \"courseId\": 1,\n  \"instructorId\": 3,\n  \"dueDate\": \"2023-09-15T14:00:00Z\",\n  \"totalPoints\": 100,\n  \"weightage\": 30\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/assignments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"assignments"
+							]
+						},
+						"description": "Create an assignment for a course"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Grade Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Exams\",\n  \"description\": \"Examination grades\",\n  \"courseId\": 1,\n  \"weight\": 70,\n  \"passingGrade\": 50\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/grade-categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"grade-categories"
+							]
+						},
+						"description": "Create a grade category for a course"
+					},
+					"response": []
+				}
+			],
+			"description": "Managing academic content (assignments and grading)"
+		}
+	],
+	"auth": {
+		"type": "bearer"
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api/v1",
+			"type": "string"
+		}
+	]
+}

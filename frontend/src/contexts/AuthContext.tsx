@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService, AuthResponse } from '../app/services/api/auth';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { setCredentials, logout } from '../features/auth/authSlice';
-import { useAuthError } from '../features/auth/hooks';
+import { getToken, isTokenValid } from '../features/auth/authUtils';
 
 interface AuthContextType {
     user: any | null;
@@ -20,8 +20,10 @@ interface AuthContextType {
     setAuthError: (message: string, type?: 'error' | 'warning' | 'info' | 'success') => void;
 }
 
+// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Hook to use the auth context
 export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (!context) {
@@ -35,57 +37,100 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const { error, setAuthError, clearError } = useAuthError();
-    const [loading, setLoading] = useState<boolean>(true);
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { user, token } = useAppSelector((state) => state.auth);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<AuthContextType['error']>(null);
 
-    // Check authentication status when component mounts
     useEffect(() => {
         const initAuth = async () => {
             await checkAuthStatus();
-            setLoading(false);
         };
-        
+
         initAuth();
     }, []);
 
-    // Periodically check token validity (e.g., every 5 minutes)
-    useEffect(() => {
-        if (!token) return;
-        
-        const interval = setInterval(() => {
-            checkAuthStatus().catch(() => handleLogout());
-        }, 5 * 60 * 1000); // 5 minutes
-        
-        return () => clearInterval(interval);
-    }, [token]);
+    const clearError = () => {
+        setError(null);
+    };
 
-    // Verify token and get user data
+    const setAuthError = (
+        message: string,
+        type: 'error' | 'warning' | 'info' | 'success' = 'error'
+    ) => {
+        setError({ message, type });
+    };
+
     const checkAuthStatus = async (): Promise<boolean> => {
-        const storedToken = localStorage.getItem('token');
+        const storedToken = getToken();
         
         if (!storedToken) {
             return false;
         }
         
+        // Validate token locally first
+        if (!isTokenValid(storedToken)) {
+            dispatch(logout());
+            return false;
+        }
+        
         try {
+            // Verify with server
             const response = await fetch('/api/auth/me', {
                 headers: { Authorization: `Bearer ${storedToken}` },
             });
             
             if (response.ok) {
-                const userData = await response.json();
-                dispatch(setCredentials({ user: userData, token: storedToken }));
-                return true;
+                try {
+                    const responseText = await response.text();
+                    
+                    // Check if the response is empty
+                    if (!responseText) {
+                        console.error('Empty response from /api/auth/me');
+                        dispatch(logout());
+                        return false;
+                    }
+                    
+                    try {
+                        // Try to parse the response as JSON
+                        const responseData = JSON.parse(responseText);
+                        
+                        // Check if response follows OhmaApiResponse structure
+                        let userData;
+                        if (responseData.status === 'SUCCESS' && responseData.data) {
+                            userData = responseData.data;
+                        } else {
+                            userData = responseData;
+                        }
+                        
+                        if (userData) {
+                            dispatch(setCredentials({ user: userData, token: storedToken }));
+                            return true;
+                        } else {
+                            console.error('Invalid user data format:', responseData);
+                            dispatch(logout());
+                            return false;
+                        }
+                    } catch (jsonError) {
+                        console.error('Error parsing user data JSON:', jsonError);
+                        console.log('Raw response:', responseText);
+                        dispatch(logout());
+                        return false;
+                    }
+                } catch (parseError) {
+                    console.error('Error reading response text:', parseError);
+                    dispatch(logout());
+                    return false;
+                }
             } else {
-                handleLogout();
+                console.error(`Error response from /api/auth/me: ${response.status} ${response.statusText}`);
+                dispatch(logout());
                 return false;
             }
         } catch (error) {
             console.error('Error verifying token:', error);
-            handleLogout();
+            dispatch(logout());
             return false;
         }
     };

@@ -1,66 +1,79 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '../../app/hooks';
-import { 
-  fetchCourses, 
-  fetchCourseById, 
-  createCourse, 
-  updateCourse, 
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
+import {
+  fetchCourses,
+  fetchCourseById,
+  createCourse,
+  updateCourse,
   deleteCourse,
-  clearCurrentCourse,
-  clearCoursesError,
-  Course
+  activateCourse,
+  deactivateCourse,
+  addTeacherToCourse,
+  removeTeacherFromCourse
 } from './coursesSlice';
+import { Course, CreateCourseRequest, UpdateCourseRequest } from '../../api/services/courseApi';
 
 /**
- * Hook to access courses state and actions
+ * Hook for accessing and managing courses
  */
-export function useCourses() {
-  const dispatch = useAppDispatch();
-  const { courses, currentCourse, loading, error } = useAppSelector((state) => state.courses);
+export const useCourses = () => {
+  const dispatch = useDispatch();
+  const { courses, status, error } = useSelector((state: RootState) => state.courses);
 
-  const getCourses = () => {
+  const getCourses = useCallback(() => {
     dispatch(fetchCourses());
-  };
+  }, [dispatch]);
 
-  const getCourseById = (id: string) => {
+  const getCourseById = useCallback((id: number) => {
     dispatch(fetchCourseById(id));
-  };
+  }, [dispatch]);
 
-  const addCourse = (courseData: Omit<Course, 'id'>) => {
-    return dispatch(createCourse(courseData)).unwrap();
-  };
+  const createNewCourse = useCallback((courseData: CreateCourseRequest) => {
+    return dispatch(createCourse(courseData));
+  }, [dispatch]);
 
-  const editCourse = (id: string, courseData: Partial<Course>) => {
-    return dispatch(updateCourse({ id, courseData })).unwrap();
-  };
+  const updateExistingCourse = useCallback((id: number, courseData: UpdateCourseRequest) => {
+    return dispatch(updateCourse({ id, courseData }));
+  }, [dispatch]);
 
-  const removeCourse = (id: string) => {
-    return dispatch(deleteCourse(id)).unwrap();
-  };
+  const removeCourse = useCallback((id: number) => {
+    return dispatch(deleteCourse(id));
+  }, [dispatch]);
 
-  const resetCurrentCourse = () => {
-    dispatch(clearCurrentCourse());
-  };
+  const activateExistingCourse = useCallback((id: number) => {
+    return dispatch(activateCourse(id));
+  }, [dispatch]);
 
-  const resetError = () => {
-    dispatch(clearCoursesError());
-  };
+  const deactivateExistingCourse = useCallback((id: number) => {
+    return dispatch(deactivateCourse(id));
+  }, [dispatch]);
+
+  const addTeacher = useCallback((courseId: number, teacherId: number, isPrimary: boolean = false) => {
+    return dispatch(addTeacherToCourse({ courseId, teacherId, isPrimary }));
+  }, [dispatch]);
+
+  const removeTeacher = useCallback((courseId: number, teacherId: number) => {
+    return dispatch(removeTeacherFromCourse({ courseId, teacherId }));
+  }, [dispatch]);
 
   return {
     courses,
-    currentCourse,
-    loading,
+    status,
     error,
+    loading: status === 'loading',
     getCourses,
     getCourseById,
-    addCourse,
-    editCourse,
-    removeCourse,
-    resetCurrentCourse,
-    resetError
+    createCourse: createNewCourse,
+    updateCourse: updateExistingCourse,
+    deleteCourse: removeCourse,
+    activateCourse: activateExistingCourse,
+    deactivateCourse: deactivateExistingCourse,
+    addTeacherToCourse: addTeacher,
+    removeTeacherFromCourse: removeTeacher
   };
-}
+};
 
 /**
  * Hook to fetch courses on component mount
@@ -70,26 +83,60 @@ export function useCoursesData() {
 
   useEffect(() => {
     getCourses();
-  }, []);
+  }, [getCourses]);
 
   return { courses, loading, error };
 }
 
 /**
- * Hook to fetch a specific course by ID
+ * Hook for accessing details of a specific course
  */
-export function useCourseDetails(id: string) {
-  const { getCourseById, currentCourse, loading, error, resetCurrentCourse } = useCourses();
+export const useCourseDetails = (courseId: number) => {
+  const dispatch = useDispatch();
+  const { currentCourse, status, error } = useSelector((state: RootState) => state.courses);
 
-  useEffect(() => {
-    getCourseById(id);
-    return () => {
-      resetCurrentCourse();
-    };
-  }, [id]);
+  const fetchCourseDetails = useCallback(() => {
+    dispatch(fetchCourseById(courseId));
+  }, [dispatch, courseId]);
 
-  return { course: currentCourse, loading, error };
-}
+  const updateCourseDetails = useCallback((courseData: UpdateCourseRequest) => {
+    return dispatch(updateCourse({ id: courseId, courseData }));
+  }, [dispatch, courseId]);
+
+  const deleteCourseDetails = useCallback(() => {
+    return dispatch(deleteCourse(courseId));
+  }, [dispatch, courseId]);
+
+  const activateCourseDetails = useCallback(() => {
+    return dispatch(activateCourse(courseId));
+  }, [dispatch, courseId]);
+
+  const deactivateCourseDetails = useCallback(() => {
+    return dispatch(deactivateCourse(courseId));
+  }, [dispatch, courseId]);
+
+  const addTeacherToCourseDetails = useCallback((teacherId: number, isPrimary: boolean = false) => {
+    return dispatch(addTeacherToCourse({ courseId, teacherId, isPrimary }));
+  }, [dispatch, courseId]);
+
+  const removeTeacherFromCourseDetails = useCallback((teacherId: number) => {
+    return dispatch(removeTeacherFromCourse({ courseId, teacherId }));
+  }, [dispatch, courseId]);
+
+  return {
+    course: currentCourse,
+    status,
+    error,
+    loading: status === 'loading',
+    fetchCourseDetails,
+    updateCourse: updateCourseDetails,
+    deleteCourse: deleteCourseDetails,
+    activateCourse: activateCourseDetails,
+    deactivateCourse: deactivateCourseDetails,
+    addTeacher: addTeacherToCourseDetails,
+    removeTeacher: removeTeacherFromCourseDetails
+  };
+};
 
 /**
  * Hook to handle course form operations
@@ -103,7 +150,7 @@ export function useCourseForm(id?: string) {
     if (id) {
       getCourseById(id);
     }
-  }, [id]);
+  }, [id, getCourseById, resetError]);
 
   const handleSubmit = async (courseData: Omit<Course, 'id'> | Partial<Course>) => {
     try {
@@ -116,6 +163,7 @@ export function useCourseForm(id?: string) {
       }
       return true;
     } catch (error) {
+      console.error('Error submitting course form:', error);
       return false;
     }
   };

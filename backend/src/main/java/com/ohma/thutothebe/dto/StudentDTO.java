@@ -5,12 +5,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public record TeacherDTO(
+public record StudentDTO(
     Long id,
     
-    @NotBlank(message = "Staff ID is required")
-    @Size(min = 3, max = 20, message = "Staff ID must be between 3 and 20 characters")
-    String staffId,
+    @NotBlank(message = "Student ID is required")
+    @Size(min = 3, max = 20, message = "Student ID must be between 3 and 20 characters")
+    String studentId,
     
     @NotBlank(message = "First name is required")
     @Size(min = 2, max = 100, message = "First name must be between 2 and 100 characters")
@@ -25,9 +25,6 @@ public record TeacherDTO(
     @Size(max = 100, message = "Email cannot exceed 100 characters")
     String email,
     
-    @Size(max = 200, message = "Qualification cannot exceed 200 characters")
-    String qualification,
-    
     @NotNull(message = "School ID is required")
     Long schoolId,
     
@@ -35,9 +32,9 @@ public record TeacherDTO(
     
     boolean active
 ) {
-    public TeacherDTO {
-        if (staffId != null) {
-            staffId = staffId.toUpperCase();
+    public StudentDTO {
+        if (studentId != null) {
+            studentId = studentId.toUpperCase();
         }
         if (email != null) {
             email = email.toLowerCase();

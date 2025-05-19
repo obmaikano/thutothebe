@@ -3,9 +3,11 @@ package com.ohma.thutothebe.service.impl;
 import com.ohma.thutothebe.dto.GradeCategoryDTO;
 import com.ohma.thutothebe.entity.GradeCategory;
 import com.ohma.thutothebe.entity.Course;
+import com.ohma.thutothebe.exception.CourseNotFoundException;
 import com.ohma.thutothebe.exception.GradeCategoryNotFoundException;
 import com.ohma.thutothebe.mapper.GradeCategoryMapper;
 import com.ohma.thutothebe.mapper.CourseMapper;
+import com.ohma.thutothebe.repository.CourseRepository;
 import com.ohma.thutothebe.repository.GradeCategoryRepository;
 import com.ohma.thutothebe.service.GradeCategoryService;
 import com.ohma.thutothebe.service.CourseService;
@@ -21,25 +23,22 @@ public class GradeCategoryServiceImpl extends BaseServiceImpl<GradeCategory, Gra
 
     private final GradeCategoryRepository gradeCategoryRepository;
     private final GradeCategoryMapper gradeCategoryMapper;
-    private final CourseService courseService;
-    private final CourseMapper courseMapper;
+    private final CourseRepository courseRepository;
 
     @Autowired
     public GradeCategoryServiceImpl(GradeCategoryRepository gradeCategoryRepository,
                                   GradeCategoryMapper gradeCategoryMapper,
-                                  CourseService courseService,
-                                  CourseMapper courseMapper) {
+                                    CourseRepository courseRepository) {
         super(gradeCategoryRepository);
         this.gradeCategoryRepository = gradeCategoryRepository;
         this.gradeCategoryMapper = gradeCategoryMapper;
-        this.courseService = courseService;
-        this.courseMapper = courseMapper;
+        this.courseRepository = courseRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<GradeCategoryDTO> getByCourse(Long courseId) {
-        Course course = courseMapper.toEntity(courseService.getById(courseId));
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
         return gradeCategoryRepository.findByCourse(course).stream()
             .map(gradeCategoryMapper::toDto)
             .collect(Collectors.toList());
@@ -48,7 +47,7 @@ public class GradeCategoryServiceImpl extends BaseServiceImpl<GradeCategory, Gra
     @Override
     @Transactional(readOnly = true)
     public List<GradeCategoryDTO> getActiveByCourse(Long courseId) {
-        Course course = courseMapper.toEntity(courseService.getById(courseId));
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
         return gradeCategoryRepository.findByCourseAndActive(course, true).stream()
             .map(gradeCategoryMapper::toDto)
             .collect(Collectors.toList());
@@ -57,14 +56,14 @@ public class GradeCategoryServiceImpl extends BaseServiceImpl<GradeCategory, Gra
     @Override
     @Transactional(readOnly = true)
     public Double getTotalWeightByCourse(Long courseId) {
-        Course course = courseMapper.toEntity(courseService.getById(courseId));
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
         return gradeCategoryRepository.findTotalWeightByCourse(course);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Double getAveragePassingGradeByCourse(Long courseId) {
-        Course course = courseMapper.toEntity(courseService.getById(courseId));
+        Course course = courseRepository.findById(courseId).orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
         return gradeCategoryRepository.findAveragePassingGradeByCourse(course);
     }
 

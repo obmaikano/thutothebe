@@ -63,4 +63,8 @@ public class User extends BaseEntity {
 
     @Column(name = "last_login_time")
     private LocalDateTime lastLoginTime;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "person_id")
+    private Person person;
 } 

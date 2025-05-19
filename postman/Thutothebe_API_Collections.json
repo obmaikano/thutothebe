@@ -1,0 +1,666 @@
+{
+  "info": {
+    "name": "Thutothebe API Collections",
+    "description": "API collections for Thutothebe Education Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"newuser@example.com\",\n    \"password\": \"password123\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"role\": \"TEACHER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ministry Executive",
+      "item": [
+        {
+          "name": "Get All Schools",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/schools",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schools"]
+            }
+          }
+        },
+        {
+          "name": "Get School Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/schools/{{schoolId}}/performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schools", "{{schoolId}}", "performance"]
+            }
+          }
+        },
+        {
+          "name": "Create Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"New Education Policy\",\n    \"description\": \"Policy description\",\n    \"effectiveDate\": \"2024-01-01\",\n    \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/policies",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "policies"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ministry Staff",
+      "item": [
+        {
+          "name": "Get Regional Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/regional",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "regional"]
+            }
+          }
+        },
+        {
+          "name": "Update Policy Implementation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"policyId\": \"{{policyId}}\",\n    \"implementationStatus\": \"IN_PROGRESS\",\n    \"notes\": \"Implementation progress notes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/policies/{{policyId}}/implementation",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "policies", "{{policyId}}", "implementation"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Director",
+      "item": [
+        {
+          "name": "Get Program Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/programs/{{programId}}/performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "programs", "{{programId}}", "performance"]
+            }
+          }
+        },
+        {
+          "name": "Create Program",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"New Program\",\n    \"description\": \"Program description\",\n    \"startDate\": \"2024-01-01\",\n    \"endDate\": \"2024-12-31\",\n    \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/programs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "programs"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Regional Admin",
+      "item": [
+        {
+          "name": "Get Schools in Region",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/regions/{{regionId}}/schools",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "regions", "{{regionId}}", "schools"]
+            }
+          }
+        },
+        {
+          "name": "Allocate Resources",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"schoolId\": \"{{schoolId}}\",\n    \"resourceType\": \"EQUIPMENT\",\n    \"quantity\": 10,\n    \"notes\": \"Resource allocation notes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/resources/allocate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resources", "allocate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Regional Officer",
+      "item": [
+        {
+          "name": "Submit Inspection Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"schoolId\": \"{{schoolId}}\",\n    \"inspectionDate\": \"2024-01-01\",\n    \"findings\": \"Inspection findings\",\n    \"recommendations\": \"Recommendations\",\n    \"status\": \"COMPLETED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inspections",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inspections"]
+            }
+          }
+        },
+        {
+          "name": "Get Support Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/support/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "support", "requests"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "School Admin",
+      "item": [
+        {
+          "name": "Get School Staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/schools/{{schoolId}}/staff",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schools", "{{schoolId}}", "staff"]
+            }
+          }
+        },
+        {
+          "name": "Create Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"code\": \"MATH101\",\n    \"name\": \"Mathematics 101\",\n    \"subjectId\": \"{{subjectId}}\",\n    \"classId\": \"{{classId}}\",\n    \"term\": \"TERM1\",\n    \"year\": 2024,\n    \"type\": \"CORE\",\n    \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "School Head",
+      "item": [
+        {
+          "name": "Get Academic Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/schools/{{schoolId}}/academic-performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schools", "{{schoolId}}", "academic-performance"]
+            }
+          }
+        },
+        {
+          "name": "Submit School Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reportType\": \"QUARTERLY\",\n    \"period\": \"Q1\",\n    \"year\": 2024,\n    \"content\": \"School performance report\",\n    \"status\": \"SUBMITTED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schools/{{schoolId}}/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schools", "{{schoolId}}", "reports"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Department Head",
+      "item": [
+        {
+          "name": "Get Department Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/departments/{{departmentId}}/performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "departments", "{{departmentId}}", "performance"]
+            }
+          }
+        },
+        {
+          "name": "Submit Department Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reportType\": \"MONTHLY\",\n    \"month\": 1,\n    \"year\": 2024,\n    \"content\": \"Department performance report\",\n    \"status\": \"SUBMITTED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/departments/{{departmentId}}/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "departments", "{{departmentId}}", "reports"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Senior Teacher",
+      "item": [
+        {
+          "name": "Get Teaching Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/teachers/{{teacherId}}/performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teachers", "{{teacherId}}", "performance"]
+            }
+          }
+        },
+        {
+          "name": "Submit Mentorship Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"menteeId\": \"{{menteeId}}\",\n    \"period\": \"MONTHLY\",\n    \"content\": \"Mentorship progress report\",\n    \"status\": \"SUBMITTED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/mentorship/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mentorship", "reports"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teacher",
+      "item": [
+        {
+          "name": "Get Course Students",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}", "students"]
+            }
+          }
+        },
+        {
+          "name": "Create Assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"title\": \"Assignment 1\",\n    \"description\": \"Assignment description\",\n    \"dueDate\": \"2024-01-15\",\n    \"totalMarks\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Student",
+      "item": [
+        {
+          "name": "Get Enrolled Courses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/{{studentId}}/courses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "{{studentId}}", "courses"]
+            }
+          }
+        },
+        {
+          "name": "Submit Assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"assignmentId\": \"{{assignmentId}}\",\n    \"content\": \"Assignment submission content\",\n    \"attachments\": [\"file1.pdf\", \"file2.pdf\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments/{{assignmentId}}/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments", "{{assignmentId}}", "submit"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parent",
+      "item": [
+        {
+          "name": "Get Child's Performance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/parents/{{parentId}}/children/{{childId}}/performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parents", "{{parentId}}", "children", "{{childId}}", "performance"]
+            }
+          }
+        },
+        {
+          "name": "Send Message to Teacher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"teacherId\": \"{{teacherId}}\",\n    \"subject\": \"Regarding child's progress\",\n    \"message\": \"Message content\",\n    \"priority\": \"NORMAL\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    }
+  ]
+} 

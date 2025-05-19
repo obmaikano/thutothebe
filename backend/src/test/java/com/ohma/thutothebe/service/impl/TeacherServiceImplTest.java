@@ -61,6 +61,8 @@ class TeacherServiceImplTest {
                 "Doe",
                 "john.doe@example.com",
                 "PhD in Education",
+                1L,
+                1L,
                 true
         );
 
@@ -209,6 +211,8 @@ class TeacherServiceImplTest {
                 "Doe",
                 "john.doe@example.com",
                 "Updated qualification",
+                1L,
+                1L,
                 true
         );
         TeacherDTO result = teacherService.updateTeacher(1L, updatedDTO);
@@ -233,6 +237,8 @@ class TeacherServiceImplTest {
                 "Doe",
                 "john.doe@example.com",
                 "Updated qualification",
+                1L,
+                1L,
                 true
         );
         assertThrows(ResourceNotFoundException.class, () -> teacherService.updateTeacher(1L, updatedDTO));
@@ -260,6 +266,8 @@ class TeacherServiceImplTest {
                 "Doe",
                 "john.doe@example.com",
                 "Updated qualification",
+                1L,
+                1L,
                 true
         );
         assertThrows(IllegalArgumentException.class, () -> teacherService.updateTeacher(1L, updatedDTO));
@@ -288,6 +296,8 @@ class TeacherServiceImplTest {
                 "Doe",
                 "new.email@example.com",
                 "Updated qualification",
+                1L,
+                1L,
                 true
         );
         assertThrows(IllegalArgumentException.class, () -> teacherService.updateTeacher(1L, updatedDTO));

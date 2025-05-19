@@ -26,11 +26,19 @@ public record UserDTO(
     String password,
     
     @NotNull(message = "Role is required")
-    UserRole role
+    UserRole role,
+    
+    @NotNull(message = "School ID is required for teachers and students")
+    Long schoolId
 ) {
     public UserDTO {
         if (firstName != null) firstName = firstName.trim();
         if (lastName != null) lastName = lastName.trim();
         if (email != null) email = email.trim();
+        
+        // Validate school ID is provided for teachers and students
+        if ((role == UserRole.TEACHER || role == UserRole.STUDENT) && schoolId == null) {
+            throw new IllegalArgumentException("School ID is required for teachers and students");
+        }
     }
 } 

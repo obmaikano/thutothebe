@@ -1,11 +1,11 @@
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { CourseForm } from '../components/CourseForm';
-import { useCourseForm, useCourse } from '../hooks';
+import { useCourseForm, useCourseDetails } from '../hooks';
 
 const EditCoursePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { course, loading: courseLoading, error: courseError } = useCourse(id);
+  const { course, loading: courseLoading, error: courseError } = useCourseDetails(id || '');
   const { handleSubmit, loading: submitLoading, error: submitError } = useCourseForm(id);
 
   if (courseLoading) {

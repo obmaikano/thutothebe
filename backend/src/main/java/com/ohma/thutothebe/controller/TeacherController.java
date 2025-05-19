@@ -16,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/teachers")
+@RequestMapping("/teachers")
 @Tag(name = "Teacher Management", description = "APIs for managing teachers/instructors")
 public class TeacherController extends BaseController<TeacherDTO, Long> {
 
@@ -79,50 +79,6 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers for course retrieved successfully", teachers, null));
         } catch (Exception e) {
             log.error("Error retrieving teachers for course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PostMapping
-    @Operation(summary = "Create a new teacher")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<TeacherDTO>> createTeacher(@Valid @RequestBody TeacherDTO teacherDTO) {
-        try {
-            TeacherDTO created = teacherService.createTeacher(teacherDTO);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher created successfully", created, null));
-        } catch (Exception e) {
-            log.error("Error creating teacher: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Update an existing teacher")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<TeacherDTO>> updateTeacher(
-            @PathVariable Long id,
-            @Valid @RequestBody TeacherDTO teacherDTO) {
-        try {
-            TeacherDTO updated = teacherService.updateTeacher(id, teacherDTO);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher updated successfully", updated, null));
-        } catch (Exception e) {
-            log.error("Error updating teacher: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a teacher")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OhmaApiResponse<Void>> deleteTeacher(@PathVariable Long id) {
-        try {
-            teacherService.deleteTeacher(id);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher deleted successfully", null, null));
-        } catch (Exception e) {
-            log.error("Error deleting teacher: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

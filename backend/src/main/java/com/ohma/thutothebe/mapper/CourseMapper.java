@@ -12,11 +12,5 @@ import java.util.stream.Collectors;
 @Component
 public interface CourseMapper extends BaseDtoMapper<Course, CourseDTO> {
 
-    @Override
-    CourseDTO toDto(Course course);
-
-    @Override
-    Course toEntity(CourseDTO dto);
-
     void updateEntityFromDto(CourseDTO dto, Course course);
 } 
