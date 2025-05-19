@@ -1,12 +1,13 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.StudentDTO;
+import com.ohma.thutothebe.dto.StudentOnboardingDTO;
 
 import java.util.List;
 
 public interface StudentService extends BaseService<StudentDTO, Long> {
     
-    StudentDTO getStudentByStudentId(String studentId);
+    StudentDTO getStudentByAdmissionNumber(String admissionNumber);
     
     StudentDTO getStudentByEmail(String email);
     
@@ -26,9 +27,15 @@ public interface StudentService extends BaseService<StudentDTO, Long> {
     
     void deactivateStudent(Long id);
     
-    boolean existsByStudentId(String studentId);
+    boolean existsByAdmissionNumber(String admissionNumber);
     
     boolean existsByEmail(String email);
     
     StudentDTO linkToUser(Long studentId, Long userId);
+    
+    StudentDTO onboardStudent(StudentOnboardingDTO onboardingDTO);
+    
+    List<StudentDTO> getStudentsByClassId(Long classId);
+    
+    List<StudentDTO> getStudentsBySubjectId(Long subjectId);
 } 

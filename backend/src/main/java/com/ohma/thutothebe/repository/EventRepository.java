@@ -31,6 +31,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         @Param("endTime") LocalDateTime endTime
     );
     
-    @Query("SELECT e FROM Event e WHERE e.isRecurring = true")
+    @Query("SELECT e FROM Event e WHERE e.recurring = true")
     List<Event> findAllRecurringEvents();
 } 

@@ -3,10 +3,9 @@ package com.ohma.thutothebe.service.impl;
 import com.ohma.thutothebe.dto.StudentDTO;
 import com.ohma.thutothebe.dto.TeacherDTO;
 import com.ohma.thutothebe.dto.UserDTO;
-import com.ohma.thutothebe.entity.Student;
-import com.ohma.thutothebe.entity.Teacher;
-import com.ohma.thutothebe.entity.User;
-import com.ohma.thutothebe.entity.UserRole;
+import com.ohma.thutothebe.entity.*;
+import com.ohma.thutothebe.entity.enums.Gender;
+import com.ohma.thutothebe.entity.enums.StudentStatus;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.exception.UserNotFoundException;
 import com.ohma.thutothebe.mapper.StudentMapper;
@@ -176,33 +175,37 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
 
     private void handleStudentRoleForUser(User user) {
         try {
-            // Try to find an existing unlinked student with the same email
-            Optional<Student> existingStudent = studentRepository.findByEmail(user.getEmail());
-
-            if (existingStudent.isPresent()) {
-                // Link the existing student to the user
-                Student student = existingStudent.get();
-                student.setUser(user);
-                studentRepository.save(student);
-            } else {
-                // Validate school ID is present
-                if (user.getSchool() == null) {
-                    throw new IllegalStateException("School must be specified to create a Student entity.");
-                }
-
-                // Create a new student entity
-                StudentDTO studentDTO = new StudentDTO(
-                        null,
-                        generateStudentId(),
-                        user.getFirstName(),
-                        user.getLastName(),
-                        user.getEmail(),
-                        user.getSchool().getId(),
-                        user.getId(),
-                        true
-                );
-                studentService.createStudent(studentDTO);
+            if (user.getSchool() == null) {
+                throw new IllegalStateException("School must be specified to create a Student entity.");
             }
+
+            // Create a new student entity
+            StudentDTO studentDTO = new StudentDTO(
+                null, // id
+                generateStudentId(), // admissionNumber
+                user.getFirstName(), // firstName
+                user.getLastName(), // lastName
+                user.getPerson() != null ? user.getPerson().getDateOfBirth() : LocalDate.now().minusYears(18), // dateOfBirth
+                user.getPerson() != null ? user.getPerson().getGender() : Gender.OTHER, // gender
+                "", // phone - will be updated during onboarding
+                user.getEmail(), // email
+                "", // address - will be updated during onboarding
+                LocalDate.now().getYear(), // academicYear
+                null, // classId - will be set during onboarding
+                null, // medicalConditions
+                null, // disabilities
+                user.getPerson() != null ? user.getPerson().getFirstName() : "Emergency Contact", // emergencyContactName
+                "", // emergencyContactPhone - will be updated during onboarding
+                "Parent", // emergencyContactRelation
+                user.getSchool().getId(), // schoolId
+                user.getId(), // userId
+                user.getPerson() != null ? user.getPerson().getId() : null, // personId
+                true, // active
+                StudentStatus.PENDING, // status
+                null, // onboardingNotes
+                null // subjectIds
+            );
+            studentService.createStudent(studentDTO);
         } catch (Exception e) {
             log.error("Failed to handle student role for user ID {}: {}", user.getId(), e.getMessage(), e);
             throw new IllegalStateException("Failed to create student entity: " + e.getMessage(), e);

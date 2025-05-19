@@ -1,4 +1,4 @@
-package com.ohma.thutothebe.entity;
+package com.ohma.thutothebe.entity.enums;
 
 public enum Gender {
     MALE,

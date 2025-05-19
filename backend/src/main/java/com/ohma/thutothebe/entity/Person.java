@@ -1,5 +1,7 @@
 package com.ohma.thutothebe.entity;
 
+import com.ohma.thutothebe.entity.enums.Gender;
+import com.ohma.thutothebe.entity.Nationality;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

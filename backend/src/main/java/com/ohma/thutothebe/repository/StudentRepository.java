@@ -12,7 +12,7 @@ import java.util.Optional;
 @Repository
 public interface StudentRepository extends JpaRepository<Student, Long> {
     
-    Optional<Student> findByStudentId(String studentId);
+    Optional<Student> findByAdmissionNumber(String admissionNumber);
     
     Optional<Student> findByEmail(String email);
     
@@ -22,7 +22,11 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     
     List<Student> findBySchool_Id(Long schoolId);
     
-    boolean existsByStudentId(String studentId);
+    List<Student> findByStudentClass_Id(Long classId);
+    
+    List<Student> findBySubjects_Id(Long subjectId);
+    
+    boolean existsByAdmissionNumber(String admissionNumber);
     
     boolean existsByEmail(String email);
     

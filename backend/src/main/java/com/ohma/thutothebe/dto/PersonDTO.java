@@ -1,6 +1,6 @@
 package com.ohma.thutothebe.dto;
 
-import com.ohma.thutothebe.entity.Gender;
+import com.ohma.thutothebe.entity.enums.Gender;
 import com.ohma.thutothebe.entity.Nationality;
 import com.ohma.thutothebe.entity.UserRole;
 import jakarta.validation.constraints.NotBlank;

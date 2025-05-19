@@ -3,6 +3,7 @@ package com.ohma.thutothebe.mapper;
 import com.ohma.thutothebe.dto.UserDTO;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.entity.Person;
+import com.ohma.thutothebe.entity.enums.Gender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -1,13 +1,13 @@
 package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.StudentDTO;
-import com.ohma.thutothebe.entity.Student;
-import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.dto.StudentOnboardingDTO;
+import com.ohma.thutothebe.entity.*;
+import com.ohma.thutothebe.entity.enums.Gender;
+import com.ohma.thutothebe.entity.enums.StudentStatus;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.StudentMapper;
-import com.ohma.thutothebe.repository.SchoolRepository;
-import com.ohma.thutothebe.repository.StudentRepository;
-import com.ohma.thutothebe.repository.UserRepository;
+import com.ohma.thutothebe.repository.*;
 import com.ohma.thutothebe.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +22,8 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
     private final StudentRepository studentRepository;
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
+    private final ClassRepository classRepository;
+    private final SubjectRepository subjectRepository;
     private final StudentMapper studentMapper;
 
     @Autowired
@@ -29,11 +31,15 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
             StudentRepository studentRepository,
             SchoolRepository schoolRepository,
             UserRepository userRepository,
+            ClassRepository classRepository,
+            SubjectRepository subjectRepository,
             StudentMapper studentMapper) {
         super(studentRepository);
         this.studentRepository = studentRepository;
         this.schoolRepository = schoolRepository;
         this.userRepository = userRepository;
+        this.classRepository = classRepository;
+        this.subjectRepository = subjectRepository;
         this.studentMapper = studentMapper;
     }
 
@@ -49,29 +55,55 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
 
     @Override
     protected void updateEntity(Student entity, StudentDTO dto) {
-        entity.setStudentId(dto.studentId());
+        entity.setAdmissionNumber(dto.admissionNumber());
         entity.setFirstName(dto.firstName());
         entity.setLastName(dto.lastName());
+        entity.setDateOfBirth(dto.dateOfBirth());
+        entity.setGender(dto.gender());
+        entity.setPhone(dto.phone());
         entity.setEmail(dto.email());
+        entity.setAddress(dto.address());
+        entity.setAcademicYear(dto.academicYear());
+        entity.setMedicalConditions(dto.medicalConditions());
+        entity.setDisabilities(dto.disabilities());
+        entity.setEmergencyContactName(dto.emergencyContactName());
+        entity.setEmergencyContactPhone(dto.emergencyContactPhone());
+        entity.setEmergencyContactRelation(dto.emergencyContactRelation());
         entity.setActive(dto.active());
+        entity.setStatus(dto.status());
+        entity.setOnboardingNotes(dto.onboardingNotes());
         
         if (dto.schoolId() != null && (entity.getSchool() == null || !entity.getSchool().getId().equals(dto.schoolId()))) {
             schoolRepository.findById(dto.schoolId())
                 .ifPresent(entity::setSchool);
         }
         
+        if (dto.classId() != null && (entity.getStudentClass() == null || !entity.getStudentClass().getId().equals(dto.classId()))) {
+            classRepository.findById(dto.classId())
+                .ifPresent(entity::setStudentClass);
+        }
+        
         if (dto.userId() != null && (entity.getUser() == null || !entity.getUser().getId().equals(dto.userId()))) {
             userRepository.findById(dto.userId())
                 .ifPresent(entity::setUser);
+        }
+        
+        if (dto.subjectIds() != null && !dto.subjectIds().isEmpty()) {
+            entity.setSubjects(
+                dto.subjectIds().stream()
+                    .map(subjectId -> subjectRepository.findById(subjectId).orElse(null))
+                    .filter(subject -> subject != null)
+                    .collect(Collectors.toSet())
+            );
         }
     }
 
     @Override
     @Transactional(readOnly = true)
-    public StudentDTO getStudentByStudentId(String studentId) {
-        return studentRepository.findByStudentId(studentId)
+    public StudentDTO getStudentByAdmissionNumber(String admissionNumber) {
+        return studentRepository.findByAdmissionNumber(admissionNumber)
             .map(studentMapper::toDto)
-            .orElseThrow(() -> new ResourceNotFoundException("Student not found with student ID: " + studentId));
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with admission number: " + admissionNumber));
     }
 
     @Override
@@ -109,8 +141,8 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
     @Override
     @Transactional
     public StudentDTO createStudent(StudentDTO studentDTO) {
-        if (studentRepository.existsByStudentId(studentDTO.studentId())) {
-            throw new IllegalArgumentException("Student with student ID " + studentDTO.studentId() + " already exists");
+        if (studentRepository.existsByAdmissionNumber(studentDTO.admissionNumber())) {
+            throw new IllegalArgumentException("Student with admission number " + studentDTO.admissionNumber() + " already exists");
         }
         
         if (studentRepository.existsByEmail(studentDTO.email())) {
@@ -129,19 +161,16 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         var existingStudent = studentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
         
-        // Check if the student ID exists but belongs to a different student
-        if (!existingStudent.getStudentId().equals(studentDTO.studentId()) && 
-            studentRepository.existsByStudentId(studentDTO.studentId())) {
-            throw new IllegalArgumentException("Student with student ID " + studentDTO.studentId() + " already exists");
+        if (!existingStudent.getAdmissionNumber().equals(studentDTO.admissionNumber()) && 
+            studentRepository.existsByAdmissionNumber(studentDTO.admissionNumber())) {
+            throw new IllegalArgumentException("Student with admission number " + studentDTO.admissionNumber() + " already exists");
         }
         
-        // Check if the email exists but belongs to a different student
         if (!existingStudent.getEmail().equals(studentDTO.email()) && 
             studentRepository.existsByEmail(studentDTO.email())) {
             throw new IllegalArgumentException("Student with email " + studentDTO.email() + " already exists");
         }
         
-        // Verify school exists
         schoolRepository.findById(studentDTO.schoolId())
             .orElseThrow(() -> new ResourceNotFoundException("School not found with id: " + studentDTO.schoolId()));
         
@@ -177,8 +206,8 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsByStudentId(String studentId) {
-        return studentRepository.existsByStudentId(studentId);
+    public boolean existsByAdmissionNumber(String admissionNumber) {
+        return studentRepository.existsByAdmissionNumber(admissionNumber);
     }
 
     @Override
@@ -200,5 +229,56 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         Student savedStudent = studentRepository.save(student);
         
         return studentMapper.toDto(savedStudent);
+    }
+
+    @Override
+    @Transactional
+    public StudentDTO onboardStudent(StudentOnboardingDTO onboardingDTO) {
+        Student student = studentRepository.findById(onboardingDTO.studentId())
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + onboardingDTO.studentId()));
+        
+        com.ohma.thutothebe.entity.Class studentClass = classRepository.findById(onboardingDTO.classId())
+            .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + onboardingDTO.classId()));
+        
+        if (!studentClass.isActive()) {
+            throw new IllegalArgumentException("Cannot onboard student to inactive class");
+        }
+        
+        if (student.getStatus() == StudentStatus.ACTIVE) {
+            throw new IllegalArgumentException("Student is already enrolled");
+        }
+        
+        student.setStudentClass(studentClass);
+        student.setStatus(onboardingDTO.status());
+        student.setOnboardingNotes(onboardingDTO.onboardingNotes());
+        
+        if (onboardingDTO.subjectIds() != null && !onboardingDTO.subjectIds().isEmpty()) {
+            student.setSubjects(
+                onboardingDTO.subjectIds().stream()
+                    .map(subjectId -> subjectRepository.findById(subjectId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + subjectId)))
+                    .filter(Subject::isActive)
+                    .collect(Collectors.toSet())
+            );
+        }
+        
+        Student savedStudent = studentRepository.save(student);
+        return studentMapper.toDto(savedStudent);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByClassId(Long classId) {
+        return studentRepository.findByStudentClass_Id(classId).stream()
+            .map(studentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsBySubjectId(Long subjectId) {
+        return studentRepository.findBySubjects_Id(subjectId).stream()
+            .map(studentMapper::toDto)
+            .collect(Collectors.toList());
     }
 } 
