@@ -365,6 +365,56 @@
               "path": ["api", "courses"]
             }
           }
+        },
+        {
+          "name": "Create Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"dateOfBirth\": \"2010-01-01\",\n    \"gender\": \"MALE\",\n    \"address\": {\n        \"street\": \"123 Main St\",\n        \"city\": \"Gaborone\",\n        \"state\": \"South East\",\n        \"postalCode\": \"0000\"\n    },\n    \"contactNumber\": \"+267 1234567\",\n    \"email\": \"john.doe@student.edu\",\n    \"classId\": \"{{classId}}\",\n    \"admissionNumber\": \"STU2024001\",\n    \"admissionDate\": \"2024-01-01\",\n    \"previousSchool\": \"Previous School Name\",\n    \"medicalInformation\": {\n        \"conditions\": [],\n        \"allergies\": [],\n        \"medications\": []\n    },\n    \"emergencyContacts\": [\n        {\n            \"name\": \"Parent Name\",\n            \"relationship\": \"PARENT\",\n            \"contactNumber\": \"+267 7654321\",\n            \"email\": \"parent@email.com\"\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"]
+            }
+          }
+        },
+        {
+          "name": "Onboard Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"studentId\": \"{{studentId}}\",\n    \"classId\": \"{{classId}}\",\n    \"subjects\": [\n        {\n            \"subjectId\": \"{{subjectId}}\",\n            \"isElective\": false\n        }\n    ],\n    \"startDate\": \"2024-01-01\",\n    \"status\": \"ACTIVE\",\n    \"notes\": \"Student onboarding notes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students/{{studentId}}/onboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "{{studentId}}", "onboard"]
+            }
+          }
         }
       ]
     },
@@ -412,6 +462,56 @@
               "path": ["api", "schools", "{{schoolId}}", "reports"]
             }
           }
+        },
+        {
+          "name": "Create Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"dateOfBirth\": \"2010-01-01\",\n    \"gender\": \"MALE\",\n    \"address\": {\n        \"street\": \"123 Main St\",\n        \"city\": \"Gaborone\",\n        \"state\": \"South East\",\n        \"postalCode\": \"0000\"\n    },\n    \"contactNumber\": \"+267 1234567\",\n    \"email\": \"john.doe@student.edu\",\n    \"classId\": \"{{classId}}\",\n    \"admissionNumber\": \"STU2024001\",\n    \"admissionDate\": \"2024-01-01\",\n    \"previousSchool\": \"Previous School Name\",\n    \"medicalInformation\": {\n        \"conditions\": [],\n        \"allergies\": [],\n        \"medications\": []\n    },\n    \"emergencyContacts\": [\n        {\n            \"name\": \"Parent Name\",\n            \"relationship\": \"PARENT\",\n            \"contactNumber\": \"+267 7654321\",\n            \"email\": \"parent@email.com\"\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"]
+            }
+          }
+        },
+        {
+          "name": "Onboard Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"studentId\": \"{{studentId}}\",\n    \"classId\": \"{{classId}}\",\n    \"subjects\": [\n        {\n            \"subjectId\": \"{{subjectId}}\",\n            \"isElective\": false\n        }\n    ],\n    \"startDate\": \"2024-01-01\",\n    \"status\": \"ACTIVE\",\n    \"notes\": \"Student onboarding notes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students/{{studentId}}/onboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "{{studentId}}", "onboard"]
+            }
+          }
         }
       ]
     },
@@ -457,6 +557,56 @@
               "raw": "{{baseUrl}}/api/departments/{{departmentId}}/reports",
               "host": ["{{baseUrl}}"],
               "path": ["api", "departments", "{{departmentId}}", "reports"]
+            }
+          }
+        },
+        {
+          "name": "Create Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"dateOfBirth\": \"2010-01-01\",\n    \"gender\": \"MALE\",\n    \"address\": {\n        \"street\": \"123 Main St\",\n        \"city\": \"Gaborone\",\n        \"state\": \"South East\",\n        \"postalCode\": \"0000\"\n    },\n    \"contactNumber\": \"+267 1234567\",\n    \"email\": \"john.doe@student.edu\",\n    \"classId\": \"{{classId}}\",\n    \"admissionNumber\": \"STU2024001\",\n    \"admissionDate\": \"2024-01-01\",\n    \"previousSchool\": \"Previous School Name\",\n    \"medicalInformation\": {\n        \"conditions\": [],\n        \"allergies\": [],\n        \"medications\": []\n    },\n    \"emergencyContacts\": [\n        {\n            \"name\": \"Parent Name\",\n            \"relationship\": \"PARENT\",\n            \"contactNumber\": \"+267 7654321\",\n            \"email\": \"parent@email.com\"\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"]
+            }
+          }
+        },
+        {
+          "name": "Onboard Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"studentId\": \"{{studentId}}\",\n    \"classId\": \"{{classId}}\",\n    \"subjects\": [\n        {\n            \"subjectId\": \"{{subjectId}}\",\n            \"isElective\": false\n        }\n    ],\n    \"startDate\": \"2024-01-01\",\n    \"status\": \"ACTIVE\",\n    \"notes\": \"Student onboarding notes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students/{{studentId}}/onboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "{{studentId}}", "onboard"]
             }
           }
         }

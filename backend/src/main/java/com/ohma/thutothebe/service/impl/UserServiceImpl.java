@@ -161,7 +161,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
                         user.getFirstName(),
                         user.getLastName(),
                         user.getEmail(),
-                        user.getPerson().getQualification(),
+                        user.getQualification(),
                         user.getSchool().getId(),
                         user.getId(),
                         true

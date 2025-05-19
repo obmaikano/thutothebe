@@ -43,7 +43,12 @@ public class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        userDTO = new UserDTO(1L, "John", "Doe", "john@example.com", "password", null);
+        userDTO = new UserDTO();
+        userDTO.setId(1L);
+        userDTO.setEmail("john@example.com");
+        userDTO.setFirstName("John");
+        userDTO.setLastName("Doe");
+        userDTO.setPassword("password");
         authRequest = new AuthRequest("john@example.com", "password");
         authResponse = new AuthResponse("jwt-token", userDTO);
         passwordChangeRequest = new PasswordChangeRequest("oldPassword", "newPassword");

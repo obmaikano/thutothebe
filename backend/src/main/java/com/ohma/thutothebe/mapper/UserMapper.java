@@ -27,6 +27,7 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
         dto.setPassword(entity.getPassword());
         dto.setRole(entity.getRole());
         dto.setSchoolId(entity.getSchool() != null ? entity.getSchool().getId() : null);
+        dto.setQualification(entity.getQualification());
 
         if (entity.getPerson() != null) {
             Person person = entity.getPerson();
@@ -36,7 +37,6 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
             dto.setDateOfBirth(person.getDateOfBirth());
             dto.setIdentityNumber(person.getIdentityNumber());
             dto.setBirthCertificateNumber(person.getBirthCertificateNumber());
-            dto.setQualification(person.getQualification());
         }
 
         return dto;
@@ -58,6 +58,7 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
         entity.setPassword(dto.getPassword());
         entity.setRole(dto.getRole());
         entity.setUsername(dto.getEmail());
+        entity.setQualification(dto.getQualification());
 
         // Create or update Person entity
         Person person = entity.getPerson();
@@ -73,7 +74,6 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
         person.setDateOfBirth(dto.getDateOfBirth());
         person.setIdentityNumber(dto.getIdentityNumber());
         person.setBirthCertificateNumber(dto.getBirthCertificateNumber());
-        person.setQualification(dto.getQualification());
     }
 
     /**

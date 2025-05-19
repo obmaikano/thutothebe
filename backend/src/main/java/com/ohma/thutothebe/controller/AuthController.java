@@ -29,12 +29,12 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<OhmaApiResponse<UserDTO>> register(@Valid @RequestBody UserDTO userDTO) {
         try {
-            LoggingUtil.logInfo(logger, "Attempting to register user with email: {}", userDTO.email());
+            LoggingUtil.logInfo(logger, "Attempting to register user with email: {}", userDTO.getEmail());
             UserDTO created = userService.create(userDTO);
-            LoggingUtil.logInfo(logger, "Successfully registered user with email: {}", userDTO.email());
+            LoggingUtil.logInfo(logger, "Successfully registered user with email: {}", userDTO.getEmail());
             return ResponseEntity.ok(OhmaApiResponse.success(created));
         } catch (Exception e) {
-            LoggingUtil.logError(logger, "Registration error for email: {}", e, userDTO.email());
+            LoggingUtil.logError(logger, "Registration error for email: {}", e, userDTO.getEmail());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(OhmaApiResponse.error(400, e.getMessage()));
         }
@@ -76,7 +76,7 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(OhmaApiResponse.error(400, "Invalid old password"));
             }
-            userService.updatePassword(user.id(), request.newPassword());
+            userService.updatePassword(user.getId(), request.newPassword());
             return ResponseEntity.ok(OhmaApiResponse.success(null));
         } catch (Exception e) {
             LoggingUtil.logError(logger, "Error changing password: {}", e, e.getMessage());

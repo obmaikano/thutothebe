@@ -19,16 +19,13 @@ public class Progress extends BaseEntity {
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
-    @Column(nullable = false)
+    @Column(name = "completion_percentage")
     private Double completionPercentage;
 
-    @Column(nullable = false)
     private Double grade;
 
-    @Column(nullable = false)
     private boolean completed;
 
-    @Column(nullable = false)
     private boolean active = true;
 
     @Column(name = "last_activity_at")

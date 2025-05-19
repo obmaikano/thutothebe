@@ -51,14 +51,14 @@ class UserServiceImplTest {
         user.setPassword("password");
         user.setRole(UserRole.STUDENT);
 
-        userDTO = new UserDTO(
-            1L,
-            "John",
-            "Doe",
-            "test@example.com",
-            "password",
-            UserRole.STUDENT
-        );
+        userDTO = new UserDTO();
+
+        userDTO.setId(1L);
+        userDTO.setFirstName("John");
+        userDTO.setLastName("Doe");
+        userDTO.setEmail("test@example.com");
+        userDTO.setPassword("password");
+        userDTO.setRole(UserRole.STUDENT);
     }
 
     @Test
@@ -74,9 +74,9 @@ class UserServiceImplTest {
 
         // Assert
         assertThat(result).isNotNull();
-        assertThat(result.email()).isEqualTo(userDTO.email());
-        assertThat(result.firstName()).isEqualTo(userDTO.firstName());
-        assertThat(result.lastName()).isEqualTo(userDTO.lastName());
+        assertThat(result.getEmail()).isEqualTo(userDTO.getEmail());
+        assertThat(result.getFirstName()).isEqualTo(userDTO.getFirstName());
+        assertThat(result.getLastName()).isEqualTo(userDTO.getLastName());
         verify(userRepository).save(any(User.class));
         verify(passwordEncoder).encode(anyString());
     }
@@ -94,9 +94,9 @@ class UserServiceImplTest {
 
         // Assert
         assertThat(result).isNotNull();
-        assertThat(result.email()).isEqualTo(userDTO.email());
-        assertThat(result.firstName()).isEqualTo(userDTO.firstName());
-        assertThat(result.lastName()).isEqualTo(userDTO.lastName());
+        assertThat(result.getEmail()).isEqualTo(userDTO.getEmail());
+        assertThat(result.getFirstName()).isEqualTo(userDTO.getFirstName());
+        assertThat(result.getLastName()).isEqualTo(userDTO.getLastName());
         verify(userRepository).save(any(User.class));
     }
 
@@ -145,9 +145,9 @@ class UserServiceImplTest {
 
         // Assert
         assertThat(result).isNotNull();
-        assertThat(result.email()).isEqualTo(userDTO.email());
-        assertThat(result.firstName()).isEqualTo(userDTO.firstName());
-        assertThat(result.lastName()).isEqualTo(userDTO.lastName());
+        assertThat(result.getEmail()).isEqualTo(userDTO.getEmail());
+        assertThat(result.getFirstName()).isEqualTo(userDTO.getFirstName());
+        assertThat(result.getLastName()).isEqualTo(userDTO.getLastName());
     }
 
     @Test
@@ -172,9 +172,9 @@ class UserServiceImplTest {
 
         // Assert
         assertThat(result).isNotNull();
-        assertThat(result.email()).isEqualTo(userDTO.email());
-        assertThat(result.firstName()).isEqualTo(userDTO.firstName());
-        assertThat(result.lastName()).isEqualTo(userDTO.lastName());
+        assertThat(result.getEmail()).isEqualTo(userDTO.getEmail());
+        assertThat(result.getFirstName()).isEqualTo(userDTO.getFirstName());
+        assertThat(result.getLastName()).isEqualTo(userDTO.getLastName());
     }
 
     @Test
@@ -201,9 +201,9 @@ class UserServiceImplTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).email()).isEqualTo(userDTO.email());
-        assertThat(result.get(0).firstName()).isEqualTo(userDTO.firstName());
-        assertThat(result.get(0).lastName()).isEqualTo(userDTO.lastName());
+        assertThat(result.get(0).getEmail()).isEqualTo(userDTO.getEmail());
+        assertThat(result.get(0).getFirstName()).isEqualTo(userDTO.getFirstName());
+        assertThat(result.get(0).getLastName()).isEqualTo(userDTO.getLastName());
     }
 
     @Test
@@ -219,9 +219,9 @@ class UserServiceImplTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).email()).isEqualTo(userDTO.email());
-        assertThat(result.get(0).firstName()).isEqualTo(userDTO.firstName());
-        assertThat(result.get(0).lastName()).isEqualTo(userDTO.lastName());
+        assertThat(result.get(0).getEmail()).isEqualTo(userDTO.getEmail());
+        assertThat(result.get(0).getFirstName()).isEqualTo(userDTO.getFirstName());
+        assertThat(result.get(0).getLastName()).isEqualTo(userDTO.getLastName());
     }
 
     @Test

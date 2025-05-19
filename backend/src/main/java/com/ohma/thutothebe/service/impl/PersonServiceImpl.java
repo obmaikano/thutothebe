@@ -18,7 +18,7 @@ public class PersonServiceImpl extends BaseServiceImpl<Person, PersonDTO, Long> 
     private final PersonMapper personMapper;
 
     public PersonServiceImpl(PersonRepository personRepository, PersonMapper personMapper) {
-        super(personRepository, personMapper);
+        super(personRepository);
         this.personRepository = personRepository;
         this.personMapper = personMapper;
     }

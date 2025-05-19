@@ -38,15 +38,20 @@ public class UserAuthServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        userDTO = new UserDTO(1L, "John", "Doe", "john@example.com", "encodedPassword", null);
+        userDTO = new UserDTO();
+        userDTO.setId(1L);
+        userDTO.setEmail("john@example.com");
+        userDTO.setFirstName("John");
+        userDTO.setLastName("Doe");
+        userDTO.setPassword("password");
         authRequest = new AuthRequest("john@example.com", "password");
     }
 
     @Test
     void authenticate_ValidCredentials_ReturnsAuthResponse() {
         when(userService.getUserByEmail(authRequest.email())).thenReturn(userDTO);
-        when(passwordEncoder.matches(authRequest.password(), userDTO.password())).thenReturn(true);
-        when(jwtUtil.generateToken(userDTO.email())).thenReturn(TEST_TOKEN);
+        when(passwordEncoder.matches(authRequest.password(), userDTO.getPassword())).thenReturn(true);
+        when(jwtUtil.generateToken(userDTO.getEmail())).thenReturn(TEST_TOKEN);
 
         AuthResponse response = userAuthService.authenticate(authRequest);
 
@@ -58,7 +63,7 @@ public class UserAuthServiceImplTest {
     @Test
     void authenticate_InvalidPassword_ThrowsIllegalArgumentException() {
         when(userService.getUserByEmail(authRequest.email())).thenReturn(userDTO);
-        when(passwordEncoder.matches(authRequest.password(), userDTO.password())).thenReturn(false);
+        when(passwordEncoder.matches(authRequest.password(), userDTO.getPassword())).thenReturn(false);
 
         assertThrows(IllegalArgumentException.class, () -> userAuthService.authenticate(authRequest));
     }

@@ -26,7 +26,7 @@ public class UserAuthServiceImpl implements UserAuthService {
             throw new IllegalArgumentException("Invalid password");
         }
 
-        String token = jwtUtil.generateToken(user.email());
+        String token = jwtUtil.generateToken(user.getEmail());
         return new AuthResponse(token, user);
     }
 
@@ -35,6 +35,6 @@ public class UserAuthServiceImpl implements UserAuthService {
         if (user == null || password == null) {
             throw new IllegalArgumentException("User and password cannot be null");
         }
-        return passwordEncoder.matches(password, user.password());
+        return passwordEncoder.matches(password, user.getPassword());
     }
 } 

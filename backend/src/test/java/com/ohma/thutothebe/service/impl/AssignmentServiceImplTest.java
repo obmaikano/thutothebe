@@ -88,9 +88,14 @@ class AssignmentServiceImplTest {
                 CourseType.ELECTIVE,
             new HashSet<>(Arrays.asList(1L)) // instructorIds
         );
-        instructorDTO = new UserDTO(
-            1L, "First", "Last", "email@test.com", "password", UserRole.TEACHER
-        );
+        instructorDTO = new UserDTO();
+
+        instructorDTO.setId(1L);
+        instructorDTO.setFirstName("First");
+        instructorDTO.setLastName("Last");
+        instructorDTO.setEmail("email@test.com");
+        instructorDTO.setPassword("password");
+        instructorDTO.setRole(UserRole.TEACHER);
 
         assignment = new Assignment();
         assignment.setId(1L);

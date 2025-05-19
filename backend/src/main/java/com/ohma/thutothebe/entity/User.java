@@ -55,6 +55,8 @@ public class User extends BaseEntity {
 
     private boolean active = true;
 
+    private String qualification;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -64,7 +66,7 @@ public class User extends BaseEntity {
     @Column(name = "last_login_time")
     private LocalDateTime lastLoginTime;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "person_id")
     private Person person;
 } 

@@ -71,14 +71,13 @@ class ProgressServiceImplTest {
         testStudent.setFirstName("John");
         testStudent.setLastName("Doe");
 
-        testStudentDTO = new UserDTO(
-            1L,
-            "John",
-            "Doe",
-            "john.doe@example.com",
-            "password",
-            null
-        );
+        testStudentDTO = new UserDTO();
+
+        testStudentDTO.setId(2L);
+        testStudentDTO.setFirstName("Jane");
+        testStudentDTO.setLastName("Doe");
+        testStudentDTO.setEmail("john.doe@example.com");
+        testStudentDTO.setPassword("password");
 
         // Setup test course
         testCourse = new Course();

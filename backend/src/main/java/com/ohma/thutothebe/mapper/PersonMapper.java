@@ -24,7 +24,7 @@ public class PersonMapper implements BaseDtoMapper<Person, PersonDTO> {
             entity.getBirthRegistrationNumber(),
             entity.getNationality(),
             entity.getDateOfBirth(),
-            entity.getUser() != null ? entity.getUser().getRole() : null
+                null
         );
     }
 

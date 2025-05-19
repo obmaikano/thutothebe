@@ -17,7 +17,7 @@ public class Thread extends BaseEntity {
     @Column(nullable = false)
     private String title;
     
-    @Column(length = 4000, nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String content;
     
     @ManyToOne(fetch = FetchType.LAZY)

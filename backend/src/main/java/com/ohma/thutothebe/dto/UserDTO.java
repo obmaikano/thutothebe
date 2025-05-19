@@ -1,8 +1,8 @@
 package com.ohma.thutothebe.dto;
 
-import com.ohma.thutothebe.enums.Gender;
-import com.ohma.thutothebe.enums.Nationality;
-import com.ohma.thutothebe.enums.UserRole;
+import com.ohma.thutothebe.entity.Gender;
+import com.ohma.thutothebe.entity.Nationality;
+import com.ohma.thutothebe.entity.UserRole;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 

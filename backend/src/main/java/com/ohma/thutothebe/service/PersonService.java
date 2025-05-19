@@ -1,13 +1,12 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.PersonDTO;
-import com.ohma.thutothebe.entity.Person;
 
-public interface PersonService extends BaseService<Person, PersonDTO, Long> {
+public interface PersonService extends BaseService<PersonDTO, Long> {
     PersonDTO getPersonByIdentityNumber(String identityNumber);
-    PersonDTO getPersonByPassportNumber(String passportNumber);
     PersonDTO getPersonByBirthCertificateNumber(String birthCertificateNumber);
+    PersonDTO getPersonByPassportNumber(String passportNumber);
     boolean existsByIdentityNumber(String identityNumber);
-    boolean existsByPassportNumber(String passportNumber);
     boolean existsByBirthCertificateNumber(String birthCertificateNumber);
+    boolean existsByPassportNumber(String passportNumber);
 } 
