@@ -13,6 +13,20 @@
 			"item": [
 				{
 					"name": "Register Super Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('super_admin_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -23,7 +37,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"email\": \"admin@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SUPER_ADMIN\",\n  \"person\": {\n    \"firstName\": \"Admin\",\n    \"surname\": \"User\",\n    \"gender\": \"MALE\",\n    \"nationality\": \"CITIZEN\",\n    \"dateOfBirth\": \"1980-01-01\",\n    \"identityNumber\": \"1234567890\"\n  }\n}"
+							"raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"email\": \"admin@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SUPER_ADMIN\",\n  \"surname\": \"User\",\n  \"gender\": \"MALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"1980-01-01\",\n  \"identityNumber\": \"1234567890\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -47,7 +61,9 @@
 							"script": {
 								"exec": [
 									"var jsonData = pm.response.json();",
-									"pm.environment.set(\"auth_token\", jsonData.data.token);"
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('auth_token', jsonData.data.token);",
+									"}"
 								],
 								"type": "text/javascript"
 							}
@@ -78,15 +94,53 @@
 						"description": "Login to get authentication token"
 					},
 					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"description": "Get current user details"
+					},
+					"response": []
 				}
 			],
 			"description": "Authentication endpoints for Super Admin"
 		},
 		{
-			"name": "2. Setup Locations",
+			"name": "2. Location Management",
 			"item": [
 				{
 					"name": "Create Region",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('region_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -118,6 +172,23 @@
 				},
 				{
 					"name": "Create School",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('school_id', jsonData.data.id);",
+									"    console.log('School ID set to: ' + jsonData.data.id);",
+									"} else {",
+									"    console.error('Failed to create school:', jsonData.message);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -132,7 +203,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Gaborone Senior Secondary School\",\n  \"code\": \"GSSS\",\n  \"regionId\": 1,\n  \"address\": \"Plot 1234, Gaborone\",\n  \"phone\": \"+267 3900123\",\n  \"email\": \"gsss@gov.bw\"\n}"
+							"raw": "{\n  \"name\": \"Gaborone Senior Secondary School\",\n  \"code\": \"GSSS\",\n  \"regionId\": {{region_id}},\n  \"address\": \"Plot 1234, Gaborone\",\n  \"phone\": \"+267 3900123\",\n  \"email\": \"gsss@gov.bw\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/schools",
@@ -151,78 +222,24 @@
 			"description": "Setting up locations (regions and schools)"
 		},
 		{
-			"name": "3. Setup Academic Structure",
-			"item": [
-				{
-					"name": "Create Subject",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{auth_token}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Mathematics\",\n  \"code\": \"MATH\",\n  \"description\": \"General Mathematics\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/subjects",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"subjects"
-							]
-						},
-						"description": "Create a subject to be taught"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Class",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{auth_token}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Form 5A\",\n  \"code\": \"F5A\",\n  \"schoolId\": 1,\n  \"academicYear\": 2023,\n  \"capacity\": 35\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/classes",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"classes"
-							]
-						},
-						"description": "Create a class within a school"
-					},
-					"response": []
-				}
-			],
-			"description": "Setting up academic structure (subjects and classes)"
-		},
-		{
-			"name": "4. User Management",
+			"name": "3. User Management",
 			"item": [
 				{
 					"name": "Create School Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('school_admin_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -237,7 +254,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Sarah\",\n  \"lastName\": \"Molefe\",\n  \"email\": \"sarah.molefe@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SCHOOL_ADMIN\",\n  \"schoolId\": 1,\n  \"person\": {\n    \"firstName\": \"Sarah\",\n    \"surname\": \"Molefe\",\n    \"gender\": \"FEMALE\",\n    \"nationality\": \"CITIZEN\",\n    \"dateOfBirth\": \"1985-05-15\",\n    \"identityNumber\": \"2345678901\"\n  }\n}"
+							"raw": "{\n  \"firstName\": \"Sarah\",\n  \"lastName\": \"Molefe\",\n  \"email\": \"sarah.molefe@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"SCHOOL_ADMIN\",\n  \"schoolId\": {{school_id}},\n  \"surname\": \"Molefe\",\n  \"gender\": \"FEMALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"1985-05-15\",\n  \"identityNumber\": \"2345678901\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -255,6 +272,20 @@
 				},
 				{
 					"name": "Create Teacher",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('teacher_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -269,7 +300,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Dube\",\n  \"email\": \"john.dube@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"TEACHER\",\n  \"schoolId\": 1,\n  \"person\": {\n    \"firstName\": \"John\",\n    \"surname\": \"Dube\",\n    \"gender\": \"MALE\",\n    \"nationality\": \"CITIZEN\",\n    \"dateOfBirth\": \"1990-03-20\",\n    \"identityNumber\": \"3456789012\",\n    \"qualification\": \"BSc in Mathematics\"\n  }\n}"
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Dube\",\n  \"email\": \"john.dube@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"TEACHER\",\n  \"schoolId\": {{school_id}},\n  \"surname\": \"Dube\",\n  \"gender\": \"MALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"1990-03-20\",\n  \"identityNumber\": \"3456789012\",\n  \"qualification\": \"BSc in Mathematics\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -287,6 +318,20 @@
 				},
 				{
 					"name": "Create Student",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('student_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -301,7 +346,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": 1,\n  \"surname\": \"Kgosi\",\n  \"gender\": \"MALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"2007-08-10\",\n  \"birthCertificateNumber\": \"BC123456\"\n}"
+							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": {{school_id}},\n  \"parentId\": {{parent_id}},\n  \"surname\": \"Kgosi\",\n  \"gender\": \"MALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"2007-08-10\",\n  \"birthCertificateNumber\": \"BC123456\",\n  \"phone\": \"+267 71234567\",\n  \"address\": \"Plot 5678, Gaborone\",\n  \"emergencyContactName\": \"Mpho Kgosi\",\n  \"emergencyContactPhone\": \"+267 72345678\",\n  \"emergencyContactRelation\": \"MOTHER\",\n  \"admissionNumber\": \"STU2023001\",\n  \"status\": \"ACTIVE\",\n  \"onboardingNotes\": \"New student admitted for Form 5\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -313,12 +358,26 @@
 								"register"
 							]
 						},
-						"description": "Register a student in the school. Student ID will be automatically generated in format STU-YYYY-NNNN (e.g., STU-2024-0001)"
+						"description": "Register a student in the school"
 					},
 					"response": []
 				},
 				{
 					"name": "Create Parent",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('parent_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -333,7 +392,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Mpho\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"mpho.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"PARENT\",\n  \"person\": {\n    \"firstName\": \"Mpho\",\n    \"surname\": \"Kgosi\",\n    \"gender\": \"FEMALE\",\n    \"nationality\": \"CITIZEN\",\n    \"dateOfBirth\": \"1982-11-25\",\n    \"identityNumber\": \"4567890123\"\n  }\n}"
+							"raw": "{\n  \"firstName\": \"Mpho\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"mpho.kgosi@thutothebe.org\",\n  \"password\": \"Password123!\",\n  \"role\": \"PARENT\",\n  \"surname\": \"Kgosi\",\n  \"gender\": \"FEMALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"1982-11-25\",\n  \"identityNumber\": \"4567890123\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/register",
@@ -365,19 +424,19 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": 1,\n  \"parentId\": 5,\n  \"surname\": \"Kgosi\",\n  \"gender\": \"MALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"2007-08-10\",\n  \"birthCertificateNumber\": \"BC123456\"\n}"
+							"raw": "{\n  \"firstName\": \"Tebogo\",\n  \"lastName\": \"Kgosi\",\n  \"email\": \"tebogo.kgosi@thutothebe.org\",\n  \"role\": \"STUDENT\",\n  \"schoolId\": {{school_id}},\n  \"parentId\": {{parent_id}},\n  \"surname\": \"Kgosi\",\n  \"gender\": \"MALE\",\n  \"nationality\": \"CITIZEN\",\n  \"dateOfBirth\": \"2007-08-10\",\n  \"birthCertificateNumber\": \"BC123456\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/users/4",
+							"raw": "{{base_url}}/users/{{student_id}}",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"users",
-								"4"
+								"{{student_id}}"
 							]
 						},
-						"description": "Associate a student with their parent. Student ID format: STU-YYYY-NNNN"
+						"description": "Associate a student with their parent"
 					},
 					"response": []
 				}
@@ -385,10 +444,24 @@
 			"description": "Managing users (admins, teachers, students, parents)"
 		},
 		{
-			"name": "5. Course Management",
+			"name": "4. Academic Structure",
 			"item": [
 				{
-					"name": "Create Course",
+					"name": "Create Subject",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('subject_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -403,7 +476,97 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Mathematics Form 5A\",\n  \"code\": \"MATH-F5A\",\n  \"subjectId\": 1,\n  \"classId\": 1,\n  \"term\": \"FIRST_TERM\",\n  \"year\": 2023,\n  \"type\": \"CORE\",\n  \"description\": \"Core mathematics course for Form 5A\"\n}"
+							"raw": "{\n  \"name\": \"Mathematics\",\n  \"code\": \"MATH\",\n  \"description\": \"General Mathematics\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/subjects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"subjects"
+							]
+						},
+						"description": "Create a subject to be taught"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Class",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('class_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Form 5A\",\n  \"code\": \"F5A\",\n  \"schoolId\": {{school_id}},\n  \"academicYear\": 2023,\n  \"capacity\": 35\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/classes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"classes"
+							]
+						},
+						"description": "Create a class within a school"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Course",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('course_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Mathematics Form 5A\",\n  \"code\": \"MATH-F5A\",\n  \"subjectId\": {{subject_id}},\n  \"classId\": {{class_id}},\n  \"term\": \"FIRST_TERM\",\n  \"year\": 2023,\n  \"type\": \"CORE\",\n  \"description\": \"Core mathematics course for Form 5A\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/courses",
@@ -424,24 +587,20 @@
 						"method": "POST",
 						"header": [
 							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
 								"key": "Authorization",
 								"value": "Bearer {{auth_token}}"
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/courses/1/teacher/3",
+							"raw": "{{base_url}}/courses/{{course_id}}/teacher/{{teacher_id}}",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"courses",
-								"1",
+								"{{course_id}}",
 								"teacher",
-								"3"
+								"{{teacher_id}}"
 							]
 						},
 						"description": "Assign a teacher to a course"
@@ -454,24 +613,20 @@
 						"method": "POST",
 						"header": [
 							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
 								"key": "Authorization",
 								"value": "Bearer {{auth_token}}"
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/classes/1/student/4",
+							"raw": "{{base_url}}/classes/{{class_id}}/student/{{student_id}}",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"classes",
-								"1",
+								"{{class_id}}",
 								"student",
-								"4"
+								"{{student_id}}"
 							]
 						},
 						"description": "Add a student to a class"
@@ -479,13 +634,27 @@
 					"response": []
 				}
 			],
-			"description": "Managing courses, teachers, and students"
+			"description": "Setting up academic structure (subjects, classes, courses)"
 		},
 		{
-			"name": "6. Academic Content",
+			"name": "5. Academic Content",
 			"item": [
 				{
 					"name": "Create Assignment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('assignment_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -500,7 +669,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"title\": \"Mid-Term Exam\",\n  \"description\": \"Comprehensive exam covering topics 1-5\",\n  \"courseId\": 1,\n  \"instructorId\": 3,\n  \"dueDate\": \"2023-09-15T14:00:00Z\",\n  \"totalPoints\": 100,\n  \"weightage\": 30\n}"
+							"raw": "{\n  \"title\": \"Mid-Term Exam\",\n  \"description\": \"Comprehensive exam covering topics 1-5\",\n  \"courseId\": {{course_id}},\n  \"instructorId\": {{teacher_id}},\n  \"dueDate\": \"2023-09-15T14:00:00Z\",\n  \"totalPoints\": 100,\n  \"weightage\": 30\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/assignments",
@@ -517,6 +686,20 @@
 				},
 				{
 					"name": "Create Grade Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.status === 'SUCCESS') {",
+									"    pm.environment.set('grade_category_id', jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -531,7 +714,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Exams\",\n  \"description\": \"Examination grades\",\n  \"courseId\": 1,\n  \"weight\": 70,\n  \"passingGrade\": 50\n}"
+							"raw": "{\n  \"name\": \"Exams\",\n  \"description\": \"Examination grades\",\n  \"courseId\": {{course_id}},\n  \"weight\": 70,\n  \"passingGrade\": 50\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/grade-categories",

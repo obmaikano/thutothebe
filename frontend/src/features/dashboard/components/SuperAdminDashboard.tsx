@@ -1,86 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Users, BookOpen, AlertTriangle, 
-  School, Building, Clock
+  School, Users, AlertTriangle, Calendar, BookOpen, 
+  Building, BarChart3, FileText, Settings, PlusCircle,
+  UserPlus, School as SchoolIcon, Map, Shield, BookOpen as BookIcon,
+  FileCheck, BarChart2, Activity, Eye
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-
-// Card component
-const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => (
-  <div className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 ${className}`}>
-    {children}
-  </div>
-);
-
-// StatCard component
-const StatCard: React.FC<{ 
-  title: string, 
-  value: string, 
-  change?: number, 
-  icon: React.ReactNode, 
-  iconColor: string 
-}> = ({ title, value, change, icon, iconColor }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        <div className="flex items-center">
-          <p className="text-2xl font-semibold text-gray-900">{value}</p>
-          {change !== undefined && (
-            <span className={`ml-2 text-xs font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {change >= 0 ? '+' : ''}{change}%
-            </span>
-          )}
-        </div>
-      </div>
-      <div className={`p-2 rounded-lg ${iconColor}`}>
-        {icon}
-      </div>
-    </div>
-  </div>
-);
-
-// Button component
-const Button: React.FC<{ 
-  children: React.ReactNode, 
-  variant?: 'primary' | 'outline', 
-  size?: 'sm' | 'md' | 'lg',
-  fullWidth?: boolean,
-  leftIcon?: React.ReactNode,
-  className?: string,
-  onClick?: () => void
-}> = ({ children, variant = 'primary', size = 'md', fullWidth = false, leftIcon, className = '', onClick }) => {
-  
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors';
-  
-  const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
-    outline: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-  };
-  
-  const sizeClasses = {
-    sm: 'py-1 px-2.5 text-xs',
-    md: 'py-2 px-4 text-sm',
-    lg: 'py-2.5 px-5 text-base'
-  };
-  
-  return (
-    <button 
-      className={`
-        ${baseClasses}
-        ${variantClasses[variant]}
-        ${sizeClasses[size]}
-        ${fullWidth ? 'w-full' : ''}
-        ${className}
-      `}
-      onClick={onClick}
-    >
-      {leftIcon && <span className="mr-1.5">{leftIcon}</span>}
-      {children}
-    </button>
-  );
-};
+import { Card } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { StatCard } from '../../../components/ui/stat-card';
 
 export const SuperAdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -94,9 +23,22 @@ export const SuperAdminDashboard: React.FC = () => {
     { region: 'Maun', schools: 25, teachers: 480, students: 7800, performance: 65 },
   ];
 
-  const pendingApprovals = [
-    { id: '1', name: 'Botlhe Motswakae', email: 'botlhe@education.gov.bw', role: 'Teacher', school: 'Gaborone Secondary School', date: '2 days ago' },
-    { id: '2', name: 'Mpho Sereetsi', email: 'mpho@education.gov.bw', role: 'Regional Admin', school: 'Francistown Region', date: '3 days ago' },
+  const systemMetrics = {
+    totalSchools: 130,
+    totalUsers: 45230,
+    totalRegions: 5,
+    activeAlerts: 3,
+    systemHealth: 98.5,
+    storageUsage: 65,
+    cpuUsage: 45,
+    memoryUsage: 60
+  };
+
+  const recentActivity = [
+    { id: '1', user: 'David Wilson', action: 'created', item: 'Biology 101 course', time: '2 hours ago', role: 'Teacher' },
+    { id: '2', user: 'Admin System', action: 'updated', item: 'system settings', time: '1 day ago', role: 'System' },
+    { id: '3', user: 'Sarah Chen', action: 'deleted', item: 'Math Quiz 3', time: '2 days ago', role: 'Teacher' },
+    { id: '4', user: 'John Smith', action: 'registered', item: '45 new students', time: '3 days ago', role: 'Admin' },
   ];
 
   const systemAlerts = [
@@ -107,17 +49,18 @@ export const SuperAdminDashboard: React.FC = () => {
 
   return (
     <div className="p-8 space-y-6">
+      {/* Welcome Header */}
       <div className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-xl p-6 shadow-md mb-6">
         <h1 className="text-2xl text-white font-bold mb-2">Welcome back, {adminName}!</h1>
-        <p className="text-blue-100 mb-4">System overview for the Ministry of Education LMS</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <p className="text-blue-100 mb-4">National Education System Administration</p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
             <div className="bg-white p-2 rounded-full mr-3">
               <School size={20} className="text-blue-600" />
             </div>
             <div>
               <p className="text-white text-opacity-90 text-sm">Total Schools</p>
-              <p className="text-white font-medium">130</p>
+              <p className="text-white font-medium">{systemMetrics.totalSchools}</p>
             </div>
           </div>
           <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
@@ -126,7 +69,16 @@ export const SuperAdminDashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-white text-opacity-90 text-sm">Total Users</p>
-              <p className="text-white font-medium">45,230</p>
+              <p className="text-white font-medium">{systemMetrics.totalUsers.toLocaleString()}</p>
+            </div>
+          </div>
+          <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
+            <div className="bg-white p-2 rounded-full mr-3">
+              <Building size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="text-white text-opacity-90 text-sm">Regions</p>
+              <p className="text-white font-medium">{systemMetrics.totalRegions}</p>
             </div>
           </div>
           <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
@@ -134,41 +86,59 @@ export const SuperAdminDashboard: React.FC = () => {
               <AlertTriangle size={20} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-white text-opacity-90 text-sm">System Alerts</p>
-              <p className="text-white font-medium">3 active alerts</p>
+              <p className="text-white text-opacity-90 text-sm">Active Alerts</p>
+              <p className="text-white font-medium">{systemMetrics.activeAlerts}</p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Schools" 
-          value="130" 
-          change={5} 
-          icon={<School size={20} />} 
-          iconColor="bg-blue-100 text-blue-600" 
-        />
-        <StatCard 
-          title="Total Teachers" 
-          value="2,490" 
-          change={8} 
-          icon={<Users size={20} />} 
-          iconColor="bg-green-100 text-green-600" 
-        />
-        <StatCard 
-          title="Total Students" 
-          value="37,520" 
-          change={3}
-          icon={<BookOpen size={20} />} 
-          iconColor="bg-orange-100 text-orange-600" 
-        />
-        <StatCard 
-          title="Regional Offices" 
-          value="5" 
-          icon={<Building size={20} />} 
-          iconColor="bg-purple-100 text-purple-600" 
-        />
+        <Link to="/app/users/create" className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg mr-3">
+              <UserPlus size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Create User</p>
+              <p className="text-sm text-gray-500">Add new system users</p>
+            </div>
+          </div>
+        </Link>
+        <Link to="/app/schools/register" className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg mr-3">
+              <SchoolIcon size={20} className="text-green-600" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Register School</p>
+              <p className="text-sm text-gray-500">Add new schools</p>
+            </div>
+          </div>
+        </Link>
+        <Link to="/app/regions/configure" className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg mr-3">
+              <Map size={20} className="text-purple-600" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Configure Regions</p>
+              <p className="text-sm text-gray-500">Manage regional offices</p>
+            </div>
+          </div>
+        </Link>
+        <Link to="/app/settings/roles" className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg mr-3">
+              <Shield size={20} className="text-orange-600" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Manage Roles</p>
+              <p className="text-sm text-gray-500">Configure permissions</p>
+            </div>
+          </div>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -200,32 +170,39 @@ export const SuperAdminDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {regionalStats.map((region, idx) => (
-                  <tr key={idx}>
+                {regionalStats.map((stat) => (
+                  <tr key={stat.region}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {region.region}
+                      {stat.region}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {region.schools}
+                      {stat.schools}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {region.teachers}
+                      {stat.teachers}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {region.students}
+                      {stat.students.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center">
-                        <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
+                        <span className={`mr-2 ${
+                          stat.performance >= 75 ? 'text-green-600' :
+                          stat.performance >= 60 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {stat.performance}%
+                        </span>
+                        <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className={`h-2.5 rounded-full ${
-                              region.performance >= 75 ? 'bg-green-600' : 
-                              region.performance >= 65 ? 'bg-yellow-600' : 'bg-red-600'
+                            className={`h-full ${
+                              stat.performance >= 75 ? 'bg-green-500' :
+                              stat.performance >= 60 ? 'bg-yellow-500' :
+                              'bg-red-500'
                             }`}
-                            style={{ width: `${region.performance}%` }}
+                            style={{ width: `${stat.performance}%` }}
                           ></div>
                         </div>
-                        <span className="text-sm text-gray-700">{region.performance}%</span>
                       </div>
                     </td>
                   </tr>
@@ -235,40 +212,11 @@ export const SuperAdminDashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* User Approvals */}
-        <Card className="col-span-1">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-gray-800">Pending Approvals</h2>
-            <Link to="/app/approvals" className="text-sm text-blue-600 hover:underline">View all</Link>
-          </div>
-          <div className="space-y-4">
-            {pendingApprovals.map(user => (
-              <div key={user.id} className="border border-gray-200 rounded-lg p-3">
-                <h3 className="font-medium">{user.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">{user.email}</p>
-                <div className="flex justify-between mt-2">
-                  <div>
-                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full mr-2">
-                      {user.role}
-                    </span>
-                    <span className="text-xs text-gray-500">{user.date}</span>
-                  </div>
-                </div>
-                <div className="mt-3 flex space-x-2">
-                  <Button size="sm" variant="primary" className="flex-1">Approve</Button>
-                  <Button size="sm" variant="outline" className="flex-1">Reject</Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* System Alerts */}
         <Card className="col-span-1">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-gray-800">System Alerts</h2>
+            <Link to="/app/system/alerts" className="text-sm text-blue-600 hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {systemAlerts.map(alert => (
@@ -297,66 +245,84 @@ export const SuperAdminDashboard: React.FC = () => {
             ))}
           </div>
         </Card>
+      </div>
 
-        {/* System Performance */}
-        <Card className="col-span-1 lg:col-span-2">
+      {/* System Health & Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-gray-800">System Performance</h2>
+            <h2 className="text-lg font-bold text-gray-800">System Health</h2>
             <select className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+              <option>Last 24 hours</option>
               <option>Last 7 days</option>
               <option>Last 30 days</option>
-              <option>Last 90 days</option>
             </select>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-gray-50 rounded-lg p-3 text-center">
-              <p className="text-sm text-gray-600 mb-1">Server Uptime</p>
-              <p className="text-lg font-semibold">99.8%</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">System Uptime</span>
+                <span className="text-sm font-medium text-green-600">{systemMetrics.systemHealth}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: `${systemMetrics.systemHealth}%` }}></div>
+              </div>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3 text-center">
-              <p className="text-sm text-gray-600 mb-1">Avg. Response</p>
-              <p className="text-lg font-semibold">245ms</p>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Storage Usage</span>
+                <span className="text-sm font-medium text-blue-600">{systemMetrics.storageUsage}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${systemMetrics.storageUsage}%` }}></div>
+              </div>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3 text-center">
-              <p className="text-sm text-gray-600 mb-1">CPU Usage</p>
-              <p className="text-lg font-semibold">45%</p>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">CPU Usage</span>
+                <span className="text-sm font-medium text-orange-600">{systemMetrics.cpuUsage}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-orange-500 h-2 rounded-full" style={{ width: `${systemMetrics.cpuUsage}%` }}></div>
+              </div>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3 text-center">
-              <p className="text-sm text-gray-600 mb-1">Memory</p>
-              <p className="text-lg font-semibold">65%</p>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Memory Usage</span>
+                <span className="text-sm font-medium text-purple-600">{systemMetrics.memoryUsage}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${systemMetrics.memoryUsage}%` }}></div>
+              </div>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex justify-between mb-1">
-              <p className="text-sm font-medium text-gray-700">Daily Active Users</p>
-              <p className="text-sm font-medium text-gray-700">12,543</p>
-            </div>
-            <div className="w-full h-8 bg-gray-100 rounded-full overflow-hidden">
-              <div className="flex h-full">
-                <div className="h-full bg-blue-600 w-[45%]"></div>
-                <div className="h-full bg-green-500 w-[30%]"></div>
-                <div className="h-full bg-yellow-500 w-[15%]"></div>
-                <div className="h-full bg-red-500 w-[10%]"></div>
+        </Card>
+
+        <Card>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-gray-800">Recent Activity</h2>
+            <Link to="/app/activity" className="text-sm text-blue-600 hover:underline">View all</Link>
+          </div>
+          <div className="space-y-4">
+            {recentActivity.map(activity => (
+              <div key={activity.id} className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Users size={16} className="text-gray-600" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">
+                    {activity.user} <span className="text-gray-500">{activity.action}</span> {activity.item}
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <span className="text-xs text-gray-500">{activity.time}</span>
+                    <span className="mx-2 text-gray-300">•</span>
+                    <span className="text-xs text-gray-500">{activity.role}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex justify-between mt-2 text-xs text-gray-600">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-blue-600 rounded-full mr-1"></div>
-                <span>Students (45%)</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
-                <span>Teachers (30%)</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
-                <span>Parents (15%)</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
-                <span>Admins (10%)</span>
-              </div>
-            </div>
+            ))}
           </div>
         </Card>
       </div>

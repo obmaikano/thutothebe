@@ -4,6 +4,7 @@ import com.ohma.thutothebe.dto.UserDTO;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.entity.Person;
 import com.ohma.thutothebe.entity.enums.Gender;
+import com.ohma.thutothebe.repository.SchoolRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class UserMapper implements BaseDtoMapper<User, UserDTO> {
+
+    private final SchoolRepository schoolRepository;
 
     @Override
     public UserDTO toDto(User entity) {
@@ -60,6 +63,7 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
         entity.setRole(dto.getRole());
         entity.setUsername(dto.getEmail());
         entity.setQualification(dto.getQualification());
+        entity.setSchool(dto.getSchoolId() != null ? schoolRepository.findById(dto.getSchoolId()).get() : null);
 
         // Create or update Person entity
         Person person = entity.getPerson();

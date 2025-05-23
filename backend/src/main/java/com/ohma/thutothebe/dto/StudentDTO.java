@@ -32,9 +32,7 @@ public record StudentDTO(
     
     @NotNull(message = "Gender is required")
     Gender gender,
-    
-    @NotBlank(message = "Phone number is required")
-    @Size(min = 10, max = 20, message = "Phone number must be between 10 and 20 characters")
+
     String phone,
     
     @NotBlank(message = "Email is required")
@@ -46,8 +44,7 @@ public record StudentDTO(
     
     @NotNull(message = "Academic year is required")
     Integer academicYear,
-    
-    @NotNull(message = "Class ID is required")
+
     Long classId,
     
     String medicalConditions,

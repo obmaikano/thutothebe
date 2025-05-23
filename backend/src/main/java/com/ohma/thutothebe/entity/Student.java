@@ -41,7 +41,6 @@ public class Student extends BaseEntity {
     @Column(nullable = false)
     private Gender gender;
 
-    @NotBlank
     @Column(length = 20)
     private String phone;
 
@@ -57,7 +56,7 @@ public class Student extends BaseEntity {
     private Integer academicYear;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id", nullable = false)
+    @JoinColumn(name = "class_id", nullable = true)
     private Class studentClass;
 
     @Column(name = "medical_conditions", columnDefinition = "TEXT")

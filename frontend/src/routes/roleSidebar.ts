@@ -24,7 +24,11 @@ import {
   Globe,
   User,
   Clipboard,
-  FileCheck
+  FileCheck,
+  Monitor,
+  TrendingUp,
+  Target,
+  Activity
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -32,6 +36,7 @@ export interface MenuItem {
   label: string;
   path: string;
   description: string;
+  children?: MenuItem[];
 }
 
 // Common menu items that all users might need
@@ -256,7 +261,29 @@ export const schoolAdminMenuItems: MenuItem[] = [
     icon: BarChart,
     label: 'Reports',
     path: '/app/reports',
-    description: 'Generate and view reports'
+    description: 'Generate and view reports',
+    children: [
+      {
+        icon: Target,
+        label: 'Assignment Tracking',
+        path: '/app/reports/assignment-tracking',
+        description: 'Track assignment submissions'
+      }
+    ]
+  },
+  {
+    icon: Monitor,
+    label: 'Monitoring',
+    path: '/app/monitoring',
+    description: 'School monitoring',
+    children: [
+      {
+        icon: School,
+        label: 'School Usage',
+        path: '/app/monitoring/school',
+        description: 'Monitor school LMS usage'
+      }
+    ]
   },
   {
     icon: Settings,
@@ -268,7 +295,83 @@ export const schoolAdminMenuItems: MenuItem[] = [
 
 // School Head menu items
 export const schoolHeadMenuItems: MenuItem[] = [
-  ...schoolAdminMenuItems,
+  ...commonMenuItems,
+  {
+    icon: Users,
+    label: 'Staff Management',
+    path: '/app/staff',
+    description: 'Manage school staff'
+  },
+  {
+    icon: UserSquare,
+    label: 'Student Records',
+    path: '/app/student-records',
+    description: 'Manage student information'
+  },
+  {
+    icon: Building,
+    label: 'Facilities',
+    path: '/app/facilities',
+    description: 'Manage school facilities'
+  },
+  {
+    icon: Calendar,
+    label: 'School Calendar',
+    path: '/app/school-calendar',
+    description: 'Manage school events and schedule'
+  },
+  {
+    icon: Clipboard,
+    label: 'Attendance',
+    path: '/app/attendance',
+    description: 'Track staff and student attendance'
+  },
+  {
+    icon: FileText,
+    label: 'Documents',
+    path: '/app/documents',
+    description: 'Manage school documentation'
+  },
+  {
+    icon: BarChart,
+    label: 'Reports',
+    path: '/app/reports',
+    description: 'Generate and view reports',
+    children: [
+      {
+        icon: Target,
+        label: 'Assignment Tracking',
+        path: '/app/reports/assignment-tracking',
+        description: 'Track assignment submissions'
+      },
+      {
+        icon: School,
+        label: 'School Performance',
+        path: '/app/reports/school-performance',
+        description: 'Detailed school analytics'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Student Progression',
+        path: '/app/reports/learner-progression',
+        description: 'Student progression analysis'
+      }
+    ]
+  },
+  {
+    icon: Monitor,
+    label: 'Monitoring',
+    path: '/app/monitoring',
+    description: 'School monitoring',
+    children: [
+      {
+        icon: School,
+        label: 'School Usage',
+        path: '/app/monitoring/school',
+        description: 'Monitor school LMS usage'
+      }
+    ]
+  },
   {
     icon: Award,
     label: 'Academic Oversight',
@@ -280,6 +383,12 @@ export const schoolHeadMenuItems: MenuItem[] = [
     label: 'Performance Metrics',
     path: '/app/performance',
     description: 'School performance analytics'
+  },
+  {
+    icon: Settings,
+    label: 'Settings',
+    path: '/app/settings',
+    description: 'School configuration'
   }
 ];
 
@@ -309,6 +418,34 @@ export const regionalOfficerMenuItems: MenuItem[] = [
     label: 'Regional Metrics',
     path: '/app/regional-metrics',
     description: 'Regional performance data'
+  },
+  {
+    icon: FileText,
+    label: 'Reports',
+    path: '/app/reports',
+    description: 'Generate and view reports',
+    children: [
+      {
+        icon: School,
+        label: 'School Performance',
+        path: '/app/reports/school-performance',
+        description: 'Monitor school performance'
+      }
+    ]
+  },
+  {
+    icon: Monitor,
+    label: 'Monitoring',
+    path: '/app/monitoring',
+    description: 'Usage monitoring',
+    children: [
+      {
+        icon: Activity,
+        label: 'Regional Usage',
+        path: '/app/monitoring/regional',
+        description: 'Regional LMS usage patterns'
+      }
+    ]
   },
   {
     icon: Calendar,
@@ -343,7 +480,29 @@ export const regionalAdminMenuItems: MenuItem[] = [
     icon: FileText,
     label: 'Reports',
     path: '/app/reports',
-    description: 'Generate and view reports'
+    description: 'Generate and view reports',
+    children: [
+      {
+        icon: School,
+        label: 'School Performance',
+        path: '/app/reports/school-performance',
+        description: 'School performance analytics'
+      }
+    ]
+  },
+  {
+    icon: Monitor,
+    label: 'Usage Monitoring',
+    path: '/app/monitoring',
+    description: 'Monitor regional LMS usage',
+    children: [
+      {
+        icon: Activity,
+        label: 'Regional Usage',
+        path: '/app/monitoring/regional',
+        description: 'Regional usage patterns'
+      }
+    ]
   },
   {
     icon: ClipboardList,
@@ -402,7 +561,35 @@ export const directorMenuItems: MenuItem[] = [
     icon: FileText,
     label: 'Reports',
     path: '/app/reports',
-    description: 'Generate and view reports'
+    description: 'Generate and view reports',
+    children: [
+      {
+        icon: TrendingUp,
+        label: 'Learner Progression',
+        path: '/app/reports/learner-progression',
+        description: 'Learner progression analytics'
+      },
+      {
+        icon: BookOpen,
+        label: 'Subject Analytics',
+        path: '/app/reports/subject-analytics',
+        description: 'Subject performance data'
+      }
+    ]
+  },
+  {
+    icon: Monitor,
+    label: 'System Monitoring',
+    path: '/app/monitoring',
+    description: 'Monitor LMS usage and adoption',
+    children: [
+      {
+        icon: Users,
+        label: 'User Activity',
+        path: '/app/monitoring/users',
+        description: 'User behavior analytics'
+      }
+    ]
   },
   {
     icon: Settings,
@@ -419,7 +606,29 @@ export const ministryStaffMenuItems: MenuItem[] = [
     icon: FileText,
     label: 'Reports',
     path: '/app/reports',
-    description: 'Generate and manage reports'
+    description: 'Generate and manage reports',
+    children: [
+      {
+        icon: Target,
+        label: 'Assignment Tracking',
+        path: '/app/reports/assignment-tracking',
+        description: 'Assignment submission analytics'
+      }
+    ]
+  },
+  {
+    icon: Monitor,
+    label: 'System Monitoring',
+    path: '/app/monitoring',
+    description: 'Monitor LMS usage and adoption',
+    children: [
+      {
+        icon: BarChart,
+        label: 'Usage Analytics',
+        path: '/app/monitoring/usage',
+        description: 'Comprehensive usage analytics'
+      }
+    ]
   },
   {
     icon: ClipboardList,
@@ -464,6 +673,52 @@ export const ministryExecutiveMenuItems: MenuItem[] = [
   },
   {
     icon: FileText,
+    label: 'Reports',
+    path: '/app/reports',
+    description: 'Generate and view national reports',
+    children: [
+      {
+        icon: School,
+        label: 'School Performance',
+        path: '/app/reports/school-performance',
+        description: 'National school performance'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Learner Progression',
+        path: '/app/reports/learner-progression',
+        description: 'National learner progression'
+      },
+      {
+        icon: BookOpen,
+        label: 'Subject Analytics',
+        path: '/app/reports/subject-analytics',
+        description: 'National subject performance'
+      }
+    ]
+  },
+  {
+    icon: Monitor,
+    label: 'System Monitoring',
+    path: '/app/monitoring',
+    description: 'Monitor LMS usage and adoption',
+    children: [
+      {
+        icon: Activity,
+        label: 'Regional Usage',
+        path: '/app/monitoring/regional',
+        description: 'Regional usage monitoring'
+      },
+      {
+        icon: Users,
+        label: 'User Activity',
+        path: '/app/monitoring/users',
+        description: 'National user activity'
+      }
+    ]
+  },
+  {
+    icon: FileText,
     label: 'Policy Management',
     path: '/app/policy',
     description: 'Develop and review policies'
@@ -500,13 +755,13 @@ export const superAdminMenuItems: MenuItem[] = [
   {
     icon: UserCog,
     label: 'Roles & Permissions',
-    path: '/app/roles',
+    path: '/app/permissions-roles',
     description: 'Configure access controls'
   },
   {
     icon: School,
     label: 'Institutions',
-    path: '/app/institutions',
+    path: '/app/schools',
     description: 'Manage educational institutions'
   },
   {
@@ -520,6 +775,70 @@ export const superAdminMenuItems: MenuItem[] = [
     label: 'Analytics',
     path: '/app/analytics',
     description: 'System-wide analytics'
+  },
+  {
+    icon: FileText,
+    label: 'Reports',
+    path: '/app/reports',
+    description: 'Generate and view reports',
+    children: [
+      {
+        icon: School,
+        label: 'School Performance',
+        path: '/app/reports/school-performance',
+        description: 'Detailed school analytics'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Learner Progression',
+        path: '/app/reports/learner-progression',
+        description: 'Learner progression analysis'
+      },
+      {
+        icon: BookOpen,
+        label: 'Subject Analytics',
+        path: '/app/reports/subject-analytics',
+        description: 'Subject performance analytics'
+      },
+      {
+        icon: Target,
+        label: 'Assignment Tracking',
+        path: '/app/reports/assignment-tracking',
+        description: 'Assignment analytics'
+      }
+    ]
+  },
+  {
+    icon: Monitor,
+    label: 'System Monitoring',
+    path: '/app/monitoring',
+    description: 'Monitor LMS usage and adoption',
+    children: [
+      {
+        icon: BarChart,
+        label: 'Usage Analytics',
+        path: '/app/monitoring/usage',
+        description: 'Comprehensive usage monitoring'
+      },
+      {
+        icon: Activity,
+        label: 'Regional Usage',
+        path: '/app/monitoring/regional',
+        description: 'Regional usage patterns'
+      },
+      {
+        icon: School,
+        label: 'School Usage',
+        path: '/app/monitoring/school',
+        description: 'Individual school monitoring'
+      },
+      {
+        icon: Users,
+        label: 'User Activity',
+        path: '/app/monitoring/users',
+        description: 'User behavior analytics'
+      }
+    ]
   },
   {
     icon: Settings,

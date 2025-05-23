@@ -3,7 +3,8 @@ export const PUBLIC_ROUTES: string[] = [
   '/login',
   '/forgot-password',
   '/reset-password',
-  '/help'
+  '/help',
+  '/404'
 ];
 
 // Helper function to check if a route is public

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Filter, ArrowUpDown } from 'lucide-react';
 import { useCourses } from '../hooks';
-import { Button } from '../../../components/ui/Button';
+import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/Input';
 import { Course } from '../../../api/services/courseApi';
 

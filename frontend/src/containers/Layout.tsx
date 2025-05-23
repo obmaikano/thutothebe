@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
-import PageContent from './PageContent';
 import { GlobalModal } from '../features/common/components/GlobalModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getMenuItemsByRole } from '../routes/roleSidebar';
@@ -16,7 +15,6 @@ export function Layout() {
     <div className="flex h-screen bg-gray-50">
         <Sidebar menuItems={menuItems} />
         <main className="flex-1 overflow-auto">
-          <PageContent/>
           <Outlet />
         </main>
         <GlobalModal />

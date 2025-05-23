@@ -13,6 +13,25 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 // Importing pages
 const Layout = lazy(() => import('./containers/Layout'));
 const Login = lazy(() => import('./pages/Login'));
+const NotFoundPage = lazy(() => import('./pages/404'));
+
+// Lazy load dashboard and other pages
+const Dashboard = lazy(() => import('./pages/protected/Dashboard'));
+const Courses = lazy(() => import('./pages/protected/Courses'));
+const CourseDetail = lazy(() => import('./pages/protected/CourseDetail'));
+const NewCourse = lazy(() => import('./pages/protected/NewCourse'));
+const EditCourse = lazy(() => import('./pages/protected/EditCourse'));
+
+// Admin pages
+const SchoolManagementPage = lazy(() => import('./pages/protected/SchoolManagement'));
+const SchoolRegistrationPage = lazy(() => import('./pages/protected/SchoolRegistration'));
+const EditSchoolPage = lazy(() => import('./pages/protected/EditSchool'));
+const AssignSchoolAdminPage = lazy(() => import('./pages/protected/AssignSchoolAdmin'));
+const RegionConfigPage = lazy(() => import('./pages/protected/RegionConfig'));
+const PermissionsRolesPage = lazy(() => import('./pages/protected/PermissionsRoles'));
+const AuditLogPage = lazy(() => import('./pages/protected/AuditLog'));
+const UserManagementPage = lazy(() => import('./pages/protected/UserManagement'));
+const NotFoundProtectedPage = lazy(() => import('./pages/protected/404'));
 
 // Component to handle default route redirection
 const DefaultRedirect = () => {
@@ -43,16 +62,42 @@ const RouteManager = () => {
             
             {/* Protected routes */}
             <Route 
-                path="/app/*" 
+                path="/app" 
                 element={
                     <ProtectedRoute>
                         <Layout />
                     </ProtectedRoute>
                 } 
-            />
+            >
+                {/* Nested routes inside Layout */}
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="courses" element={<Courses />} />
+                <Route path="courses/new" element={<NewCourse />} />
+                <Route path="courses/:id" element={<CourseDetail />} />
+                <Route path="courses/:id/edit" element={<EditCourse />} />
+                
+                {/* Admin routes */}
+                <Route path="schools" element={<SchoolManagementPage />} />
+                <Route path="schools/register" element={<SchoolRegistrationPage />} />
+                <Route path="schools/:schoolId/edit" element={<EditSchoolPage />} />
+                <Route path="schools/:schoolId/assign-admin" element={<AssignSchoolAdminPage />} />
+                <Route path="regions" element={<RegionConfigPage />} />
+                <Route path="permissions-roles" element={<PermissionsRolesPage />} />
+                <Route path="audit-log" element={<AuditLogPage />} />
+                <Route path="users" element={<UserManagementPage />} />
+                
+                {/* Default redirect for /app to /app/dashboard */}
+                <Route index element={<Navigate to="dashboard" replace />} />
+                
+                {/* Protected 404 - for unknown routes under /app */}
+                <Route path="*" element={<NotFoundProtectedPage />} />
+            </Route>
             
             {/* Default redirect */}
-            <Route path="*" element={<DefaultRedirect />} />
+            <Route path="/" element={<DefaultRedirect />} />
+            
+            {/* Public 404 - for all other unknown routes */}
+            <Route path="*" element={<NotFoundPage />} />
         </Routes>
     );
 };
