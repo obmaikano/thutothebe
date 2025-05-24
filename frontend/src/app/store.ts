@@ -5,6 +5,7 @@ import coursesReducer from '../features/courses/coursesSlice';
 import subjectsReducer from '../features/subjects/subjectsSlice';
 import schoolsReducer from '../features/schools/schoolsSlice';
 import regionsReducer from '../features/regions/regionsSlice';
+import usersReducer from '../features/users/usersSlice';
 import rightDrawerReducer from '../features/common/rightDrawerSlice';
 import modalReducer from '../features/common/modalSlice';
 import headerReducer from '../features/common/headerSlice';
@@ -17,6 +18,7 @@ export const store = configureStore({
     subjects: subjectsReducer,
     schools: schoolsReducer,
     regions: regionsReducer,
+    users: usersReducer,
     rightDrawer: rightDrawerReducer,
     modal: modalReducer,
     header: headerReducer,

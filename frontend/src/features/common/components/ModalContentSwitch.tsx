@@ -16,6 +16,11 @@ const CreateRegionModal = lazy(() => import('../../regions/modals/CreateRegionMo
 const EditRegionModal = lazy(() => import('../../regions/modals/EditRegionModal'));
 const DeleteRegionModal = lazy(() => import('../../regions/modals/DeleteRegionModal'));
 
+// User management modals
+const CreateUserModal = lazy(() => import('../../users/modals/CreateUserModal'));
+const EditUserModal = lazy(() => import('../../users/modals/EditUserModal'));
+const DeleteUserModal = lazy(() => import('../../users/modals/DeleteUserModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -90,6 +95,28 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DeleteRegionModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // User Management Modals
+    case MODAL_BODY_TYPES.USER_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateUserModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.USER_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditUserModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.USER_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteUserModal extraObject={contentProps} />
         </Suspense>
       );
       

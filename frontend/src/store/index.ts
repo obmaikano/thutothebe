@@ -7,6 +7,7 @@ import coursesReducer from '../features/courses/coursesSlice';
 import subjectsReducer from '../features/subjects/subjectsSlice';
 import schoolsReducer from '../features/schools/schoolsSlice';
 import regionsReducer from '../features/regions/regionsSlice';
+import usersReducer from '../features/users/usersSlice';
 
 export const store = configureStore({
   reducer: {
@@ -17,6 +18,7 @@ export const store = configureStore({
     subjects: subjectsReducer,
     schools: schoolsReducer,
     regions: regionsReducer,
+    users: usersReducer,
   },
 });
 

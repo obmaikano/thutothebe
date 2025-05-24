@@ -3,11 +3,23 @@ import { AxiosResponse } from 'axios';
 
 export interface User {
   id: number;
-  email: string;
   firstName: string;
   lastName: string;
+  email: string;
   role: string;
+  schoolId?: number;
+  surname: string;
+  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  nationality: string;
+  dateOfBirth: string;
+  identityNumber?: string;
+  birthCertificateNumber?: string;
+  qualification?: string;
+  parentId?: number;
   active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginTime?: string;
 }
 
 export interface UserResponse {
@@ -17,8 +29,53 @@ export interface UserResponse {
   timestamp: string | null;
 }
 
-export type CreateUserRequest = Omit<User, 'id'>;
-export type UpdateUserRequest = Partial<User>;
+export type CreateUserRequest = Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'lastLoginTime'> & {
+  password: string;
+};
+export type UpdateUserRequest = Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'lastLoginTime'>>;
+
+// User roles enum to match backend
+export const USER_ROLES = {
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  MINISTRY_EXECUTIVE: 'MINISTRY_EXECUTIVE',
+  MINISTRY_STAFF: 'MINISTRY_STAFF',
+  DIRECTOR: 'DIRECTOR',
+  REGIONAL_ADMIN: 'REGIONAL_ADMIN',
+  REGIONAL_OFFICER: 'REGIONAL_OFFICER',
+  SCHOOL_ADMIN: 'SCHOOL_ADMIN',
+  SCHOOL_HEAD: 'SCHOOL_HEAD',
+  DEPARTMENT_HEAD: 'DEPARTMENT_HEAD',
+  SENIOR_TEACHER: 'SENIOR_TEACHER',
+  TEACHER: 'TEACHER',
+  STUDENT: 'STUDENT',
+  PARENT: 'PARENT'
+} as const;
+
+export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+
+// Gender options
+export const GENDER_OPTIONS = [
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
+  { value: 'OTHER', label: 'Other' }
+];
+
+// User role options for dropdowns
+export const USER_ROLE_OPTIONS = [
+  { value: USER_ROLES.SUPER_ADMIN, label: 'Super Admin' },
+  { value: USER_ROLES.MINISTRY_EXECUTIVE, label: 'Ministry Executive' },
+  { value: USER_ROLES.MINISTRY_STAFF, label: 'Ministry Staff' },
+  { value: USER_ROLES.DIRECTOR, label: 'Director' },
+  { value: USER_ROLES.REGIONAL_ADMIN, label: 'Regional Admin' },
+  { value: USER_ROLES.REGIONAL_OFFICER, label: 'Regional Officer' },
+  { value: USER_ROLES.SCHOOL_ADMIN, label: 'School Admin' },
+  { value: USER_ROLES.SCHOOL_HEAD, label: 'School Head' },
+  { value: USER_ROLES.DEPARTMENT_HEAD, label: 'Department Head' },
+  { value: USER_ROLES.SENIOR_TEACHER, label: 'Senior Teacher' },
+  { value: USER_ROLES.TEACHER, label: 'Teacher' },
+  { value: USER_ROLES.STUDENT, label: 'Student' },
+  { value: USER_ROLES.PARENT, label: 'Parent' }
+];
 
 /**
  * API service for interacting with user endpoints
