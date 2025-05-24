@@ -3,8 +3,8 @@ import { AxiosResponse } from 'axios';
 
 export interface Region {
   id: number;
-  name: string;
   code: string;
+  name: string;
   description?: string;
   active: boolean;
   // Optional computed fields that may be added by frontend logic
@@ -60,7 +60,7 @@ const regionApi = {
    * Get all active regions
    * @returns Response with a list of active regions
    */
-  getActive: async (): Promise<AxiosResponse<RegionResponse>> => {
+  getActiveRegions: async (): Promise<AxiosResponse<RegionResponse>> => {
     return api.get('/regions/active');
   },
 

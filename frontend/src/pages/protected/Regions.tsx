@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setPageTitle } from '../../features/common/headerSlice';
-import { RegionsOverview } from '../../features/regions';
+import RegionListPage from '../../features/regions/pages/RegionListPage';
 
 const RegionsPage = () => {
     const dispatch = useDispatch();
@@ -12,7 +12,7 @@ const RegionsPage = () => {
 
     return (
         <div className="regions-container">
-            <RegionsOverview />
+            <RegionListPage />
         </div>
     );
 };

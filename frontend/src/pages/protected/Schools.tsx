@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setPageTitle } from '../../features/common/headerSlice';
-import SchoolManagementPage from '../../features/admin/pages/SchoolManagementPage';
+import SchoolListPage from '../../features/schools';
 
 const SchoolManagement = () => {
     const dispatch = useDispatch();
@@ -12,7 +12,7 @@ const SchoolManagement = () => {
 
     return (
         <div className="school-management-container">
-            <SchoolManagementPage />
+            <SchoolListPage />
         </div>
     );
 };

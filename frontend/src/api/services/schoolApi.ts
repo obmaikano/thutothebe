@@ -3,8 +3,9 @@ import { AxiosResponse } from 'axios';
 
 export interface School {
   id: number;
-  name: string;
   code: string;
+  name: string;
+  description?: string;
   regionId: number;
   active: boolean;
 }
@@ -41,20 +42,30 @@ const schoolApi = {
   },
 
   /**
-   * Get schools by region
-   * @param regionId Region ID
-   * @returns Response with schools in the region
+   * Get school by code
+   * @param code School code
+   * @returns Response with school details
    */
-  getByRegion: async (regionId: number): Promise<AxiosResponse<SchoolResponse>> => {
+  getByCode: async (code: string): Promise<AxiosResponse<SchoolResponse>> => {
+    return api.get(`/schools/code/${code}`);
+  },
+
+  /**
+   * Get schools by region ID
+   * @param regionId Region ID
+   * @returns Response with a list of schools in the region
+   */
+  getByRegionId: async (regionId: number): Promise<AxiosResponse<SchoolResponse>> => {
     return api.get(`/schools/region/${regionId}`);
   },
 
   /**
-   * Get all active schools
-   * @returns Response with a list of active schools
+   * Get active schools by region ID
+   * @param regionId Region ID
+   * @returns Response with a list of active schools in the region
    */
-  getActive: async (): Promise<AxiosResponse<SchoolResponse>> => {
-    return api.get('/schools/active');
+  getActiveByRegionId: async (regionId: number): Promise<AxiosResponse<SchoolResponse>> => {
+    return api.get(`/schools/region/${regionId}/active`);
   },
 
   /**
@@ -101,7 +112,7 @@ const schoolApi = {
    */
   deactivate: async (id: number): Promise<AxiosResponse<SchoolResponse>> => {
     return api.post(`/schools/${id}/deactivate`);
-  },
+  }
 };
 
 export default schoolApi; 

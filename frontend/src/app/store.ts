@@ -3,6 +3,8 @@ import authReducer from '../features/auth/authSlice';
 import commonReducer from '../features/common/commonSlice';
 import coursesReducer from '../features/courses/coursesSlice';
 import subjectsReducer from '../features/subjects/subjectsSlice';
+import schoolsReducer from '../features/schools/schoolsSlice';
+import regionsReducer from '../features/regions/regionsSlice';
 import rightDrawerReducer from '../features/common/rightDrawerSlice';
 import modalReducer from '../features/common/modalSlice';
 import headerReducer from '../features/common/headerSlice';
@@ -13,6 +15,8 @@ export const store = configureStore({
     common: commonReducer,
     courses: coursesReducer,
     subjects: subjectsReducer,
+    schools: schoolsReducer,
+    regions: regionsReducer,
     rightDrawer: rightDrawerReducer,
     modal: modalReducer,
     header: headerReducer,
