@@ -1,23 +1,23 @@
 import { configureStore } from '@reduxjs/toolkit';
+import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import authReducer from '../features/auth/authSlice';
 import commonReducer from '../features/common/commonSlice';
+import headerReducer from '../features/common/headerSlice';
 import coursesReducer from '../features/courses/coursesSlice';
 import subjectsReducer from '../features/subjects/subjectsSlice';
-import rightDrawerReducer from '../features/common/rightDrawerSlice';
-import modalReducer from '../features/common/modalSlice';
-import headerReducer from '../features/common/headerSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     common: commonReducer,
+    header: headerReducer,
     courses: coursesReducer,
     subjects: subjectsReducer,
-    rightDrawer: rightDrawerReducer,
-    modal: modalReducer,
-    header: headerReducer,
   },
 });
 
 export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch; 
+export type AppDispatch = typeof store.dispatch;
+
+export const useAppDispatch = () => useDispatch<AppDispatch>();
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector; 

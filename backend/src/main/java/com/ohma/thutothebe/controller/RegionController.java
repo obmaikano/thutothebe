@@ -68,4 +68,18 @@ public class RegionController extends BaseController<RegionDTO, Long> {
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
+
+    @PostMapping("/{id}/deactivate")
+    @Operation(summary = "Deactivate a region")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OhmaApiResponse<Void>> deactivateRegion(@PathVariable Long id) {
+        try {
+            regionService.deactivateRegion(id);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Region deactivated successfully", null, null));
+        } catch (Exception e) {
+            log.error("Error deactivating region: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
 } 

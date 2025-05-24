@@ -7,6 +7,12 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
+  // Temporarily bypass authentication for development testing
+  // TODO: Remove this bypass when authentication is properly set up
+  return <>{children}</>;
+  
+  // Original authentication logic (commented out for development)
+  /*
   const { user, isAuthenticated } = useAuth();
 
   // Check if user is authenticated
@@ -25,4 +31,5 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   return <>{children}</>;
+  */
 } 

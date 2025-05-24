@@ -6,19 +6,28 @@ import {
   Users, AlertTriangle, Book
 } from 'lucide-react';
 import { useCourseDetails } from '../hooks';
+import { useTeachers } from '../../teachers/hooks';
 import { Button } from '../../../components/common/Button';
 import { Course } from '../../../api/services/courseApi';
+import { Teacher } from '../../../api/services/teacherApi';
+import { useAppDispatch } from '../../../store';
+import { addTeacherToCourse, removeTeacherFromCourse } from '../coursesSlice';
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { course, loading, error, fetchCourseDetails, deleteCourse } = useCourseDetails(parseInt(id || '0', 10));
+  const { teachers, loading: teachersLoading, getActiveTeachers } = useTeachers();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
+  const [teacherError, setTeacherError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     fetchCourseDetails();
-  }, [fetchCourseDetails]);
+    getActiveTeachers();
+  }, [fetchCourseDetails, getActiveTeachers]);
 
   const getStatusColor = (active: boolean) => {
     return active 
@@ -41,7 +50,7 @@ const CourseDetailPage: React.FC = () => {
   };
 
   // Show loading state
-  if (loading) {
+  if (loading || teachersLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center py-12">
@@ -108,7 +117,8 @@ const CourseDetailPage: React.FC = () => {
         <div className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between">
           <div className="flex items-center">
             <Link to="/app/courses" className="mr-4">
-              <Button variant="outline" size="small" leftIcon={<ArrowLeft className="h-4 w-4" />}>
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
             </Link>
@@ -128,16 +138,18 @@ const CourseDetailPage: React.FC = () => {
             <Link to={`/app/courses/${course.id}/edit`}>
               <Button
                 variant="outline"
-                leftIcon={<Edit className="h-4 w-4" />}
+                size="sm"
               >
+                <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
             </Link>
             <Button
-              variant="danger"
-              leftIcon={<Trash2 className="h-4 w-4" />}
+              variant="secondary"
+              size="sm"
               onClick={() => setShowDeleteConfirm(true)}
             >
+              <Trash2 className="h-4 w-4 mr-2" />
               Delete
             </Button>
           </div>
@@ -183,127 +195,143 @@ const CourseDetailPage: React.FC = () => {
               <h2 className="text-lg font-medium text-gray-900 mb-4">Instructors</h2>
               {course.instructorIds && course.instructorIds.length > 0 ? (
                 <div className="space-y-4">
-                  {course.instructorIds.map(instructorId => (
-                    <div key={instructorId} className="flex items-start">
-                      <User className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <p className="text-gray-900">Instructor ID: {instructorId}</p>
+                  {course.instructorIds.map(instructorId => {
+                    const teacher = teachers.find((t: Teacher) => t.id === instructorId);
+                    return (
+                      <div key={instructorId} className="flex items-center justify-between">
+                        <div className="flex items-start">
+                          <User className="h-5 w-5 text-gray-400 mr-2" />
+                          <div>
+                            <p className="text-gray-900">
+                              {teacher ? `${teacher.firstName} ${teacher.lastName}` : `Instructor ID: ${instructorId}`}
+                            </p>
+                            {teacher && (
+                              <p className="text-sm text-gray-500">{teacher.email}</p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            setTeacherError(null);
+                            try {
+                              await dispatch(removeTeacherFromCourse({ courseId: course.id, teacherId: instructorId }));
+                              fetchCourseDetails();
+                            } catch (err) {
+                              setTeacherError('Failed to remove teacher');
+                            }
+                          }}
+                        >
+                          Remove
+                        </Button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-500">No instructors assigned yet.</p>
               )}
+              <form
+                className="mt-6 flex items-center space-x-2"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setTeacherError(null);
+                  const tid = parseInt(selectedTeacherId, 10);
+                  if (!tid || tid <= 0) {
+                    setTeacherError('Please select a teacher');
+                    return;
+                  }
+                  try {
+                    await dispatch(addTeacherToCourse({ courseId: course.id, teacherId: tid, isPrimary: false }));
+                    setSelectedTeacherId('');
+                    fetchCourseDetails();
+                  } catch (err) {
+                    setTeacherError('Failed to add teacher');
+                  }
+                }}
+              >
+                <select
+                  className="border rounded px-2 py-1 w-64"
+                  value={selectedTeacherId}
+                  onChange={e => setSelectedTeacherId(e.target.value)}
+                >
+                  <option value="">Select a teacher</option>
+                  {teachers
+                    .filter((teacher: Teacher) => !course.instructorIds?.includes(teacher.id))
+                    .map((teacher: Teacher) => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacher.firstName} {teacher.lastName} ({teacher.email})
+                      </option>
+                    ))}
+                </select>
+                <Button type="submit" size="sm">Assign Teacher</Button>
+              </form>
+              {teacherError && <p className="text-red-500 text-xs mt-2">{teacherError}</p>}
             </div>
           </div>
           
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Course Details */}
+            {/* Course Status */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Course Details</h2>
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <Calendar className="h-5 w-5 text-gray-400 mr-2" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Term</p>
-                    <p className="text-gray-900">{course.term}</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <Clock className="h-5 w-5 text-gray-400 mr-2" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Year</p>
-                    <p className="text-gray-900">{course.year}</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <Award className="h-5 w-5 text-gray-400 mr-2" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Type</p>
-                    <p className="text-gray-900">{course.type}</p>
-                  </div>
-                </div>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Course Status</h2>
+              <div className="flex items-center">
+                <div className={`h-2 w-2 rounded-full mr-2 ${course.active ? 'bg-green-500' : 'bg-gray-500'}`} />
+                <span className="text-gray-700">{course.active ? 'Active' : 'Inactive'}</span>
               </div>
             </div>
             
-            {/* Quick Links */}
+            {/* Course Type */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Links</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Course Type</h2>
+              <div className="flex items-center">
+                <Book className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-700">{course.type}</span>
+              </div>
+            </div>
+            
+            {/* Term & Year */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Term & Year</h2>
               <div className="space-y-2">
-                <Link
-                  to={`/resources?courseId=${course.id}`}
-                  className="flex items-center text-primary-600 hover:text-primary-700"
-                >
-                  <Book className="h-4 w-4 mr-2" />
-                  <span>Course Resources</span>
-                </Link>
-                <Link
-                  to={`/assignments?courseId=${course.id}`}
-                  className="flex items-center text-primary-600 hover:text-primary-700"
-                >
-                  <Award className="h-4 w-4 mr-2" />
-                  <span>Assignments</span>
-                </Link>
-                <Link
-                  to={`/students?courseId=${course.id}`}
-                  className="flex items-center text-primary-600 hover:text-primary-700"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  <span>Enrolled Students</span>
-                </Link>
+                <div className="flex items-center">
+                  <Calendar className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-gray-700">{course.term}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-gray-700">{course.year}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Delete confirmation modal */}
+
+      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed z-10 inset-0 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <AlertTriangle className="h-6 w-6 text-red-600" />
-                  </div>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">Delete Course</h3>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Are you sure you want to delete this course? This action cannot be undone.
-                        All data associated with this course will be permanently removed.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <Button
-                  variant="danger"
-                  onClick={handleDelete}
-                  isLoading={isDeleting}
-                  className="w-full sm:w-auto sm:ml-3"
-                >
-                  Delete
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="mt-3 w-full sm:mt-0 sm:w-auto"
-                  disabled={isDeleting}
-                >
-                  Cancel
-                </Button>
-              </div>
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Delete Course</h3>
+            <p className="text-gray-500 mb-6">
+              Are you sure you want to delete this course? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { store } from './store';
+import { store } from '../store';
 import { setCredentials, logout } from '../features/auth/authSlice';
 import { getToken, isTokenValid } from '../features/auth/authUtils';
 
@@ -15,7 +15,7 @@ export async function initializeApp() {
       }
       
       // Verify token with backend and get user data
-      const response = await fetch('/auth/me', {
+      const response = await fetch('/api/v1/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -25,7 +25,7 @@ export async function initializeApp() {
           
           // Check if the response is empty
           if (!responseText) {
-            console.error('Empty response from /auth/me');
+            console.error('Empty response from /api/v1/auth/me');
             store.dispatch(logout());
             return;
           }
@@ -58,7 +58,7 @@ export async function initializeApp() {
           store.dispatch(logout());
         }
       } else {
-        console.error(`Error response from /auth/me: ${response.status} ${response.statusText}`);
+        console.error(`Error response from /api/v1/auth/me: ${response.status} ${response.statusText}`);
         store.dispatch(logout());
       }
     } catch (error) {

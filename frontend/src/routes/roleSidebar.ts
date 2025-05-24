@@ -28,7 +28,9 @@ import {
   Monitor,
   TrendingUp,
   Target,
-  Activity
+  Activity,
+  MapPin,
+  Building2
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -465,6 +467,12 @@ export const regionalAdminMenuItems: MenuItem[] = [
     description: 'Manage schools in your region'
   },
   {
+    icon: Building2,
+    label: 'Regional Management',
+    path: '/app/regions',
+    description: 'Manage regional configurations'
+  },
+  {
     icon: Users,
     label: 'Personnel',
     path: '/app/personnel',
@@ -532,6 +540,12 @@ export const directorMenuItems: MenuItem[] = [
     label: 'All Regions',
     path: '/app/regions',
     description: 'Oversee all educational regions'
+  },
+  {
+    icon: MapPin,
+    label: 'Regional Management',
+    path: '/app/regions',
+    description: 'Configure and manage regional offices'
   },
   {
     icon: School,
@@ -603,6 +617,12 @@ export const directorMenuItems: MenuItem[] = [
 export const ministryStaffMenuItems: MenuItem[] = [
   ...commonMenuItems,
   {
+    icon: MapPin,
+    label: 'Regional Oversight',
+    path: '/app/regions',
+    description: 'Monitor regional education offices'
+  },
+  {
     icon: FileText,
     label: 'Reports',
     path: '/app/reports',
@@ -664,6 +684,12 @@ export const ministryExecutiveMenuItems: MenuItem[] = [
     label: 'National Overview',
     path: '/app/national-overview',
     description: 'Country-wide education metrics'
+  },
+  {
+    icon: Building2,
+    label: 'Regional Administration',
+    path: '/app/regions',
+    description: 'Oversee all regional education offices'
   },
   {
     icon: BarChart,
@@ -763,6 +789,18 @@ export const superAdminMenuItems: MenuItem[] = [
     label: 'Institutions',
     path: '/app/schools',
     description: 'Manage educational institutions'
+  },
+  {
+    icon: BookOpen,
+    label: 'Subjects',
+    path: '/app/subjects',
+    description: 'Manage academic subjects'
+  },
+  {
+    icon: Building2,
+    label: 'Regional Management',
+    path: '/app/regions',
+    description: 'Oversee all regional education offices'
   },
   {
     icon: Globe,

@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useCourses } from '../hooks';
-import { Button } from '../../../components/ui/Button';
+import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/Input';
-import { Label } from '../../../components/ui/Label';
-import { Select } from '../../../components/ui/Select';
 import { CreateCourseRequest } from '../../../api/services/courseApi';
 
 const NewCoursePage: React.FC = () => {
@@ -102,7 +100,7 @@ const NewCoursePage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Course Code */}
               <div>
-                <Label htmlFor="code">Course Code *</Label>
+                <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">Course Code *</label>
                 <Input
                   id="code"
                   name="code"
@@ -116,7 +114,7 @@ const NewCoursePage: React.FC = () => {
               
               {/* Course Name */}
               <div>
-                <Label htmlFor="name">Course Name *</Label>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Course Name *</label>
                 <Input
                   id="name"
                   name="name"
@@ -130,7 +128,7 @@ const NewCoursePage: React.FC = () => {
               
               {/* Subject ID */}
               <div>
-                <Label htmlFor="subjectId">Subject ID</Label>
+                <label htmlFor="subjectId" className="block text-sm font-medium text-gray-700 mb-1">Subject ID</label>
                 <Input
                   id="subjectId"
                   name="subjectId"
@@ -144,7 +142,7 @@ const NewCoursePage: React.FC = () => {
               
               {/* Class ID */}
               <div>
-                <Label htmlFor="classId">Class ID</Label>
+                <label htmlFor="classId" className="block text-sm font-medium text-gray-700 mb-1">Class ID</label>
                 <Input
                   id="classId"
                   name="classId"
@@ -158,23 +156,23 @@ const NewCoursePage: React.FC = () => {
               
               {/* Term */}
               <div>
-                <Label htmlFor="term">Term</Label>
-                <Select
+                <label htmlFor="term" className="block text-sm font-medium text-gray-700 mb-1">Term</label>
+                <select
                   id="term"
                   name="term"
                   value={courseData.term}
                   onChange={handleChange}
-                  className="mt-1 w-full"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="FIRST">First Term</option>
                   <option value="SECOND">Second Term</option>
                   <option value="THIRD">Third Term</option>
-                </Select>
+                </select>
               </div>
               
               {/* Year */}
               <div>
-                <Label htmlFor="year">Year</Label>
+                <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">Year</label>
                 <Input
                   id="year"
                   name="year"
@@ -189,17 +187,17 @@ const NewCoursePage: React.FC = () => {
               
               {/* Type */}
               <div>
-                <Label htmlFor="type">Course Type</Label>
-                <Select
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">Course Type</label>
+                <select
                   id="type"
                   name="type"
                   value={courseData.type}
                   onChange={handleChange}
-                  className="mt-1 w-full"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="CORE">Core</option>
                   <option value="ELECTIVE">Elective</option>
-                </Select>
+                </select>
               </div>
               
               {/* Active */}
