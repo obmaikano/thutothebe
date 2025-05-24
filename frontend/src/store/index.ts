@@ -8,6 +8,10 @@ import subjectsReducer from '../features/subjects/subjectsSlice';
 import schoolsReducer from '../features/schools/schoolsSlice';
 import regionsReducer from '../features/regions/regionsSlice';
 import usersReducer from '../features/users/usersSlice';
+import teachersReducer from '../features/teachers/teachersSlice';
+import assignmentsReducer from '../features/assignments/assignmentsSlice';
+import gradesReducer from '../features/grades/gradesSlice';
+import studentsReducer from '../features/students/studentsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -19,6 +23,10 @@ export const store = configureStore({
     schools: schoolsReducer,
     regions: regionsReducer,
     users: usersReducer,
+    teachers: teachersReducer,
+    assignments: assignmentsReducer,
+    grades: gradesReducer,
+    students: studentsReducer,
   },
 });
 

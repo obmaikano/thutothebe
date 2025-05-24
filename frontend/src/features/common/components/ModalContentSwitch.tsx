@@ -21,6 +21,23 @@ const CreateUserModal = lazy(() => import('../../users/modals/CreateUserModal'))
 const EditUserModal = lazy(() => import('../../users/modals/EditUserModal'));
 const DeleteUserModal = lazy(() => import('../../users/modals/DeleteUserModal'));
 
+// Course management modals
+const CreateCourseModal = lazy(() => import('../../courses/modals/CreateCourseModal'));
+const EditCourseModal = lazy(() => import('../../courses/modals/EditCourseModal'));
+const DeleteCourseModal = lazy(() => import('../../courses/modals/DeleteCourseModal'));
+const CourseViewModal = lazy(() => import('../../courses/modals/CourseViewModal'));
+
+// Class management modals
+const CreateClassModal = lazy(() => import('../../classes/modals/CreateClassModal'));
+const EditClassModal = lazy(() => import('../../classes/modals/EditClassModal'));
+const DeleteClassModal = lazy(() => import('../../classes/modals/DeleteClassModal'));
+const ClassViewModal = lazy(() => import('../../classes/modals/ClassViewModal'));
+const StudentAssignClassModal = lazy(() => import('../../classes/modals/StudentAssignClassModal'));
+const TeacherAssignClassModal = lazy(() => import('../../classes/modals/TeacherAssignClassModal'));
+const TakeAttendanceModal = lazy(() => import('../../classes/modals/TakeAttendanceModal'));
+const GenerateReportModal = lazy(() => import('../../classes/modals/GenerateReportModal'));
+const CalendarViewModal = lazy(() => import('../../classes/modals/CalendarViewModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -117,6 +134,99 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DeleteUserModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Course Management Modals
+    case MODAL_BODY_TYPES.COURSE_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateCourseModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.COURSE_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditCourseModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.COURSE_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteCourseModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.COURSE_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CourseViewModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Class Management Modals
+    case MODAL_BODY_TYPES.CLASS_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateClassModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CLASS_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditClassModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CLASS_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteClassModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CLASS_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <ClassViewModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.STUDENT_ASSIGN_CLASS:
+      return (
+        <Suspense fallback={fallback}>
+          <StudentAssignClassModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS:
+      return (
+        <Suspense fallback={fallback}>
+          <TeacherAssignClassModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ATTENDANCE_TAKE:
+      return (
+        <Suspense fallback={fallback}>
+          <TakeAttendanceModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.REPORT_GENERATE:
+      return (
+        <Suspense fallback={fallback}>
+          <GenerateReportModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CALENDAR_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CalendarViewModal extraObject={contentProps} />
         </Suspense>
       );
       

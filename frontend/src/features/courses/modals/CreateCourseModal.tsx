@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useAppDispatch } from '../../../app/hooks';
 import { closeModal } from '../../common/modalSlice';
-import { fetchCourses } from '../coursesSlice';
+import { createCourse, fetchCourses } from '../coursesSlice';
 import { Course } from '../../../api/services/courseApi';
-import { CourseForm } from '../components/CourseForm';
+import CourseFormModal from '../components/CourseFormModal';
 import { BookOpen, Plus } from 'lucide-react';
 
 interface CreateCourseModalProps {
@@ -13,6 +13,8 @@ interface CreateCourseModalProps {
 export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ extraObject }) => {
   const dispatch = useAppDispatch();
   const [isSuccess, setIsSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
     dispatch(closeModal({}));
@@ -20,9 +22,14 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ extraObjec
 
   const handleSubmit = async (values: Omit<Course, 'id'> | Partial<Course>): Promise<boolean> => {
     try {
+      setLoading(true);
+      setError(null);
+      
+      await dispatch(createCourse(values as Omit<Course, 'id'>)).unwrap();
+      
       setIsSuccess(true);
       
-      // Refresh the courses list instead of reloading the page
+      // Refresh the courses list
       await dispatch(fetchCourses());
       
       // Show success briefly then close
@@ -31,9 +38,10 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ extraObjec
       }, 1000);
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create course:', error);
-      setIsSuccess(false);
+      setError(error.message || 'Failed to create course');
+      setLoading(false);
       return false;
     }
   };
@@ -67,9 +75,12 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ extraObjec
 
       {/* Form */}
       <div>
-        <CourseForm
+        <CourseFormModal
           onSubmit={handleSubmit}
+          onCancel={handleClose}
           isEditing={false}
+          loading={loading}
+          error={error}
         />
       </div>
     </div>

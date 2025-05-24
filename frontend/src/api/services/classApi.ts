@@ -124,6 +124,26 @@ const classApi = {
    */
   removeStudentFromClass: async (classId: number, studentId: number): Promise<AxiosResponse<ClassResponse>> => {
     return api.delete(`/classes/${classId}/student/${studentId}`);
+  },
+
+  /**
+   * Assign a teacher to a class
+   * @param classId Class ID
+   * @param teacherId Teacher ID
+   * @returns Response indicating success/failure
+   */
+  assignTeacherToClass: async (classId: number, teacherId: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.post(`/classes/${classId}/teacher/${teacherId}`);
+  },
+
+  /**
+   * Remove a teacher from a class
+   * @param classId Class ID
+   * @param teacherId Teacher ID
+   * @returns Response indicating success/failure
+   */
+  removeTeacherFromClass: async (classId: number, teacherId: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.delete(`/classes/${classId}/teacher/${teacherId}`);
   }
 };
 

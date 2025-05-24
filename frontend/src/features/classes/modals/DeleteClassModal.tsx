@@ -13,16 +13,21 @@ export const DeleteClassModal: React.FC<DeleteClassModalProps> = ({ extraObject 
   const dispatch = useAppDispatch();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [confirmationText, setConfirmationText] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
     dispatch(closeModal({}));
   };
 
+  const isConfirmationValid = confirmationText === extraObject?.name;
+
   const handleDelete = async () => {
-    if (!extraObject) return;
+    if (!extraObject || !isConfirmationValid) return;
 
     try {
       setIsDeleting(true);
+      setError(null);
       await dispatch(deleteClass(extraObject.id)).unwrap();
       setIsSuccess(true);
       
@@ -34,9 +39,16 @@ export const DeleteClassModal: React.FC<DeleteClassModalProps> = ({ extraObject 
         handleClose();
       }, 1500);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete class:', error);
       setIsDeleting(false);
+      
+      // Handle specific error messages
+      if (error.includes('foreign key') || error.includes('constraint')) {
+        setError('Cannot delete this class because it has associated students or courses. Please remove all associations first.');
+      } else {
+        setError(error || 'Failed to delete class. Please try again.');
+      }
     }
   };
 
@@ -142,11 +154,19 @@ export const DeleteClassModal: React.FC<DeleteClassModalProps> = ({ extraObject 
         </div>
         <input
           type="text"
+          value={confirmationText}
+          onChange={(e) => setConfirmationText(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           placeholder={extraObject.name}
-          id="confirmationInput"
         />
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 bg-red-50 border-l-4 border-red-400 text-red-700">
+          {error}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex justify-end gap-3 pt-4">
@@ -159,7 +179,7 @@ export const DeleteClassModal: React.FC<DeleteClassModalProps> = ({ extraObject 
         </button>
         <button
           onClick={handleDelete}
-          disabled={isDeleting}
+          disabled={isDeleting || !isConfirmationValid}
           className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {isDeleting ? (

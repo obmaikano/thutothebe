@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useAppDispatch } from '../../../app/hooks';
 import { closeModal } from '../../common/modalSlice';
-import { fetchCourses } from '../coursesSlice';
+import { updateCourse, fetchCourses } from '../coursesSlice';
 import { Course } from '../../../api/services/courseApi';
-import { CourseForm } from '../components/CourseForm';
+import CourseFormModal from '../components/CourseFormModal';
 import { BookOpen, Edit } from 'lucide-react';
 
 interface EditCourseModalProps {
@@ -13,16 +13,28 @@ interface EditCourseModalProps {
 export const EditCourseModal: React.FC<EditCourseModalProps> = ({ extraObject }) => {
   const dispatch = useAppDispatch();
   const [isSuccess, setIsSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
     dispatch(closeModal({}));
   };
 
   const handleSubmit = async (values: Omit<Course, 'id'> | Partial<Course>): Promise<boolean> => {
+    if (!extraObject) return false;
+
     try {
+      setLoading(true);
+      setError(null);
+      
+      await dispatch(updateCourse({ 
+        id: extraObject.id, 
+        courseData: values 
+      })).unwrap();
+      
       setIsSuccess(true);
       
-      // Refresh the courses list instead of reloading the page
+      // Refresh the courses list
       await dispatch(fetchCourses());
       
       // Show success briefly then close
@@ -31,9 +43,10 @@ export const EditCourseModal: React.FC<EditCourseModalProps> = ({ extraObject })
       }, 1000);
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update course:', error);
-      setIsSuccess(false);
+      setError(error.message || 'Failed to update course');
+      setLoading(false);
       return false;
     }
   };
@@ -94,6 +107,7 @@ export const EditCourseModal: React.FC<EditCourseModalProps> = ({ extraObject })
           <div>
             <div className="font-medium text-gray-900">{extraObject.name}</div>
             <div className="text-sm text-gray-500">Code: {extraObject.code}</div>
+            <div className="text-sm text-gray-500">{extraObject.term} {extraObject.year} • {extraObject.type}</div>
           </div>
           <div className="ml-auto">
             <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
@@ -109,10 +123,13 @@ export const EditCourseModal: React.FC<EditCourseModalProps> = ({ extraObject })
 
       {/* Form */}
       <div>
-        <CourseForm
+        <CourseFormModal
           initialValues={extraObject}
           onSubmit={handleSubmit}
+          onCancel={handleClose}
           isEditing={true}
+          loading={loading}
+          error={error}
         />
       </div>
     </div>

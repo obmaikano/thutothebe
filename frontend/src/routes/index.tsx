@@ -9,6 +9,10 @@ const Regions = lazy(() => import('../pages/protected/Regions'));
 const RegionDetail = lazy(() => import('../pages/protected/RegionDetail'));
 const Schools = lazy(() => import('../pages/protected/Schools'));
 const Users = lazy(() => import('../pages/protected/Users'));
+const Courses = lazy(() => import('../pages/protected/Courses'));
+const CourseDetail = lazy(() => import('../pages/protected/CourseDetail'));
+const Classes = lazy(() => import('../pages/protected/Classes'));
+const ClassDetail = lazy(() => import('../pages/protected/ClassDetail'));
 
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
 
@@ -41,6 +45,22 @@ export const appRoutes = [
   {
     path: 'users',
     element: Users
+  },
+  {
+    path: 'courses',
+    element: Courses
+  },
+  {
+    path: 'courses/:id',
+    element: CourseDetail
+  },
+  {
+    path: 'classes',
+    element: Classes
+  },
+  {
+    path: 'classes/:id',
+    element: ClassDetail
   },
   // Default redirect
   {

@@ -30,7 +30,8 @@ import {
   Target,
   Activity,
   MapPin,
-  Building2
+  Building2,
+  Book
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -795,6 +796,12 @@ export const superAdminMenuItems: MenuItem[] = [
     label: 'Subjects',
     path: '/app/subjects',
     description: 'Manage academic subjects'
+  },
+  {
+    icon: Book,
+    label: 'Courses',
+    path: '/app/courses',
+    description: 'Manage courses'
   },
   {
     icon: Building2,

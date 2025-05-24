@@ -13,6 +13,7 @@ export const DeleteCourseModal: React.FC<DeleteCourseModalProps> = ({ extraObjec
   const dispatch = useAppDispatch();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [confirmationText, setConfirmationText] = useState('');
 
   const handleClose = () => {
     dispatch(closeModal({}));
@@ -20,6 +21,11 @@ export const DeleteCourseModal: React.FC<DeleteCourseModalProps> = ({ extraObjec
 
   const handleDelete = async () => {
     if (!extraObject) return;
+
+    if (confirmationText !== extraObject.name) {
+      alert('Please type the course name exactly as shown to confirm deletion.');
+      return;
+    }
 
     try {
       setIsDeleting(true);
@@ -34,9 +40,19 @@ export const DeleteCourseModal: React.FC<DeleteCourseModalProps> = ({ extraObjec
         handleClose();
       }, 1500);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete course:', error);
       setIsDeleting(false);
+      
+      // Show specific error message for foreign key constraint violations
+      let errorMessage = 'Failed to delete course';
+      if (error.message && error.message.includes('foreign key constraint')) {
+        errorMessage = 'Cannot delete this course because it has associated data (grade categories, assignments, etc.). Please remove all related data first.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -143,6 +159,8 @@ export const DeleteCourseModal: React.FC<DeleteCourseModalProps> = ({ extraObjec
           type="text"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
           placeholder={extraObject.name}
+          value={confirmationText}
+          onChange={(e) => setConfirmationText(e.target.value)}
           id="confirmationInput"
         />
       </div>
@@ -158,7 +176,7 @@ export const DeleteCourseModal: React.FC<DeleteCourseModalProps> = ({ extraObjec
         </button>
         <button
           onClick={handleDelete}
-          disabled={isDeleting}
+          disabled={isDeleting || confirmationText !== extraObject.name}
           className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {isDeleting ? (

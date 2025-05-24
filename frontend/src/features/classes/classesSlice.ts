@@ -148,6 +148,30 @@ export const removeStudentFromClass = createAsyncThunk(
   }
 );
 
+export const assignTeacherToClass = createAsyncThunk(
+  'classes/assignTeacher',
+  async ({ classId, teacherId }: { classId: number; teacherId: number }, { rejectWithValue }) => {
+    try {
+      const response = await classApi.assignTeacherToClass(classId, teacherId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to assign teacher to class');
+    }
+  }
+);
+
+export const removeTeacherFromClass = createAsyncThunk(
+  'classes/removeTeacher',
+  async ({ classId, teacherId }: { classId: number; teacherId: number }, { rejectWithValue }) => {
+    try {
+      const response = await classApi.removeTeacherFromClass(classId, teacherId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to remove teacher from class');
+    }
+  }
+);
+
 const classesSlice = createSlice({
   name: 'classes',
   initialState,
@@ -353,6 +377,36 @@ const classesSlice = createSlice({
       .addCase(removeStudentFromClass.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to remove student from class';
+      })
+
+      // Assign teacher to class
+      .addCase(assignTeacherToClass.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(assignTeacherToClass.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        // Note: The API response doesn't modify the class object structure
+        // The teacher assignment is handled on the backend
+      })
+      .addCase(assignTeacherToClass.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to assign teacher to class';
+      })
+
+      // Remove teacher from class
+      .addCase(removeTeacherFromClass.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(removeTeacherFromClass.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        // Note: The API response doesn't modify the class object structure
+        // The teacher removal is handled on the backend
+      })
+      .addCase(removeTeacherFromClass.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to remove teacher from class';
       });
   }
 });

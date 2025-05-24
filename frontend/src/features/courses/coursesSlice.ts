@@ -232,13 +232,13 @@ const coursesSlice = createSlice({
       })
       .addCase(activateCourse.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        const updatedCourse = action.payload as Course;
-        const index = state.courses.findIndex(course => course.id === updatedCourse.id);
+        const courseId = action.meta.arg;
+        const index = state.courses.findIndex(course => course.id === courseId);
         if (index !== -1) {
-          state.courses[index] = { ...updatedCourse, active: true };
+          state.courses[index] = { ...state.courses[index], active: true };
         }
-        if (state.currentCourse?.id === updatedCourse.id) {
-          state.currentCourse = { ...updatedCourse, active: true };
+        if (state.currentCourse?.id === courseId) {
+          state.currentCourse = { ...state.currentCourse, active: true };
         }
       })
       .addCase(activateCourse.rejected, (state, action) => {
@@ -253,13 +253,13 @@ const coursesSlice = createSlice({
       })
       .addCase(deactivateCourse.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        const updatedCourse = action.payload as Course;
-        const index = state.courses.findIndex(course => course.id === updatedCourse.id);
+        const courseId = action.meta.arg;
+        const index = state.courses.findIndex(course => course.id === courseId);
         if (index !== -1) {
-          state.courses[index] = { ...updatedCourse, active: false };
+          state.courses[index] = { ...state.courses[index], active: false };
         }
-        if (state.currentCourse?.id === updatedCourse.id) {
-          state.currentCourse = { ...updatedCourse, active: false };
+        if (state.currentCourse?.id === courseId) {
+          state.currentCourse = { ...state.currentCourse, active: false };
         }
       })
       .addCase(deactivateCourse.rejected, (state, action) => {

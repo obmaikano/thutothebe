@@ -40,12 +40,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { user, token } = useAppSelector((state) => state.auth);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<AuthContextType['error']>(null);
 
     useEffect(() => {
         const initAuth = async () => {
+            setLoading(true);
             await checkAuthStatus();
+            setLoading(false);
         };
 
         initAuth();
