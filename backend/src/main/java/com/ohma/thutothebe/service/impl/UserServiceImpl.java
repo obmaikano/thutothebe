@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.List;
 import java.util.Optional;
@@ -255,6 +256,122 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public UserDTO updateWithoutRoleAndPassword(Long userId, UserDTO dto) {
+        User entity = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        userMapper.updateEntityWithoutRoleAndPassword(entity, dto);
+        entity.setModifiedAt(LocalDateTime.now());
+
+        try {
+            User savedEntity = userRepository.save(entity);
+            log.info("Updated user {} without changing role and password", savedEntity.getId());
+            return mapToDto(savedEntity);
+        } catch (Exception e) {
+            log.error("Error updating user without role and password: {}", e.getMessage(), e);
+            throw new IllegalStateException("Failed to update user: " + e.getMessage());
+        }
+    }
+
+    // Parent-specific method implementations
+    @Override
+    public List<UserDTO> getAllParents() {
+        return userRepository.findByRole(UserRole.PARENT).stream()
+            .map(this::mapToDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserDTO> getChildrenByParentId(Long parentId) {
+        User parent = userRepository.findById(parentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Parent not found with id: " + parentId));
+        
+        if (parent.getRole() != UserRole.PARENT) {
+            throw new IllegalArgumentException("User with id " + parentId + " is not a parent");
+        }
+        
+        return userRepository.findByParentId(parentId).stream()
+            .map(this::mapToDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void linkChildToParent(Long parentId, Long childId) {
+        User parent = userRepository.findById(parentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Parent not found with id: " + parentId));
+        User child = userRepository.findById(childId)
+            .orElseThrow(() -> new ResourceNotFoundException("Child not found with id: " + childId));
+        
+        if (parent.getRole() != UserRole.PARENT) {
+            throw new IllegalArgumentException("User with id " + parentId + " is not a parent");
+        }
+        
+        if (child.getRole() != UserRole.STUDENT) {
+            throw new IllegalArgumentException("User with id " + childId + " is not a student");
+        }
+        
+        child.setParent(parent);
+        userRepository.save(child);
+    }
+
+    @Override
+    @Transactional
+    public void unlinkChildFromParent(Long parentId, Long childId) {
+        User parent = userRepository.findById(parentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Parent not found with id: " + parentId));
+        User child = userRepository.findById(childId)
+            .orElseThrow(() -> new ResourceNotFoundException("Child not found with id: " + childId));
+        
+        if (parent.getRole() != UserRole.PARENT) {
+            throw new IllegalArgumentException("User with id " + parentId + " is not a parent");
+        }
+        
+        if (child.getParent() == null || !child.getParent().getId().equals(parentId)) {
+            throw new IllegalArgumentException("Child is not linked to this parent");
+        }
+        
+        child.setParent(null);
+        userRepository.save(child);
+    }
+
+    @Override
+    public List<UserDTO> getParentsBySchoolId(Long schoolId) {
+        School school = schoolRepository.findById(schoolId)
+            .orElseThrow(() -> new ResourceNotFoundException("School not found with id: " + schoolId));
+        
+        return userRepository.findByRoleAndSchoolId(UserRole.PARENT, schoolId).stream()
+            .map(this::mapToDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserDTO> getActiveParents() {
+        return userRepository.findByRoleAndActive(UserRole.PARENT, true).stream()
+            .map(this::mapToDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void activateUser(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        user.setActive(true);
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void deactivateUser(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        user.setActive(false);
         userRepository.save(user);
     }
 } 

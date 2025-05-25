@@ -90,4 +90,33 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
         updateEntity(entity, dto);
     }
 
+    /**
+     * Updates an existing entity with data from the DTO without changing role and password
+     * @param entity The entity to update
+     * @param dto The DTO containing the new data
+     */
+    public void updateEntityWithoutRoleAndPassword(User entity, UserDTO dto) {
+        entity.setFirstName(dto.getFirstName());
+        entity.setLastName(dto.getLastName());
+        entity.setEmail(dto.getEmail());
+        entity.setUsername(dto.getEmail());
+        entity.setQualification(dto.getQualification());
+        entity.setSchool(dto.getSchoolId() != null ? schoolRepository.findById(dto.getSchoolId()).get() : null);
+
+        // Create or update Person entity
+        Person person = entity.getPerson();
+        if (person == null) {
+            person = new Person();
+            entity.setPerson(person);
+        }
+
+        person.setFirstName(dto.getFirstName());
+        person.setSurname(dto.getSurname());
+        person.setGender(dto.getGender());
+        person.setNationality(dto.getNationality());
+        person.setDateOfBirth(dto.getDateOfBirth());
+        person.setIdentityNumber(dto.getIdentityNumber());
+        person.setBirthCertificateNumber(dto.getBirthCertificateNumber());
+    }
+
 } 

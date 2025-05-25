@@ -12,6 +12,7 @@ import teachersReducer from '../features/teachers/teachersSlice';
 import assignmentsReducer from '../features/assignments/assignmentsSlice';
 import gradesReducer from '../features/grades/gradesSlice';
 import studentsReducer from '../features/students/studentsSlice';
+import parentsReducer from '../features/parents/parentsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -27,6 +28,7 @@ export const store = configureStore({
     assignments: assignmentsReducer,
     grades: gradesReducer,
     students: studentsReducer,
+    parents: parentsReducer,
   },
 });
 

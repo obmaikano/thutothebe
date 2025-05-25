@@ -58,4 +58,18 @@ public class UserController extends BaseController<UserDTO, Long> {
                     .body(OhmaApiResponse.error(400, e.getMessage()));
         }
     }
+
+    @PutMapping("/{id}/update-profile")
+    public ResponseEntity<OhmaApiResponse<UserDTO>> updateWithoutRoleAndPassword(
+            @PathVariable Long id, 
+            @RequestBody UserDTO userDTO) {
+        try {
+            UserDTO updated = userService.updateWithoutRoleAndPassword(id, userDTO);
+            return ResponseEntity.ok(OhmaApiResponse.success(updated));
+        } catch (Exception e) {
+            log.error("Error updating user profile: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(OhmaApiResponse.error(400, e.getMessage()));
+        }
+    }
 } 

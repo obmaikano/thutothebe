@@ -44,6 +44,12 @@ const EditStudentModal = lazy(() => import('../../students/modals/EditStudentMod
 const DeleteStudentModal = lazy(() => import('../../students/modals/DeleteStudentModal'));
 const UpdateProgressModal = lazy(() => import('../../students/modals/UpdateProgressModal'));
 
+// Parent management modals
+const CreateParentModal = lazy(() => import('../../parents/modals/CreateParentModal'));
+const EditParentModal = lazy(() => import('../../parents/modals/EditParentModal'));
+const DeleteParentModal = lazy(() => import('../../parents/modals/DeleteParentModal'));
+const LinkChildModal = lazy(() => import('../../parents/modals/LinkChildModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -262,6 +268,35 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <UpdateProgressModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Parent Management Modals
+    case MODAL_BODY_TYPES.PARENT_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateParentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.PARENT_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditParentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.PARENT_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteParentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.PARENT_LINK_CHILD:
+      return (
+        <Suspense fallback={fallback}>
+          <LinkChildModal extraObject={contentProps} />
         </Suspense>
       );
       

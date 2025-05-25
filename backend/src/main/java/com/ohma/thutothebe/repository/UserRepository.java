@@ -28,4 +28,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     int countByRole(UserRole role);
     
     int countByLastLoginTimeAfter(LocalDateTime dateTime);
+    
+    // Parent-specific repository methods
+    List<User> findByParentId(Long parentId);
+    
+    List<User> findByRoleAndSchoolId(UserRole role, Long schoolId);
+    
+    List<User> findByRoleAndActive(UserRole role, boolean active);
 } 

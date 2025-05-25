@@ -247,4 +247,51 @@ class UserServiceImplTest {
         // Assert
         assertThat(result).isFalse();
     }
+
+    @Test
+    void updateWithoutRoleAndPassword_ShouldUpdateUserWithoutChangingRoleAndPassword() {
+        // Arrange
+        User existingUser = new User();
+        existingUser.setId(1L);
+        existingUser.setFirstName("John");
+        existingUser.setLastName("Doe");
+        existingUser.setEmail("john.doe@example.com");
+        existingUser.setPassword("encodedOldPassword");
+        existingUser.setRole(UserRole.TEACHER);
+        existingUser.setQualification("Bachelor's Degree");
+
+        UserDTO updateDTO = new UserDTO();
+        updateDTO.setFirstName("Jane");
+        updateDTO.setLastName("Smith");
+        updateDTO.setEmail("jane.smith@example.com");
+        updateDTO.setPassword("newPassword"); // This should be ignored
+        updateDTO.setRole(UserRole.STUDENT); // This should be ignored
+        updateDTO.setQualification("Master's Degree");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.save(any(User.class))).thenReturn(existingUser);
+        when(userMapper.toDto(any(User.class))).thenReturn(updateDTO);
+
+        // Act
+        UserDTO result = userService.updateWithoutRoleAndPassword(1L, updateDTO);
+
+        // Assert
+        assertThat(result).isNotNull();
+        verify(userMapper).updateEntityWithoutRoleAndPassword(existingUser, updateDTO);
+        verify(userRepository).save(existingUser);
+        // Verify that role and password were not changed in the entity
+        assertThat(existingUser.getRole()).isEqualTo(UserRole.TEACHER); // Should remain unchanged
+        assertThat(existingUser.getPassword()).isEqualTo("encodedOldPassword"); // Should remain unchanged
+    }
+
+    @Test
+    void updateWithoutRoleAndPassword_WhenUserNotFound_ShouldThrowException() {
+        // Arrange
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> userService.updateWithoutRoleAndPassword(1L, userDTO))
+            .isInstanceOf(ResourceNotFoundException.class)
+            .hasMessageContaining("User not found with id: 1");
+    }
 } 

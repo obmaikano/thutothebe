@@ -15,6 +15,7 @@ import progressReducer from '../features/progress/progressSlice';
 import rightDrawerReducer from '../features/common/rightDrawerSlice';
 import modalReducer from '../features/common/modalSlice';
 import headerReducer from '../features/common/headerSlice';
+import parentsReducer from '../features/parents/parentsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -34,6 +35,7 @@ export const store = configureStore({
     rightDrawer: rightDrawerReducer,
     modal: modalReducer,
     header: headerReducer,
+    parents: parentsReducer,
   },
 });
 
