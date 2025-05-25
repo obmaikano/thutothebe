@@ -8,6 +8,7 @@ import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.AnnouncementMapper;
 import com.ohma.thutothebe.repository.*;
 import com.ohma.thutothebe.service.AnnouncementService;
+import com.ohma.thutothebe.service.RealTimeAnnouncementService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -29,6 +30,7 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
     private final AnnouncementAcknowledgmentRepository acknowledgmentRepository;
     private final UserRepository userRepository;
     private final AnnouncementMapper announcementMapper;
+    private final RealTimeAnnouncementService realTimeAnnouncementService;
 
     @Autowired
     public AnnouncementServiceImpl(
@@ -36,13 +38,15 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
             AnnouncementReadReceiptRepository readReceiptRepository,
             AnnouncementAcknowledgmentRepository acknowledgmentRepository,
             UserRepository userRepository,
-            AnnouncementMapper announcementMapper) {
+            AnnouncementMapper announcementMapper,
+            RealTimeAnnouncementService realTimeAnnouncementService) {
         super(announcementRepository);
         this.announcementRepository = announcementRepository;
         this.readReceiptRepository = readReceiptRepository;
         this.acknowledgmentRepository = acknowledgmentRepository;
         this.userRepository = userRepository;
         this.announcementMapper = announcementMapper;
+        this.realTimeAnnouncementService = realTimeAnnouncementService;
     }
 
     @Override
@@ -141,7 +145,9 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
             null, null, null, null, null // counts and flags will be calculated
         );
 
-        return create(createDto);
+        AnnouncementDTO createdDto = create(createDto);
+        realTimeAnnouncementService.broadcastAnnouncementCreated(createdDto);
+        return createdDto;
     }
 
     @Override
@@ -151,7 +157,9 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
             throw new IllegalArgumentException("User does not have permission to modify this announcement");
         }
 
-        return update(id, dto);
+        AnnouncementDTO updatedDto = update(id, dto);
+        realTimeAnnouncementService.broadcastAnnouncementUpdated(updatedDto);
+        return updatedDto;
     }
 
     @Override
@@ -161,7 +169,10 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
             throw new IllegalArgumentException("User does not have permission to delete this announcement");
         }
 
+        // Get the announcement before deletion for broadcasting
+        AnnouncementDTO announcementToDelete = findById(id);
         delete(id);
+        realTimeAnnouncementService.broadcastAnnouncementDeleted(announcementToDelete);
     }
 
     @Override
@@ -405,10 +416,13 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
         }
 
         Announcement announcement = getAnnouncementById(id);
+        boolean wasActive = announcement.isActive();
         announcement.setActive(!announcement.isActive());
         Announcement savedAnnouncement = announcementRepository.save(announcement);
         
-        return announcementMapper.toDto(savedAnnouncement);
+        AnnouncementDTO updatedDto = announcementMapper.toDto(savedAnnouncement);
+        realTimeAnnouncementService.broadcastAnnouncementStatusChanged(updatedDto, !wasActive);
+        return updatedDto;
     }
 
     // Helper methods
