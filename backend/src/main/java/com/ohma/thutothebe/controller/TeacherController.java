@@ -56,6 +56,20 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
         }
     }
 
+    @GetMapping("/user/{userId}")
+    @Operation(summary = "Get teacher by user ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<TeacherDTO>> getByUserId(@PathVariable Long userId) {
+        try {
+            TeacherDTO teacher = teacherService.getTeacherByUserId(userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher retrieved successfully", teacher, null));
+        } catch (Exception e) {
+            log.error("Error retrieving teacher: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/active")
     @Operation(summary = "Get all active teachers")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")

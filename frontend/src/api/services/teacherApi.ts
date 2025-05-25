@@ -44,6 +44,15 @@ const teacherApi = {
   },
 
   /**
+   * Get teacher by user ID
+   * @param userId User ID
+   * @returns Response with teacher details
+   */
+  getByUserId: async (userId: number): Promise<AxiosResponse<TeacherResponse>> => {
+    return api.get(`/teachers/user/${userId}`);
+  },
+
+  /**
    * Get teachers by school
    * @param schoolId School ID
    * @returns Response with teachers in the school

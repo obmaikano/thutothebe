@@ -24,6 +24,7 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
     private final ClassRepository classRepository;
     private final SubjectRepository subjectRepository;
     private final StudentMapper studentMapper;
+    private final CourseRepository courseRepository;
 
     @Autowired
     public StudentServiceImpl(
@@ -32,7 +33,8 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
             UserRepository userRepository,
             ClassRepository classRepository,
             SubjectRepository subjectRepository,
-            StudentMapper studentMapper) {
+            StudentMapper studentMapper,
+            CourseRepository courseRepository) {
         super(studentRepository);
         this.studentRepository = studentRepository;
         this.schoolRepository = schoolRepository;
@@ -40,6 +42,7 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         this.classRepository = classRepository;
         this.subjectRepository = subjectRepository;
         this.studentMapper = studentMapper;
+        this.courseRepository = courseRepository;
     }
 
     @Override
@@ -354,5 +357,51 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         });
         
         classRepository.save(classEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByTeacherId(Long teacherId) {
+        // Get all courses taught by this teacher
+        List<Course> teacherCourses = courseRepository.findByTeacherId(teacherId);
+        
+        // Get all students from these courses
+        return teacherCourses.stream()
+            .flatMap(course -> studentRepository.findByCourseId(course.getId()).stream())
+            .distinct()
+            .map(studentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getActiveStudentsByTeacherId(Long teacherId) {
+        return getStudentsByTeacherId(teacherId).stream()
+            .filter(student -> student.active())
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getActiveStudentsBySubjectId(Long subjectId) {
+        return getStudentsBySubjectId(subjectId).stream()
+            .filter(student -> student.active())
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getActiveStudentsByCourseId(Long courseId) {
+        return getStudentsByCourseId(courseId).stream()
+            .filter(student -> student.active())
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getActiveStudentsByClassId(Long classId) {
+        return getStudentsByClassId(classId).stream()
+            .filter(student -> student.active())
+            .collect(Collectors.toList());
     }
 } 

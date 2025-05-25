@@ -181,4 +181,88 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
+
+    @GetMapping("/teacher/{teacherId}")
+    @Operation(summary = "Get students by teacher ID (from assigned courses)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<StudentDTO>>> getStudentsByTeacherId(@PathVariable Long teacherId) {
+        try {
+            List<StudentDTO> students = studentService.getStudentsByTeacherId(teacherId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Students for teacher retrieved successfully", students, null));
+        } catch (Exception e) {
+            log.error("Error retrieving students for teacher: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/teacher/{teacherId}/active")
+    @Operation(summary = "Get active students by teacher ID (from assigned courses)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<StudentDTO>>> getActiveStudentsByTeacherId(@PathVariable Long teacherId) {
+        try {
+            List<StudentDTO> students = studentService.getActiveStudentsByTeacherId(teacherId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active students for teacher retrieved successfully", students, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active students for teacher: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/subject/{subjectId}")
+    @Operation(summary = "Get students by subject ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<StudentDTO>>> getStudentsBySubjectId(@PathVariable Long subjectId) {
+        try {
+            List<StudentDTO> students = studentService.getStudentsBySubjectId(subjectId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Students for subject retrieved successfully", students, null));
+        } catch (Exception e) {
+            log.error("Error retrieving students for subject: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/subject/{subjectId}/active")
+    @Operation(summary = "Get active students by subject ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<StudentDTO>>> getActiveStudentsBySubjectId(@PathVariable Long subjectId) {
+        try {
+            List<StudentDTO> students = studentService.getActiveStudentsBySubjectId(subjectId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active students for subject retrieved successfully", students, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active students for subject: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/course/{courseId}/active")
+    @Operation(summary = "Get active students by course ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<StudentDTO>>> getActiveStudentsByCourseId(@PathVariable Long courseId) {
+        try {
+            List<StudentDTO> students = studentService.getActiveStudentsByCourseId(courseId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active students for course retrieved successfully", students, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active students for course: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/class/{classId}/active")
+    @Operation(summary = "Get active students by class ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<StudentDTO>>> getActiveStudentsByClassId(@PathVariable Long classId) {
+        try {
+            List<StudentDTO> students = studentService.getActiveStudentsByClassId(classId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active students for class retrieved successfully", students, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active students for class: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
 } 

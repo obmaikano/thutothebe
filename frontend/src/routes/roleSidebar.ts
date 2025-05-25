@@ -98,21 +98,21 @@ export const teacherMenuItems: MenuItem[] = [
   ...commonMenuItems,
   {
     icon: BookOpen,
-    label: 'Courses',
-    path: '/app/courses',
-    description: 'Manage your courses'
+    label: 'My Classes',
+    path: '/app/teacher-classes',
+    description: 'View your assigned classes'
   },
   {
     icon: BookOpen,
-    label: 'Classes',
-    path: '/app/classes',
-    description: 'Manage your classes'
+    label: 'My Courses',
+    path: '/app/teacher-courses',
+    description: 'Manage your assigned courses'
   },
   {
     icon: Users,
-    label: 'Students',
-    path: '/app/students',
-    description: 'View and manage students'
+    label: 'My Students',
+    path: '/app/teacher-students',
+    description: 'View students from your courses'
   },
   {
     icon: FileText,

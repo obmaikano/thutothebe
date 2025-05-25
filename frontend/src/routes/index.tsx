@@ -17,6 +17,9 @@ const Students = lazy(() => import('../pages/protected/Students'));
 const StudentDetail = lazy(() => import('../pages/protected/StudentDetail'));
 const Parents = lazy(() => import('../pages/protected/Parents'));
 const ParentDetailsPage = lazy(() => import('../features/parents/pages/ParentDetailsPage'));
+const TeacherStudents = lazy(() => import('../pages/protected/TeacherStudents'));
+const TeacherCourses = lazy(() => import('../pages/protected/TeacherCourses'));
+const TeacherClasses = lazy(() => import('../pages/protected/TeacherClasses'));
 
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
 
@@ -81,6 +84,18 @@ export const appRoutes = [
   {
     path: 'parents/:id',
     element: ParentDetailsPage
+  },
+  {
+    path: 'teacher-students',
+    element: TeacherStudents
+  },
+  {
+    path: 'teacher-courses',
+    element: TeacherCourses
+  },
+  {
+    path: 'teacher-classes',
+    element: TeacherClasses
   },
   // Default redirect
   {

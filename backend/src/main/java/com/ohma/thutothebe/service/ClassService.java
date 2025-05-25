@@ -9,6 +9,8 @@ public interface ClassService extends BaseService<ClassDTO, Long> {
     List<ClassDTO> getActiveClassesBySchoolId(Long schoolId);
     List<ClassDTO> getClassesBySchoolIdAndTeacherId(Long schoolId, Long teacherId);
     List<ClassDTO> getClassesBySchoolIdAndStudentId(Long schoolId, Long studentId);
+    List<ClassDTO> getClassesByTeacherId(Long teacherId);
+    List<ClassDTO> getActiveClassesByTeacherId(Long teacherId);
     ClassDTO createClass(ClassDTO classDTO);
     ClassDTO updateClass(Long id, ClassDTO classDTO);
     void deleteClass(Long id);

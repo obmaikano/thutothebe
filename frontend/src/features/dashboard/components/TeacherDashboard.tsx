@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Book, Users, FileText, Calendar, Clock, BarChart2, 
   BookOpen, FilePen, User, MessageSquare 
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import courseApi, { Course } from '../../../api/services/courseApi';
+import studentApi, { Student } from '../../../api/services/studentApi';
+import teacherApi, { Teacher } from '../../../api/services/teacherApi';
 
 // Card component
 const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => (
@@ -82,7 +85,68 @@ export const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
   const teacherName = user ? `${user.firstName} ${user.lastName}` : 'Teacher';
   
-  // Mock data for teacher dashboard
+  // State for real data
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [teacher, setTeacher] = useState<Teacher | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTeacherData = async () => {
+      if (!user?.id) {
+        setError('User information not found');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // First, fetch the teacher record using the user ID
+        const teacherResponse = await teacherApi.getByUserId(user.id);
+        const teacherData = Array.isArray(teacherResponse.data.data) 
+          ? teacherResponse.data.data[0] 
+          : teacherResponse.data.data;
+        
+        if (!teacherData) {
+          setError('Teacher profile not found. Please contact your administrator.');
+          setLoading(false);
+          return;
+        }
+        
+        setTeacher(teacherData);
+        
+        // Now fetch teacher's courses using the teacher ID
+        const coursesResponse = await courseApi.getActiveByTeacher(teacherData.id);
+        const teacherCourses = Array.isArray(coursesResponse.data.data) 
+          ? coursesResponse.data.data 
+          : [];
+        setCourses(teacherCourses);
+
+        // Fetch students from teacher's courses
+        const studentsResponse = await studentApi.getActiveByTeacher(teacherData.id);
+        const teacherStudents = Array.isArray(studentsResponse.data.data) 
+          ? studentsResponse.data.data 
+          : [];
+        setStudents(teacherStudents);
+
+      } catch (err: any) {
+        console.error('Error fetching teacher data:', err);
+        if (err.response?.status === 404) {
+          setError('Teacher profile not found. Please contact your administrator to set up your teacher profile.');
+        } else {
+          setError(err.response?.data?.message || 'Failed to load teacher data');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeacherData();
+  }, [user?.id]);
+  
+  // Mock data for assignments and schedule (these would come from assignment/schedule APIs)
   const assignmentsToGrade = [
     { id: '1', title: 'Mathematics Quiz', course: 'Mathematics', submissions: 25, totalStudents: 30, dueDate: 'Due today' },
     { id: '2', title: 'Science Lab Report', course: 'Biology', submissions: 18, totalStudents: 28, dueDate: 'Due tomorrow' },
@@ -100,11 +164,33 @@ export const TeacherDashboard: React.FC = () => {
     { id: '2', student: 'Lesedi Molefe', message: 'When will you upload the lecture notes?', time: '2 hours ago', avatar: 'https://images.pexels.com/photos/5212307/pexels-photo-5212307.jpeg?auto=compress&cs=tinysrgb&w=150' },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-64">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          <div className="flex justify-between items-center">
+            <span>{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-500 hover:text-red-700"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-xl p-6 shadow-md mb-6">
         <h1 className="text-2xl text-white font-bold mb-2">Welcome back, {teacherName}!</h1>
-        <p className="text-blue-100 mb-4">You have 25 assignments to grade and 3 classes scheduled today.</p>
+        <p className="text-blue-100 mb-4">You have {assignmentsToGrade.length} assignments to grade and {teachingSchedule.length} classes scheduled today.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
             <div className="bg-white p-2 rounded-full mr-3">
@@ -112,7 +198,12 @@ export const TeacherDashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-white text-opacity-90 text-sm">Next class</p>
-              <p className="text-white font-medium">Mathematics - Room 101, 08:00 AM</p>
+              <p className="text-white font-medium">
+                {teachingSchedule.length > 0 
+                  ? `${teachingSchedule[0].class || teachingSchedule[0].title} - ${teachingSchedule[0].room}, ${teachingSchedule[0].time.split(' - ')[0]}`
+                  : 'No classes scheduled'
+                }
+              </p>
             </div>
           </div>
           <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
@@ -121,7 +212,12 @@ export const TeacherDashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-white text-opacity-90 text-sm">Grading needed</p>
-              <p className="text-white font-medium">Mathematics Quiz - 25 submissions</p>
+              <p className="text-white font-medium">
+                {assignmentsToGrade.length > 0 
+                  ? `${assignmentsToGrade[0].title} - ${assignmentsToGrade[0].submissions} submissions`
+                  : 'No assignments to grade'
+                }
+              </p>
             </div>
           </div>
         </div>
@@ -130,20 +226,20 @@ export const TeacherDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           title="Courses Teaching" 
-          value="4" 
+          value={courses.length.toString()} 
           icon={<BookOpen size={20} />} 
           iconColor="bg-blue-100 text-blue-600" 
         />
         <StatCard 
           title="Total Students" 
-          value="120" 
+          value={students.length.toString()} 
           change={5} 
           icon={<Users size={20} />} 
           iconColor="bg-green-100 text-green-600" 
         />
         <StatCard 
           title="Assignments Pending" 
-          value="25" 
+          value={assignmentsToGrade.length.toString()} 
           change={-10}
           icon={<FilePen size={20} />} 
           iconColor="bg-orange-100 text-orange-600" 

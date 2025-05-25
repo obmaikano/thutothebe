@@ -112,6 +112,60 @@ const studentApi = {
   },
 
   /**
+   * Get students by teacher ID (from assigned courses)
+   * @param teacherId Teacher ID
+   * @returns Response with students from teacher's assigned courses
+   */
+  getByTeacher: async (teacherId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/teacher/${teacherId}`);
+  },
+
+  /**
+   * Get active students by teacher ID (from assigned courses)
+   * @param teacherId Teacher ID
+   * @returns Response with active students from teacher's assigned courses
+   */
+  getActiveByTeacher: async (teacherId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/teacher/${teacherId}/active`);
+  },
+
+  /**
+   * Get students by subject
+   * @param subjectId Subject ID
+   * @returns Response with students in the subject
+   */
+  getBySubject: async (subjectId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/subject/${subjectId}`);
+  },
+
+  /**
+   * Get active students by subject
+   * @param subjectId Subject ID
+   * @returns Response with active students in the subject
+   */
+  getActiveBySubject: async (subjectId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/subject/${subjectId}/active`);
+  },
+
+  /**
+   * Get active students by course
+   * @param courseId Course ID
+   * @returns Response with active students in the course
+   */
+  getActiveByCourse: async (courseId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/course/${courseId}/active`);
+  },
+
+  /**
+   * Get active students by class
+   * @param classId Class ID
+   * @returns Response with active students in the class
+   */
+  getActiveByClass: async (classId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/class/${classId}/active`);
+  },
+
+  /**
    * Create a new student
    * @param studentData Student data
    * @returns Response with created student details

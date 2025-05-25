@@ -191,4 +191,32 @@ public class ClassController extends BaseController<ClassDTO, Long> {
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
+
+    @GetMapping("/teacher/{teacherId}")
+    @Operation(summary = "Get classes by teacher ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getByTeacherId(@PathVariable Long teacherId) {
+        try {
+            List<ClassDTO> classes = classService.getClassesByTeacherId(teacherId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Classes retrieved successfully", classes, null));
+        } catch (Exception e) {
+            log.error("Error retrieving classes for teacher: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/teacher/{teacherId}/active")
+    @Operation(summary = "Get active classes by teacher ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getActiveByTeacherId(@PathVariable Long teacherId) {
+        try {
+            List<ClassDTO> activeClasses = classService.getActiveClassesByTeacherId(teacherId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active classes retrieved successfully", activeClasses, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active classes for teacher: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
 } 

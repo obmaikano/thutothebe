@@ -93,6 +93,23 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ClassDTO> getClassesByTeacherId(Long teacherId) {
+        return classRepository.findByTeacherId(teacherId).stream()
+            .map(classMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassDTO> getActiveClassesByTeacherId(Long teacherId) {
+        return classRepository.findByTeacherId(teacherId).stream()
+            .filter(Class::isActive)
+            .map(classMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public ClassDTO createClass(ClassDTO classDTO) {
         School school = schoolRepository.findById(classDTO.schoolId())

@@ -66,10 +66,19 @@ const classApi = {
   /**
    * Get classes by school ID
    * @param schoolId School ID
-   * @returns Response with a list of classes for the school
+   * @returns Response with classes in the school
    */
-  getBySchoolId: async (schoolId: number): Promise<AxiosResponse<ClassResponse>> => {
+  getBySchool: async (schoolId: number): Promise<AxiosResponse<ClassResponse>> => {
     return api.get(`/classes/school/${schoolId}`);
+  },
+
+  /**
+   * Get active classes by school ID
+   * @param schoolId School ID
+   * @returns Response with active classes in the school
+   */
+  getActiveBySchool: async (schoolId: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/school/${schoolId}/active`);
   },
 
   /**
@@ -164,7 +173,25 @@ const classApi = {
    */
   removeTeacherFromClass: async (classId: number, teacherId: number): Promise<AxiosResponse<ClassResponse>> => {
     return api.delete(`/classes/${classId}/teacher/${teacherId}`);
-  }
+  },
+
+  /**
+   * Get classes by teacher ID
+   * @param teacherId Teacher ID
+   * @returns Response with classes assigned to the teacher
+   */
+  getByTeacher: async (teacherId: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/teacher/${teacherId}`);
+  },
+
+  /**
+   * Get active classes by teacher ID
+   * @param teacherId Teacher ID
+   * @returns Response with active classes assigned to the teacher
+   */
+  getActiveByTeacher: async (teacherId: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/teacher/${teacherId}/active`);
+  },
 };
 
 export default classApi; 
