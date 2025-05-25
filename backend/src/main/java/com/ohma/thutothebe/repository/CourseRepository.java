@@ -17,7 +17,12 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     
     Optional<Course> findByCode(String code);
     
-    List<Course> findByActive(boolean active);
+    @Query("SELECT DISTINCT c FROM Course c " +
+           "LEFT JOIN FETCH c.courseInstructors ci " +
+           "LEFT JOIN FETCH ci.teacher " +
+           "LEFT JOIN FETCH c.subject " +
+           "WHERE c.active = :active")
+    List<Course> findByActive(@Param("active") boolean active);
     
     List<Course> findBySubject(Subject subject);
     
@@ -25,7 +30,12 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     
     List<Course> findByClassEntityId(Long classId);
     
-    List<Course> findByClassEntityIdAndActive(Long classId, boolean active);
+    @Query("SELECT DISTINCT c FROM Course c " +
+           "LEFT JOIN FETCH c.courseInstructors ci " +
+           "LEFT JOIN FETCH ci.teacher " +
+           "LEFT JOIN FETCH c.subject " +
+           "WHERE c.classEntity.id = :classId AND c.active = :active")
+    List<Course> findByClassEntityIdAndActive(@Param("classId") Long classId, @Param("active") boolean active);
     
     List<Course> findByTerm(Term term);
     
