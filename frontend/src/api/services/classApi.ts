@@ -10,6 +10,8 @@ export interface Class {
   description?: string;
   capacity?: number;
   currentEnrollment?: number;
+  studentIds?: number[];
+  teacherIds?: number[];
 }
 
 export interface ClassResponse {
@@ -41,6 +43,24 @@ const classApi = {
    */
   getById: async (id: number): Promise<AxiosResponse<ClassResponse>> => {
     return api.get(`/classes/${id}`);
+  },
+
+  /**
+   * Get class by ID with enrolled students
+   * @param id Class ID
+   * @returns Response with class details including student IDs
+   */
+  getByIdWithStudents: async (id: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/${id}/with-students`);
+  },
+
+  /**
+   * Get enrolled students for a class
+   * @param classId Class ID
+   * @returns Response with list of students in the class
+   */
+  getEnrolledStudents: async (classId: number): Promise<AxiosResponse<any>> => {
+    return api.get(`/students/class/${classId}/enrolled`);
   },
 
   /**

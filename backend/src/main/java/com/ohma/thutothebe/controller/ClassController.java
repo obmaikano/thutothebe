@@ -86,6 +86,20 @@ public class ClassController extends BaseController<ClassDTO, Long> {
         }
     }
 
+    @GetMapping("/{id}/with-students")
+    @Operation(summary = "Get class by ID with enrolled students")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<ClassDTO>> getClassWithStudents(@PathVariable Long id) {
+        try {
+            ClassDTO classDTO = classService.getClassWithStudents(id);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Class with students retrieved successfully", classDTO, null));
+        } catch (Exception e) {
+            log.error("Error retrieving class with students: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @PostMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate a class")
     @PreAuthorize("hasRole('ADMIN')")

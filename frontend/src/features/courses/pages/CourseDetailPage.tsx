@@ -6,28 +6,28 @@ import {
   Users, AlertTriangle, Book
 } from 'lucide-react';
 import { useCourseDetails } from '../hooks';
-import { useTeachers } from '../../teachers/hooks';
+import { fetchActiveTeachers } from '../../teachers/teachersSlice';
 import { Button } from '../../../components/common/Button';
 import { Course } from '../../../api/services/courseApi';
 import { Teacher } from '../../../api/services/teacherApi';
-import { useAppDispatch } from '../../../store';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { addTeacherToCourse, removeTeacherFromCourse } from '../coursesSlice';
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { course, loading, error, fetchCourseDetails, deleteCourse } = useCourseDetails(parseInt(id || '0', 10));
-  const { teachers, loading: teachersLoading, getActiveTeachers } = useTeachers();
+  const dispatch = useAppDispatch();
+  const { teachers, status: teachersStatus } = useAppSelector(state => state.teachers);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
   const [teacherError, setTeacherError] = useState<string | null>(null);
-  const dispatch = useAppDispatch();
 
   useEffect(() => {
     fetchCourseDetails();
-    getActiveTeachers();
-  }, [fetchCourseDetails, getActiveTeachers]);
+    dispatch(fetchActiveTeachers());
+  }, [fetchCourseDetails, dispatch]);
 
   const getStatusColor = (active: boolean) => {
     return active 
@@ -50,7 +50,7 @@ const CourseDetailPage: React.FC = () => {
   };
 
   // Show loading state
-  if (loading || teachersLoading) {
+  if (loading || teachersStatus === 'loading') {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center py-12">

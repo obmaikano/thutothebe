@@ -64,6 +64,30 @@ export const fetchActiveClasses = createAsyncThunk(
   }
 );
 
+export const fetchClassWithStudents = createAsyncThunk(
+  'classes/fetchClassWithStudents',
+  async (id: number, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getByIdWithStudents(id);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch class with students');
+    }
+  }
+);
+
+export const fetchEnrolledStudents = createAsyncThunk(
+  'classes/fetchEnrolledStudents',
+  async (classId: number, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getEnrolledStudents(classId);
+      return { classId, students: response.data.data };
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch enrolled students');
+    }
+  }
+);
+
 export const createClass = createAsyncThunk(
   'classes/createClass',
   async (classData: CreateClassRequest, { rejectWithValue }) => {
@@ -131,6 +155,13 @@ export const addStudentToClass = createAsyncThunk(
       const response = await classApi.addStudentToClass(classId, studentId);
       return response.data.data;
     } catch (error: any) {
+      // Handle specific database constraint errors
+      if (error.response?.data?.message?.includes('duplicate key value violates unique constraint')) {
+        return rejectWithValue('Student is already enrolled in this class');
+      }
+      if (error.response?.data?.message?.includes('class_students_pkey')) {
+        return rejectWithValue('Student is already enrolled in this class');
+      }
       return rejectWithValue(error.response?.data?.message || 'Failed to add student to class');
     }
   }
@@ -241,6 +272,35 @@ const classesSlice = createSlice({
         state.error = action.payload as string || 'Failed to fetch active classes';
       })
 
+      // Fetch class with students
+      .addCase(fetchClassWithStudents.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchClassWithStudents.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.currentClass = action.payload as Class;
+      })
+      .addCase(fetchClassWithStudents.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch class with students';
+      })
+
+      // Fetch enrolled students
+      .addCase(fetchEnrolledStudents.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchEnrolledStudents.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        // The API returns void, so we don't update the class object here
+        // The UI should refetch the class data if needed
+      })
+      .addCase(fetchEnrolledStudents.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch enrolled students';
+      })
+
       // Create class
       .addCase(createClass.pending, (state) => {
         state.status = 'loading';
@@ -342,15 +402,8 @@ const classesSlice = createSlice({
       })
       .addCase(addStudentToClass.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // Update current enrollment if available
-        const updatedClass = action.payload as Class;
-        const index = state.classes.findIndex(cls => cls.id === updatedClass.id);
-        if (index !== -1) {
-          state.classes[index] = updatedClass;
-        }
-        if (state.currentClass?.id === updatedClass.id) {
-          state.currentClass = updatedClass;
-        }
+        // The API returns void, so we don't update the class object here
+        // The UI should refetch the class data if needed
       })
       .addCase(addStudentToClass.rejected, (state, action) => {
         state.status = 'failed';
@@ -364,15 +417,8 @@ const classesSlice = createSlice({
       })
       .addCase(removeStudentFromClass.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // Update current enrollment if available
-        const updatedClass = action.payload as Class;
-        const index = state.classes.findIndex(cls => cls.id === updatedClass.id);
-        if (index !== -1) {
-          state.classes[index] = updatedClass;
-        }
-        if (state.currentClass?.id === updatedClass.id) {
-          state.currentClass = updatedClass;
-        }
+        // The API returns void, so we don't update the class object here
+        // The UI should refetch the class data if needed
       })
       .addCase(removeStudentFromClass.rejected, (state, action) => {
         state.status = 'failed';
@@ -386,8 +432,8 @@ const classesSlice = createSlice({
       })
       .addCase(assignTeacherToClass.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // Note: The API response doesn't modify the class object structure
-        // The teacher assignment is handled on the backend
+        // The API returns void, so we don't update the class object here
+        // The UI should refetch the class data if needed
       })
       .addCase(assignTeacherToClass.rejected, (state, action) => {
         state.status = 'failed';
@@ -401,8 +447,8 @@ const classesSlice = createSlice({
       })
       .addCase(removeTeacherFromClass.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // Note: The API response doesn't modify the class object structure
-        // The teacher removal is handled on the backend
+        // The API returns void, so we don't update the class object here
+        // The UI should refetch the class data if needed
       })
       .addCase(removeTeacherFromClass.rejected, (state, action) => {
         state.status = 'failed';

@@ -266,6 +266,18 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
 
     @Override
     @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsEnrolledInClass(Long classId) {
+        // Get student IDs from the class_students join table
+        List<Long> studentIds = classRepository.findStudentIdsByClassId(classId);
+        
+        // Find Student entities that have User entities with these IDs
+        return studentRepository.findByUser_IdIn(studentIds).stream()
+            .map(studentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<StudentDTO> getStudentsBySubjectId(Long subjectId) {
         return studentRepository.findBySubjects_Id(subjectId).stream()
             .map(studentMapper::toDto)
@@ -277,5 +289,70 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         return studentRepository.findByCourseId(courseId).stream()
                 .map(studentMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String debugClassEnrollment(Long classId) {
+        StringBuilder debug = new StringBuilder();
+        
+        // Get student IDs from join table
+        List<Long> joinTableStudentIds = classRepository.findStudentIdsByClassId(classId);
+        debug.append("Student IDs in class_students join table: ").append(joinTableStudentIds).append("\n");
+        
+        // Get students by foreign key
+        List<StudentDTO> foreignKeyStudents = getStudentsByClassId(classId);
+        debug.append("Students found by foreign key (class_id): ").append(foreignKeyStudents.size()).append("\n");
+        foreignKeyStudents.forEach(s -> debug.append("  - ").append(s.firstName()).append(" ").append(s.lastName()).append(" (ID: ").append(s.id()).append(", UserID: ").append(s.userId()).append(")\n"));
+        
+        // Get students by join table
+        List<StudentDTO> joinTableStudents = getStudentsEnrolledInClass(classId);
+        debug.append("Students found by join table: ").append(joinTableStudents.size()).append("\n");
+        joinTableStudents.forEach(s -> debug.append("  - ").append(s.firstName()).append(" ").append(s.lastName()).append(" (ID: ").append(s.id()).append(", UserID: ").append(s.userId()).append(")\n"));
+        
+        // Check for orphaned User IDs (in join table but no corresponding Student entity)
+        List<Long> orphanedUserIds = joinTableStudentIds.stream()
+            .filter(userId -> studentRepository.findByUser_Id(userId).isEmpty())
+            .collect(Collectors.toList());
+        debug.append("Orphaned User IDs (in join table but no Student entity): ").append(orphanedUserIds).append("\n");
+        
+        return debug.toString();
+    }
+
+    @Override
+    @Transactional
+    public void cleanupClassEnrollmentInconsistencies(Long classId) {
+        // Get the class entity
+        com.ohma.thutothebe.entity.Class classEntity = classRepository.findById(classId)
+            .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + classId));
+        
+        // Get student IDs from join table
+        List<Long> joinTableStudentIds = classRepository.findStudentIdsByClassId(classId);
+        
+        // Remove orphaned User IDs from the join table (Users that don't have corresponding Student entities)
+        List<Long> orphanedUserIds = joinTableStudentIds.stream()
+            .filter(userId -> studentRepository.findByUser_Id(userId).isEmpty())
+            .collect(Collectors.toList());
+        
+        if (!orphanedUserIds.isEmpty()) {
+            // Remove orphaned users from the class
+            orphanedUserIds.forEach(userId -> {
+                userRepository.findById(userId).ifPresent(user -> {
+                    classEntity.getStudents().remove(user);
+                });
+            });
+            classRepository.save(classEntity);
+        }
+        
+        // Ensure all Student entities with this classId are also in the join table
+        List<Student> studentsWithClassId = studentRepository.findByStudentClass_Id(classId);
+        studentsWithClassId.forEach(student -> {
+            if (student.getUser() != null && !joinTableStudentIds.contains(student.getUser().getId())) {
+                // Add the user to the join table
+                classEntity.getStudents().add(student.getUser());
+            }
+        });
+        
+        classRepository.save(classEntity);
     }
 } 

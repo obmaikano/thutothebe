@@ -98,6 +98,20 @@ public class StudentController extends BaseController<StudentDTO, Long> {
         }
     }
 
+    @GetMapping("/class/{classId}/enrolled")
+    @Operation(summary = "Get students enrolled in class via join table")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<StudentDTO>>> getStudentsEnrolledInClass(@PathVariable Long classId) {
+        try {
+            List<StudentDTO> students = studentService.getStudentsEnrolledInClass(classId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Enrolled students for class retrieved successfully", students, null));
+        } catch (Exception e) {
+            log.error("Error retrieving enrolled students for class: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/school/{schoolId}")
     @Operation(summary = "Get students by school ID")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
@@ -135,6 +149,34 @@ public class StudentController extends BaseController<StudentDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student activated successfully", null, null));
         } catch (Exception e) {
             log.error("Error activating student: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/class/{classId}/debug")
+    @Operation(summary = "Debug enrollment data for a class")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OhmaApiResponse<String>> debugClassEnrollment(@PathVariable Long classId) {
+        try {
+            String debugInfo = studentService.debugClassEnrollment(classId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Debug info retrieved", debugInfo, null));
+        } catch (Exception e) {
+            log.error("Error getting debug info: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/class/{classId}/cleanup")
+    @Operation(summary = "Cleanup enrollment inconsistencies for a class")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OhmaApiResponse<Void>> cleanupClassEnrollment(@PathVariable Long classId) {
+        try {
+            studentService.cleanupClassEnrollmentInconsistencies(classId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Enrollment inconsistencies cleaned up", null, null));
+        } catch (Exception e) {
+            log.error("Error cleaning up enrollment: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

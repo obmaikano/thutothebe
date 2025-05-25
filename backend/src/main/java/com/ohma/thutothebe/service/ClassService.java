@@ -18,4 +18,5 @@ public interface ClassService extends BaseService<ClassDTO, Long> {
     void removeTeacherFromClass(Long classId, Long teacherId);
     void addStudentToClass(Long classId, Long studentId);
     void removeStudentFromClass(Long classId, Long studentId);
+    ClassDTO getClassWithStudents(Long id);
 } 

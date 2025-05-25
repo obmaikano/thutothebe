@@ -35,7 +35,13 @@ public interface StudentService extends BaseService<StudentDTO, Long> {
     
     List<StudentDTO> getStudentsByClassId(Long classId);
     
+    List<StudentDTO> getStudentsEnrolledInClass(Long classId);
+    
     List<StudentDTO> getStudentsBySubjectId(Long subjectId);
 
     List<StudentDTO> getStudentsByCourseId(Long courseId);
+    
+    String debugClassEnrollment(Long classId);
+    
+    void cleanupClassEnrollmentInconsistencies(Long classId);
 } 

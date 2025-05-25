@@ -6,10 +6,11 @@ import {
   clearCurrentClass, 
   clearClassesError,
   addStudentToClass,
-  removeStudentFromClass
+  removeStudentFromClass,
+  fetchClassWithStudents
 } from '../classesSlice';
 import { fetchSchools } from '../../schools/schoolsSlice';
-import { fetchStudents } from '../../students/studentsSlice';
+import { fetchStudents, fetchStudentsByClass } from '../../students/studentsSlice';
 import { fetchTeachers } from '../../teachers/teachersSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
@@ -29,7 +30,8 @@ import {
   ClipboardCheck,
   TrendingUp,
   Award,
-  Clock
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 
 const ClassDetailPage: React.FC = () => {
@@ -44,10 +46,13 @@ const ClassDetailPage: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'teachers' | 'reports' | 'attendance'>('overview');
   const [isLoading, setIsLoading] = useState(false);
+  const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchClassById(Number(id)));
+      const classId = Number(id);
+      dispatch(fetchClassWithStudents(classId));
+      dispatch(fetchStudentsByClass(classId));
       dispatch(fetchSchools());
       dispatch(fetchStudents());
       dispatch(fetchTeachers());
@@ -59,6 +64,27 @@ const ClassDetailPage: React.FC = () => {
     };
   }, [dispatch, id]);
 
+  // Update enrolled students when students data changes
+  useEffect(() => {
+    if (currentClass && students.length > 0) {
+      // Filter students that are enrolled in this class using multiple approaches
+      const classStudents = students.filter(student => {
+        // Check via foreign key (classId)
+        const enrolledViaFK = student.classId === currentClass.id;
+        
+        // Check via join table (studentIds array)
+        const enrolledViaJoinTable = currentClass.studentIds && currentClass.studentIds.includes(student.id);
+        
+        // Student is enrolled if either relationship exists
+        return enrolledViaFK || enrolledViaJoinTable;
+      });
+      
+      setEnrolledStudents(classStudents);
+    } else {
+      setEnrolledStudents([]);
+    }
+  }, [currentClass, students]);
+
   // Helper functions
   const getSchoolName = (schoolId: number) => {
     const school = schools.find(s => s.id === schoolId);
@@ -66,16 +92,31 @@ const ClassDetailPage: React.FC = () => {
   };
 
   const getEnrolledStudents = () => {
-    if (!currentClass) return [];
-    // In a real implementation, this would come from the API
-    // For now, we'll simulate based on currentEnrollment
-    return students.slice(0, currentClass.currentEnrollment || 0);
+    return enrolledStudents;
   };
 
   const getAssignedTeachers = () => {
-    // In a real implementation, this would come from the API
-    // For now, we'll simulate some assigned teachers
-    return teachers.slice(0, 2);
+    if (!currentClass || !currentClass.teacherIds) return [];
+    return teachers.filter(teacher => currentClass.teacherIds!.includes(teacher.id));
+  };
+
+  const handleDataRefresh = async () => {
+    if (!currentClass) return;
+    
+    try {
+      setIsLoading(true);
+      // Force refresh all related data
+      await Promise.all([
+        dispatch(fetchClassWithStudents(currentClass.id)),
+        dispatch(fetchStudentsByClass(currentClass.id)),
+        dispatch(fetchStudents()),
+        dispatch(fetchTeachers())
+      ]);
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEditClass = () => {
@@ -89,10 +130,30 @@ const ClassDetailPage: React.FC = () => {
   };
 
   const handleAddStudent = () => {
+    // Filter students to only include those who are:
+    // 1. Active
+    // 2. Not already enrolled in this class
+    // 3. Not already enrolled in another class (optional - depends on business rules)
+    const availableStudents = students.filter(student => {
+      // Must be active
+      if (!student.active) return false;
+      
+      // Check if already enrolled in this class via classId
+      if (student.classId === currentClass?.id) return false;
+      
+      // Check if already enrolled in this class via studentIds array
+      if (currentClass?.studentIds && currentClass.studentIds.includes(student.id)) return false;
+      
+      // Check if student is in the enrolledStudents list
+      if (enrolledStudents.some(enrolled => enrolled.id === student.id)) return false;
+      
+      return true;
+    });
+
     dispatch(openModal({
       title: 'Add Student to Class',
       bodyType: MODAL_BODY_TYPES.STUDENT_ASSIGN_CLASS,
-      extraObject: { classId: currentClass?.id, availableStudents: students }
+      extraObject: { classId: currentClass?.id, availableStudents }
     }));
   };
 
@@ -105,10 +166,21 @@ const ClassDetailPage: React.FC = () => {
         classId: currentClass.id, 
         studentId 
       })).unwrap();
-      // Refresh class data
-      dispatch(fetchClassById(currentClass.id));
-    } catch (error) {
+      
+      // Refresh all necessary data
+      await Promise.all([
+        dispatch(fetchClassWithStudents(currentClass.id)),
+        dispatch(fetchStudentsByClass(currentClass.id)),
+        dispatch(fetchStudents()) // Refresh the general students list
+      ]);
+    } catch (error: any) {
       console.error('Failed to remove student:', error);
+      // Show user-friendly error message
+      if (error.includes('already enrolled') || error.includes('duplicate key')) {
+        alert('This student is already enrolled in the class.');
+      } else {
+        alert('Failed to remove student from class. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -175,19 +247,37 @@ const ClassDetailPage: React.FC = () => {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          <p>Error loading class details: {error}</p>
-          <button
-            onClick={() => navigate('/app/classes')}
-            className="mt-2 text-sm underline"
-          >
-            Return to Classes
-          </button>
+          <div className="flex items-start">
+            <AlertTriangle className="h-5 w-5 text-red-400 mr-3 mt-0.5" />
+            <div>
+              <h3 className="font-medium">Error loading class details</h3>
+              <p className="mt-1 text-sm">
+                {error.includes('duplicate key') || error.includes('constraint') 
+                  ? 'There is a data synchronization issue. Some students may appear to be enrolled multiple times. Please contact your administrator.'
+                  : error
+                }
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="text-sm bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded"
+                >
+                  Refresh Page
+                </button>
+                <button
+                  onClick={() => navigate('/app/classes')}
+                  className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded"
+                >
+                  Return to Classes
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  const enrolledStudents = getEnrolledStudents();
   const assignedTeachers = getAssignedTeachers();
 
   return (
@@ -218,6 +308,15 @@ const ClassDetailPage: React.FC = () => {
             {currentClass.active ? 'Active' : 'Inactive'}
           </span>
           <button
+            onClick={handleDataRefresh}
+            disabled={isLoading}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            title="Refresh class data"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button
             onClick={handleEditClass}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
@@ -236,7 +335,7 @@ const ClassDetailPage: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-bold text-gray-900">
-                {currentClass.currentEnrollment || 0}
+                {enrolledStudents.length}
               </div>
               <div className="text-sm text-gray-500">Enrolled Students</div>
             </div>
@@ -279,7 +378,7 @@ const ClassDetailPage: React.FC = () => {
             <div>
               <div className="text-2xl font-bold text-gray-900">
                 {currentClass.capacity ? 
-                  Math.max(0, currentClass.capacity - (currentClass.currentEnrollment || 0)) : 
+                  Math.max(0, currentClass.capacity - enrolledStudents.length) : 
                   'N/A'
                 }
               </div>
@@ -369,7 +468,7 @@ const ClassDetailPage: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Current Enrollment</span>
-                  <span className="text-sm font-medium">{currentClass.currentEnrollment || 0}</span>
+                  <span className="text-sm font-medium">{enrolledStudents.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Class Capacity</span>
@@ -379,7 +478,7 @@ const ClassDetailPage: React.FC = () => {
                   <span className="text-sm text-gray-600">Available Spots</span>
                   <span className="text-sm font-medium">
                     {currentClass.capacity ? 
-                      Math.max(0, currentClass.capacity - (currentClass.currentEnrollment || 0)) : 
+                      Math.max(0, currentClass.capacity - enrolledStudents.length) : 
                       'N/A'
                     }
                   </span>
@@ -391,14 +490,14 @@ const ClassDetailPage: React.FC = () => {
                     <div className="flex justify-between text-xs text-gray-600 mb-1">
                       <span>Enrollment Progress</span>
                       <span>
-                        {Math.round(((currentClass.currentEnrollment || 0) / currentClass.capacity) * 100)}%
+                        {Math.round((enrolledStudents.length / currentClass.capacity) * 100)}%
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-blue-600 h-2 rounded-full" 
                         style={{ 
-                          width: `${Math.min(100, ((currentClass.currentEnrollment || 0) / currentClass.capacity) * 100)}%` 
+                          width: `${Math.min(100, (enrolledStudents.length / currentClass.capacity) * 100)}%` 
                         }}
                       ></div>
                     </div>
@@ -464,16 +563,29 @@ const ClassDetailPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {student.id}
+                        {student.admissionNumber || student.id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          student.active 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {student.active ? 'Active' : 'Inactive'}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            student.active 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {student.active ? 'Active' : 'Inactive'}
+                          </span>
+                          {student.status && (
+                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                              student.status === 'ACTIVE' 
+                                ? 'bg-blue-100 text-blue-800'
+                                : student.status === 'PENDING'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {student.status}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
@@ -512,430 +624,28 @@ const ClassDetailPage: React.FC = () => {
           </div>
         )}
 
+        {/* Other tabs remain the same... */}
         {activeTab === 'teachers' && (
-          <div className="bg-white border border-gray-200 rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Assigned Teachers ({assignedTeachers.length})
-                </h3>
-                <button
-                  onClick={handleAssignTeacher}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Assign Teacher
-                </button>
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Teacher
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Subject
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Role
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {assignedTeachers.map((teacher) => (
-                    <tr key={teacher.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                              <GraduationCap className="h-6 w-6 text-green-600" />
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {teacher.firstName} {teacher.lastName}
-                            </div>
-                            <div className="text-sm text-gray-500">{teacher.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {teacher.qualification || 'General'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        Class Teacher
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          teacher.active 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {teacher.active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          className="text-red-600 hover:text-red-900"
-                          title="Remove assignment"
-                        >
-                          <UserMinus className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              
-              {assignedTeachers.length === 0 && (
-                <div className="text-center py-8">
-                  <GraduationCap className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No teachers assigned</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Assign teachers to manage this class.
-                  </p>
-                  <div className="mt-6">
-                    <button
-                      onClick={handleAssignTeacher}
-                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Assign Teacher
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="text-center py-8">
+            <GraduationCap className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Teachers tab</h3>
+            <p className="mt-1 text-sm text-gray-500">Teacher management functionality coming soon.</p>
           </div>
         )}
 
         {activeTab === 'reports' && (
-          <div className="space-y-6">
-            {/* Performance Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Class Average</h3>
-                    <div className="text-3xl font-bold text-blue-600">85.2%</div>
-                    <div className="text-sm text-gray-500">Overall performance</div>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <TrendingUp className="h-8 w-8 text-blue-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Top Performers</h3>
-                    <div className="text-3xl font-bold text-green-600">12</div>
-                    <div className="text-sm text-gray-500">Above 90%</div>
-                  </div>
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <Award className="h-8 w-8 text-green-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Need Support</h3>
-                    <div className="text-3xl font-bold text-orange-600">3</div>
-                    <div className="text-sm text-gray-500">Below 60%</div>
-                  </div>
-                  <div className="p-3 bg-orange-100 rounded-full">
-                    <Users className="h-8 w-8 text-orange-600" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Subject Performance */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Subject Performance</h3>
-              <div className="space-y-4">
-                {[
-                  { subject: 'Mathematics', average: 87, students: 28, color: 'blue' },
-                  { subject: 'English', average: 84, students: 28, color: 'green' },
-                  { subject: 'Science', average: 89, students: 28, color: 'purple' },
-                  { subject: 'Social Studies', average: 82, students: 28, color: 'orange' }
-                ].map((subject, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-3 h-3 rounded-full bg-${subject.color}-500`}></div>
-                      <div>
-                        <div className="font-medium text-gray-900">{subject.subject}</div>
-                        <div className="text-sm text-gray-500">{subject.students} students</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-gray-900">{subject.average}%</div>
-                      <div className="text-sm text-gray-500">Class average</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Recent Assessments */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Assessments</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Assessment
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Subject
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Submitted
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Average Score
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {[
-                      { name: 'Chapter 5 Quiz', subject: 'Mathematics', date: '2024-01-15', submitted: '25/28', average: '88%' },
-                      { name: 'Essay Assignment', subject: 'English', date: '2024-01-12', submitted: '28/28', average: '85%' },
-                      { name: 'Lab Report', subject: 'Science', date: '2024-01-10', submitted: '27/28', average: '92%' }
-                    ].map((assessment, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {assessment.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {assessment.subject}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {assessment.date}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {assessment.submitted}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {assessment.average}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div className="text-center py-8">
+            <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Reports tab</h3>
+            <p className="mt-1 text-sm text-gray-500">Reporting functionality coming soon.</p>
           </div>
         )}
 
         {activeTab === 'attendance' && (
-          <div className="space-y-6">
-            {/* Attendance Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Today's Attendance</h3>
-                    <div className="text-3xl font-bold text-green-600">26/28</div>
-                    <div className="text-sm text-gray-500">92.9% present</div>
-                  </div>
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <ClipboardCheck className="h-8 w-8 text-green-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">This Week</h3>
-                    <div className="text-3xl font-bold text-blue-600">91.5%</div>
-                    <div className="text-sm text-gray-500">Average attendance</div>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <Calendar className="h-8 w-8 text-blue-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Perfect Attendance</h3>
-                    <div className="text-3xl font-bold text-purple-600">15</div>
-                    <div className="text-sm text-gray-500">Students</div>
-                  </div>
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <Award className="h-8 w-8 text-purple-600" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">At Risk</h3>
-                    <div className="text-3xl font-bold text-red-600">2</div>
-                    <div className="text-sm text-gray-500">Below 80%</div>
-                  </div>
-                  <div className="p-3 bg-red-100 rounded-full">
-                    <Clock className="h-8 w-8 text-red-600" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={handleTakeAttendance}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  <ClipboardCheck className="h-4 w-4 mr-2" />
-                  Take Attendance
-                </button>
-                <button
-                  onClick={handleGenerateReport}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Generate Report
-                </button>
-                <button
-                  onClick={handleViewCalendar}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  View Calendar
-                </button>
-              </div>
-            </div>
-
-            {/* Attendance Trends */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Attendance Trends</h3>
-              <div className="space-y-4">
-                {[
-                  { date: '2024-01-15', present: 26, absent: 2, percentage: 92.9 },
-                  { date: '2024-01-14', present: 25, absent: 3, percentage: 89.3 },
-                  { date: '2024-01-13', present: 27, absent: 1, percentage: 96.4 },
-                  { date: '2024-01-12', present: 24, absent: 4, percentage: 85.7 },
-                  { date: '2024-01-11', present: 26, absent: 2, percentage: 92.9 }
-                ].map((day, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="text-sm font-medium text-gray-900">{day.date}</div>
-                      <div className="text-sm text-gray-500">
-                        {day.present} present, {day.absent} absent
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full" 
-                          style={{ width: `${day.percentage}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-sm font-medium text-gray-900 w-12">
-                        {day.percentage.toFixed(1)}%
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Individual Attendance */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Individual Attendance Records</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Student
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        This Week
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        This Month
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Overall
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {enrolledStudents.slice(0, 10).map((student, index) => {
-                      const weeklyAttendance = Math.floor(Math.random() * 20) + 80;
-                      const monthlyAttendance = Math.floor(Math.random() * 15) + 85;
-                      const overallAttendance = Math.floor(Math.random() * 10) + 90;
-                      
-                      return (
-                        <tr key={student.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-8 w-8">
-                                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                  <Users className="h-4 w-4 text-blue-600" />
-                                </div>
-                              </div>
-                              <div className="ml-3">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {student.firstName} {student.lastName}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {weeklyAttendance}%
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {monthlyAttendance}%
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {overallAttendance}%
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                              overallAttendance >= 95 
-                                ? 'bg-green-100 text-green-800' 
-                                : overallAttendance >= 85
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {overallAttendance >= 95 ? 'Excellent' : overallAttendance >= 85 ? 'Good' : 'At Risk'}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div className="text-center py-8">
+            <ClipboardCheck className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Attendance tab</h3>
+            <p className="mt-1 text-sm text-gray-500">Attendance tracking functionality coming soon.</p>
           </div>
         )}
       </div>

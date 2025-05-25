@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { addStudentToClass } from '../classesSlice';
+import { addStudentToClass, fetchClassById, fetchClassWithStudents } from '../classesSlice';
+import { fetchStudentsByClass, fetchStudents } from '../../students/studentsSlice';
 import { closeModal } from '../../common/modalSlice';
 import { Student } from '../../../api/services/studentApi';
 import { UserPlus, Search, Users, X } from 'lucide-react';
@@ -20,27 +21,28 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successCount, setSuccessCount] = useState(0);
 
   const classId = extraObject?.classId;
   const availableStudents = extraObject?.availableStudents || [];
 
   useEffect(() => {
-    // Filter students who are not already in the class and match search term
+    // Filter students who match search term (students are already pre-filtered for availability)
     const filtered = availableStudents.filter(student => {
+      if (!searchTerm) return true; // Show all if no search term
+      
       const matchesSearch = 
         student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Only show active students who are not already assigned to this class
-      const isAvailable = student.active && (!student.classId || student.classId !== classId);
-      
-      return matchesSearch && isAvailable;
+      return matchesSearch;
     });
     
     setFilteredStudents(filtered);
-  }, [searchTerm, availableStudents, classId]);
+  }, [searchTerm, availableStudents]);
 
   const handleStudentToggle = (studentId: number) => {
     setSelectedStudents(prev => 
@@ -48,6 +50,8 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
         ? prev.filter(id => id !== studentId)
         : [...prev, studentId]
     );
+    // Clear error when user makes changes
+    setErrorMessage(null);
   };
 
   const handleSelectAll = () => {
@@ -56,6 +60,8 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
     } else {
       setSelectedStudents(filteredStudents.map(student => student.id));
     }
+    // Clear error when user makes changes
+    setErrorMessage(null);
   };
 
   const handleSubmit = async () => {
@@ -63,15 +69,44 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
 
     try {
       setIsLoading(true);
+      setErrorMessage(null);
+      setSuccessCount(0);
       
-      // Add students one by one
+      let successfullyAdded = 0;
+      const errors: string[] = [];
+      
+      // Add students one by one and track results
       for (const studentId of selectedStudents) {
-        await dispatch(addStudentToClass({ classId, studentId })).unwrap();
+        try {
+          await dispatch(addStudentToClass({ classId, studentId })).unwrap();
+          successfullyAdded++;
+        } catch (error: any) {
+          const student = filteredStudents.find(s => s.id === studentId);
+          const studentName = student ? `${student.firstName} ${student.lastName}` : `Student ${studentId}`;
+          errors.push(`${studentName}: ${error}`);
+        }
       }
       
-      dispatch(closeModal({}));
+      setSuccessCount(successfullyAdded);
+      
+      if (errors.length > 0) {
+        setErrorMessage(`${successfullyAdded} student(s) added successfully. Errors: ${errors.join('; ')}`);
+      }
+      
+      // Refetch all necessary data to update the UI
+      await Promise.all([
+        dispatch(fetchClassWithStudents(classId)),
+        dispatch(fetchStudentsByClass(classId)),
+        dispatch(fetchStudents()) // Refresh the general students list for the parent component
+      ]);
+      
+      // Only close modal if all students were added successfully
+      if (errors.length === 0) {
+        dispatch(closeModal({}));
+      }
     } catch (error) {
       console.error('Failed to add students to class:', error);
+      setErrorMessage('An unexpected error occurred while adding students to the class.');
     } finally {
       setIsLoading(false);
     }
@@ -216,6 +251,49 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
                 </span>
               ) : null;
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <X className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                {successCount > 0 ? 'Partial Success' : 'Error'}
+              </h3>
+              <div className="mt-1 text-sm text-red-700">
+                {errorMessage}
+              </div>
+            </div>
+            <div className="ml-auto pl-3">
+              <button
+                onClick={() => setErrorMessage(null)}
+                className="inline-flex text-red-400 hover:text-red-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {successCount > 0 && !errorMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Users className="h-5 w-5 text-green-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-green-800">
+                Successfully added {successCount} student{successCount !== 1 ? 's' : ''} to the class!
+              </p>
+            </div>
           </div>
         </div>
       )}

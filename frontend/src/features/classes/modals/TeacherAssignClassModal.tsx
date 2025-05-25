@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { assignTeacherToClass } from '../classesSlice';
+import { assignTeacherToClass, fetchClassById } from '../classesSlice';
 import { closeModal } from '../../common/modalSlice';
 import { Teacher } from '../../../api/services/teacherApi';
 import { UserPlus, Search, GraduationCap, X } from 'lucide-react';
@@ -67,6 +67,9 @@ const TeacherAssignClassModal: React.FC<TeacherAssignClassModalProps> = ({ extra
       for (const teacherId of selectedTeachers) {
         await dispatch(assignTeacherToClass({ classId, teacherId })).unwrap();
       }
+      
+      // Refetch the class data to get updated teacher assignments
+      await dispatch(fetchClassById(classId));
       
       dispatch(closeModal({}));
     } catch (error) {

@@ -26,4 +26,7 @@ public interface ClassRepository extends JpaRepository<Class, Long> {
     
     @Query("SELECT c FROM Class c WHERE c.school.id = :schoolId AND :studentId MEMBER OF c.students")
     List<Class> findBySchoolIdAndStudentId(Long schoolId, Long studentId);
+    
+    @Query("SELECT s.id FROM Class c JOIN c.students s WHERE c.id = :classId")
+    List<Long> findStudentIdsByClassId(Long classId);
 } 
