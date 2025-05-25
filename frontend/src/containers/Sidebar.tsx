@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Compass, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react';
+import { Compass, ChevronDown, ChevronRight, ChevronUp, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { MenuItem } from '../routes/roleSidebar';
 
@@ -11,7 +11,7 @@ interface SidebarProps {
 export function Sidebar({ menuItems }: SidebarProps) {
   const [expanded, setExpanded] = useState(true);
   const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   
   // Format role for display (convert SNAKE_CASE to Title Case)
   const formattedRole = user?.role 
@@ -28,6 +28,10 @@ export function Sidebar({ menuItems }: SidebarProps) {
       ...prev,
       [itemPath]: !prev[itemPath]
     }));
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   const renderMenuItem = (item: MenuItem, depth: number = 0) => {
@@ -109,7 +113,7 @@ export function Sidebar({ menuItems }: SidebarProps) {
   };
 
   return (
-    <aside className={`bg-white border-r border-gray-200 transition-all duration-300 ${
+    <aside className={`bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-full ${
       expanded ? 'w-64' : 'w-20'
     }`}>
       <div className="h-16 flex items-center px-6 border-b border-gray-200">
@@ -124,7 +128,7 @@ export function Sidebar({ menuItems }: SidebarProps) {
         </div>
       )}
 
-      <div className="p-4">
+      <div className="p-4 flex flex-col flex-1">
         <button
           onClick={() => setExpanded(!expanded)}
           className="w-full flex items-center justify-center p-2 mb-4 text-gray-500 hover:text-gray-900 rounded-lg"
@@ -136,9 +140,28 @@ export function Sidebar({ menuItems }: SidebarProps) {
           )}
         </button>
 
-        <nav className="space-y-1">
+        <nav className="space-y-1 flex-1">
           {menuItems.map((item) => renderMenuItem(item))}
         </nav>
+
+        {/* Logout Button */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={handleLogout}
+            className={`w-full flex items-center py-2 rounded-lg transition-colors ${
+              expanded ? 'px-4' : 'px-2'
+            } text-red-600 hover:bg-red-50 hover:text-red-700`}
+            title={expanded ? '' : 'Logout'}
+          >
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            {expanded && (
+              <div className="ml-3 flex-1 text-left">
+                <span className="block text-sm font-medium">Logout</span>
+                <span className="block text-xs text-red-500">Sign out of your account</span>
+              </div>
+            )}
+          </button>
+        </div>
       </div>
     </aside>
   );

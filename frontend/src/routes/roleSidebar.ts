@@ -115,16 +115,28 @@ export const teacherMenuItems: MenuItem[] = [
     description: 'View students from your courses'
   },
   {
+    icon: ClipboardList,
+    label: 'My Assignments',
+    path: '/app/teacher-assignments',
+    description: 'Create and manage assignments'
+  },
+  {
+    icon: Library,
+    label: 'Teaching Resources',
+    path: '/app/teacher-resources',
+    description: 'Manage course materials and resources'
+  },
+  {
+    icon: FileCheck,
+    label: 'Student Submissions',
+    path: '/app/teacher-submissions',
+    description: 'Review and grade student submissions'
+  },
+  {
     icon: FileText,
     label: 'Lesson Plans',
     path: '/app/lessons',
     description: 'Create and manage lesson plans'
-  },
-  {
-    icon: ClipboardList,
-    label: 'Assignments',
-    path: '/app/assignments',
-    description: 'Create and grade assignments'
   },
   {
     icon: BarChart,

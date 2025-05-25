@@ -23,4 +23,18 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
     List<Content> findActiveByCourseAndType(@Param("course") Course course, @Param("type") ContentType type);
     
     boolean existsByTitleAndCourse(String title, Course course);
+
+    @Query("SELECT c FROM Content c JOIN c.course co JOIN co.courseInstructors ci WHERE ci.teacher.id = :teacherId")
+    List<Content> findByTeacherId(@Param("teacherId") Long teacherId);
+
+    @Query("SELECT c FROM Content c JOIN c.course co JOIN co.courseInstructors ci WHERE ci.teacher.id = :teacherId AND c.active = :active")
+    List<Content> findByTeacherIdAndActive(@Param("teacherId") Long teacherId, @Param("active") boolean active);
+
+    @Query("SELECT c FROM Content c JOIN c.course co JOIN co.courseInstructors ci WHERE ci.teacher.id = :teacherId AND c.type = :type")
+    List<Content> findByTeacherIdAndType(@Param("teacherId") Long teacherId, @Param("type") ContentType type);
+
+    List<Content> findByCreatedById(Long userId);
+
+    @Query("SELECT c FROM Content c WHERE c.createdBy.id = :userId AND c.active = :active")
+    List<Content> findByCreatedByIdAndActive(@Param("userId") Long userId, @Param("active") boolean active);
 } 

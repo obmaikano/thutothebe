@@ -32,4 +32,15 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     
     @Query("SELECT a FROM Assignment a WHERE a.course = ?1 AND a.active = true")
     List<Assignment> findActiveByCourse(Course course);
+
+    @Query("SELECT a FROM Assignment a JOIN a.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId")
+    List<Assignment> findByTeacherId(@Param("teacherId") Long teacherId);
+
+    @Query("SELECT a FROM Assignment a JOIN a.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId AND a.active = :active")
+    List<Assignment> findByTeacherIdAndActive(@Param("teacherId") Long teacherId, @Param("active") boolean active);
+
+    List<Assignment> findByInstructorId(Long instructorId);
+
+    @Query("SELECT a FROM Assignment a WHERE a.instructor.id = :instructorId AND a.active = :active")
+    List<Assignment> findByInstructorIdAndActive(@Param("instructorId") Long instructorId, @Param("active") boolean active);
 } 

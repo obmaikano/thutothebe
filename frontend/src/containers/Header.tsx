@@ -3,10 +3,12 @@ import { Bell, Settings, User } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { openRightDrawer } from '../features/common/rightDrawerSlice';
 import { RIGHT_DRAWER_TYPES } from '../utils/modalConstants';
+import { useAuth } from '../contexts/AuthContext';
 
 const Header: React.FC = () => {
   const dispatch = useAppDispatch();
   const { pageTitle } = useAppSelector(state => state.header);
+  const { logout } = useAuth();
 
   const openNotifications = () => {
     dispatch(openRightDrawer({
@@ -14,6 +16,10 @@ const Header: React.FC = () => {
       bodyType: RIGHT_DRAWER_TYPES.NOTIFICATIONS,
       extraObject: {}
     }));
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -55,7 +61,7 @@ const Header: React.FC = () => {
                 </a>
               </li>
               <li><a>Settings</a></li>
-              <li><a>Logout</a></li>
+              <li><a onClick={handleLogout} className="cursor-pointer">Logout</a></li>
             </ul>
           </div>
         </div>

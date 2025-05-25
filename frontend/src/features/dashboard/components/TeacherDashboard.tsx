@@ -8,6 +8,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import courseApi, { Course } from '../../../api/services/courseApi';
 import studentApi, { Student } from '../../../api/services/studentApi';
 import teacherApi, { Teacher } from '../../../api/services/teacherApi';
+import assignmentApi, { Assignment } from '../../../api/services/assignmentApi';
+import submissionApi, { Submission } from '../../../api/services/submissionApi';
 
 // Card component
 const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => (
@@ -88,6 +90,8 @@ export const TeacherDashboard: React.FC = () => {
   // State for real data
   const [courses, setCourses] = useState<Course[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +135,28 @@ export const TeacherDashboard: React.FC = () => {
           : [];
         setStudents(teacherStudents);
 
+        // Fetch teacher's assignments
+        const assignmentsResponse = await assignmentApi.getByTeacher(teacherData.id);
+        const teacherAssignments = Array.isArray(assignmentsResponse.data.data) 
+          ? assignmentsResponse.data.data 
+          : [];
+        setAssignments(teacherAssignments);
+
+        // Fetch submissions for teacher's assignments
+        const allSubmissions: Submission[] = [];
+        for (const assignment of teacherAssignments) {
+          try {
+            const submissionsResponse = await submissionApi.getByAssignment(assignment.id);
+            const assignmentSubmissions = Array.isArray(submissionsResponse.data.data) 
+              ? submissionsResponse.data.data 
+              : [];
+            allSubmissions.push(...assignmentSubmissions);
+          } catch (err) {
+            console.error(`Error fetching submissions for assignment ${assignment.id}:`, err);
+          }
+        }
+        setSubmissions(allSubmissions);
+
       } catch (err: any) {
         console.error('Error fetching teacher data:', err);
         if (err.response?.status === 404) {
@@ -146,23 +172,59 @@ export const TeacherDashboard: React.FC = () => {
     fetchTeacherData();
   }, [user?.id]);
   
-  // Mock data for assignments and schedule (these would come from assignment/schedule APIs)
-  const assignmentsToGrade = [
-    { id: '1', title: 'Mathematics Quiz', course: 'Mathematics', submissions: 25, totalStudents: 30, dueDate: 'Due today' },
-    { id: '2', title: 'Science Lab Report', course: 'Biology', submissions: 18, totalStudents: 28, dueDate: 'Due tomorrow' },
-    { id: '3', title: 'English Essay', course: 'English Literature', submissions: 10, totalStudents: 25, dueDate: 'Due in 3 days' },
-  ];
+  // Calculate real assignment data
+  const assignmentsToGrade = assignments
+    .filter(assignment => assignment.status === 'PUBLISHED')
+    .map(assignment => {
+      const assignmentSubmissions = submissions.filter(s => s.assignmentId === assignment.id);
+      const pendingSubmissions = assignmentSubmissions.filter(s => s.status === 'PENDING');
+      
+      return {
+        id: assignment.id.toString(),
+        title: assignment.title,
+        course: courses.find(c => c.id === assignment.courseId)?.name || 'Unknown Course',
+        submissions: assignmentSubmissions.length,
+        totalStudents: students.length, // This could be more accurate with course-specific student counts
+        dueDate: new Date(assignment.dueDate) > new Date() ? 'Due ' + formatRelativeDate(assignment.dueDate) : 'Overdue',
+        pendingCount: pendingSubmissions.length
+      };
+    })
+    .filter(assignment => assignment.pendingCount > 0)
+    .slice(0, 3); // Show top 3 assignments needing attention
 
+  // Mock data for schedule (this would come from a schedule/timetable API)
   const teachingSchedule = [
     { id: '1', class: 'Mathematics', time: '08:00 AM - 09:30 AM', room: 'Room 101', students: 30 },
     { id: '2', title: 'Physics', time: '10:00 AM - 11:30 AM', room: 'Room 105', students: 28 },
     { id: '3', title: 'Chemistry', time: '01:00 PM - 02:30 PM', room: 'Lab 3', students: 25 },
   ];
 
+  // Mock data for student messages (this would come from a messaging API)
   const studentMessages = [
     { id: '1', student: 'Thabiso Mokgwathi', message: 'Sir, I need help with the homework question 5.', time: '30 minutes ago', avatar: 'https://images.pexels.com/photos/5212317/pexels-photo-5212317.jpeg?auto=compress&cs=tinysrgb&w=150' },
     { id: '2', student: 'Lesedi Molefe', message: 'When will you upload the lecture notes?', time: '2 hours ago', avatar: 'https://images.pexels.com/photos/5212307/pexels-photo-5212307.jpeg?auto=compress&cs=tinysrgb&w=150' },
   ];
+
+  const formatRelativeDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return 'tomorrow';
+    if (diffDays > 1) return `in ${diffDays} days`;
+    if (diffDays === -1) return 'yesterday';
+    return `${Math.abs(diffDays)} days ago`;
+  };
+
+  // Calculate statistics
+  const pendingSubmissions = submissions.filter(s => s.status === 'PENDING').length;
+  const gradedSubmissions = submissions.filter(s => s.status === 'GRADED').length;
+  const totalSubmissions = submissions.length;
+  const averageScore = gradedSubmissions > 0 
+    ? Math.round(submissions.filter(s => s.score !== undefined).reduce((sum, s) => sum + (s.score || 0), 0) / gradedSubmissions)
+    : 0;
 
   if (loading) {
     return (
@@ -190,7 +252,7 @@ export const TeacherDashboard: React.FC = () => {
 
       <div className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-xl p-6 shadow-md mb-6">
         <h1 className="text-2xl text-white font-bold mb-2">Welcome back, {teacherName}!</h1>
-        <p className="text-blue-100 mb-4">You have {assignmentsToGrade.length} assignments to grade and {teachingSchedule.length} classes scheduled today.</p>
+        <p className="text-blue-100 mb-4">You have {pendingSubmissions} submissions to grade and {teachingSchedule.length} classes scheduled today.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
             <div className="bg-white p-2 rounded-full mr-3">
@@ -214,7 +276,7 @@ export const TeacherDashboard: React.FC = () => {
               <p className="text-white text-opacity-90 text-sm">Grading needed</p>
               <p className="text-white font-medium">
                 {assignmentsToGrade.length > 0 
-                  ? `${assignmentsToGrade[0].title} - ${assignmentsToGrade[0].submissions} submissions`
+                  ? `${assignmentsToGrade[0].title} - ${assignmentsToGrade[0].pendingCount} submissions`
                   : 'No assignments to grade'
                 }
               </p>
@@ -233,21 +295,18 @@ export const TeacherDashboard: React.FC = () => {
         <StatCard 
           title="Total Students" 
           value={students.length.toString()} 
-          change={5} 
           icon={<Users size={20} />} 
           iconColor="bg-green-100 text-green-600" 
         />
         <StatCard 
           title="Assignments Pending" 
-          value={assignmentsToGrade.length.toString()} 
-          change={-10}
+          value={pendingSubmissions.toString()} 
           icon={<FilePen size={20} />} 
           iconColor="bg-orange-100 text-orange-600" 
         />
         <StatCard 
           title="Average Class Score" 
-          value="76%" 
-          change={3}
+          value={`${averageScore}%`} 
           icon={<BarChart2 size={20} />} 
           iconColor="bg-purple-100 text-purple-600" 
         />
@@ -258,10 +317,10 @@ export const TeacherDashboard: React.FC = () => {
         <Card className="col-span-1 lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-gray-800">Assignments to Grade</h2>
-            <Link to="/app/assignments" className="text-sm text-blue-600 hover:underline">View all</Link>
+            <Link to="/app/teacher-assignments" className="text-sm text-blue-600 hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
-            {assignmentsToGrade.map(assignment => (
+            {assignmentsToGrade.length > 0 ? assignmentsToGrade.map(assignment => (
               <div 
                 key={assignment.id} 
                 className="p-3 rounded-lg border border-gray-200"
@@ -285,10 +344,15 @@ export const TeacherDashboard: React.FC = () => {
                     <Clock size={14} className="mr-1" />
                     {assignment.dueDate}
                   </div>
-                  <Button size="sm">Grade</Button>
+                  <Button size="sm">Grade ({assignment.pendingCount})</Button>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-6">
+                <FilePen className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500">No assignments need grading</p>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -317,11 +381,8 @@ export const TeacherDashboard: React.FC = () => {
                 </div>
                 <div className="mt-2 flex items-center text-sm text-gray-600">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-                    <path d="M3 3h18v18H3z" />
-                    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-                    <path d="M7 12h10" />
-                    <path d="M7 16h10" />
-                    <path d="M7 8h2" />
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                    <circle cx="12" cy="10" r="3"/>
                   </svg>
                   {schedule.room}
                 </div>
@@ -330,77 +391,41 @@ export const TeacherDashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* Student Messages */}
+        {/* Recent Messages */}
         <Card className="col-span-1 lg:col-span-1">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-gray-800">Student Messages</h2>
+            <h2 className="text-lg font-bold text-gray-800">Recent Messages</h2>
             <Link to="/app/messages" className="text-sm text-blue-600 hover:underline">View all</Link>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {studentMessages.map(message => (
-              <div key={message.id} className="flex items-start border-b border-gray-200 pb-4 last:border-0 last:pb-0">
+              <div key={message.id} className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200">
                 <img 
                   src={message.avatar} 
-                  alt={message.student} 
-                  className="w-10 h-10 rounded-full mr-3"
+                  alt={message.student}
+                  className="w-8 h-8 rounded-full object-cover"
                 />
-                <div>
-                  <h3 className="font-medium">{message.student}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{message.message}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-xs text-gray-500">{message.time}</p>
-                    <Button size="sm" variant="outline">Reply</Button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {message.student}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {message.time}
+                    </p>
                   </div>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    {message.message}
+                  </p>
                 </div>
               </div>
             ))}
-          </div>
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <Button fullWidth>Open Messaging</Button>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        {/* Course Performance */}
-        <Card>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-gray-800">Course Performance</h2>
-            <select className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
-              <option>All Courses</option>
-              <option>Mathematics</option>
-              <option>Physics</option>
-              <option>Chemistry</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Average Attendance</h3>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-blue-100 text-blue-700 text-2xl font-bold">
-                  85%
-                </div>
-                <p className="text-sm text-gray-500 mt-2">5% higher than last term</p>
+            {studentMessages.length === 0 && (
+              <div className="text-center py-6">
+                <MessageSquare className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500">No recent messages</p>
               </div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Assignment Completion</h3>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 text-green-700 text-2xl font-bold">
-                  78%
-                </div>
-                <p className="text-sm text-gray-500 mt-2">3% higher than last term</p>
-              </div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Students at Risk</h3>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-red-100 text-red-700 text-2xl font-bold">
-                  12%
-                </div>
-                <p className="text-sm text-gray-500 mt-2">2% lower than last term</p>
-              </div>
-            </div>
+            )}
           </div>
         </Card>
       </div>

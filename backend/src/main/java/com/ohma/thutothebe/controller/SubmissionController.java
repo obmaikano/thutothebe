@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -148,6 +149,71 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
             log.error("Error grading submission: ", e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(OhmaApiResponse.error(404, "Submission not found with id: " + id));
+        }
+    }
+
+    @GetMapping("/teacher/{teacherId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<SubmissionDTO>>> getSubmissionsByTeacher(@PathVariable Long teacherId) {
+        try {
+            List<SubmissionDTO> submissions = submissionService.getSubmissionsByTeacher(teacherId);
+            return ResponseEntity.ok(OhmaApiResponse.success(submissions));
+        } catch (Exception e) {
+            log.error("Error getting submissions by teacher: ", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(OhmaApiResponse.error(404, "Teacher not found with id: " + teacherId));
+        }
+    }
+
+    @GetMapping("/teacher/{teacherId}/pending")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<SubmissionDTO>>> getPendingSubmissionsByTeacher(@PathVariable Long teacherId) {
+        try {
+            List<SubmissionDTO> submissions = submissionService.getPendingSubmissionsByTeacher(teacherId);
+            return ResponseEntity.ok(OhmaApiResponse.success(submissions));
+        } catch (Exception e) {
+            log.error("Error getting pending submissions by teacher: ", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(OhmaApiResponse.error(404, "Teacher not found with id: " + teacherId));
+        }
+    }
+
+    @GetMapping("/teacher/{teacherId}/late")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<SubmissionDTO>>> getLateSubmissionsByTeacher(@PathVariable Long teacherId) {
+        try {
+            List<SubmissionDTO> submissions = submissionService.getLateSubmissionsByTeacher(teacherId);
+            return ResponseEntity.ok(OhmaApiResponse.success(submissions));
+        } catch (Exception e) {
+            log.error("Error getting late submissions by teacher: ", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(OhmaApiResponse.error(404, "Teacher not found with id: " + teacherId));
+        }
+    }
+
+    @GetMapping("/course/{courseId}/pending")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<SubmissionDTO>>> getPendingSubmissionsByCourse(@PathVariable Long courseId) {
+        try {
+            List<SubmissionDTO> submissions = submissionService.getPendingSubmissionsByCourse(courseId);
+            return ResponseEntity.ok(OhmaApiResponse.success(submissions));
+        } catch (Exception e) {
+            log.error("Error getting pending submissions by course: ", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(OhmaApiResponse.error(404, "Course not found with id: " + courseId));
+        }
+    }
+
+    @GetMapping("/course/{courseId}/late")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<List<SubmissionDTO>>> getLateSubmissionsByCourse(@PathVariable Long courseId) {
+        try {
+            List<SubmissionDTO> submissions = submissionService.getLateSubmissionsByCourse(courseId);
+            return ResponseEntity.ok(OhmaApiResponse.success(submissions));
+        } catch (Exception e) {
+            log.error("Error getting late submissions by course: ", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(OhmaApiResponse.error(404, "Course not found with id: " + courseId));
         }
     }
 } 

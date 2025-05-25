@@ -35,5 +35,13 @@ public interface SubmissionService extends BaseService<SubmissionDTO, Long> {
 
     boolean existsByAssignmentAndStudent(Long assignmentId, Long studentId);
 
+    List<SubmissionDTO> getSubmissionsByTeacher(Long teacherId);
 
+    List<SubmissionDTO> getPendingSubmissionsByTeacher(Long teacherId);
+
+    List<SubmissionDTO> getLateSubmissionsByTeacher(Long teacherId);
+
+    List<SubmissionDTO> getPendingSubmissionsByCourse(Long courseId);
+
+    List<SubmissionDTO> getLateSubmissionsByCourse(Long courseId);
 } 

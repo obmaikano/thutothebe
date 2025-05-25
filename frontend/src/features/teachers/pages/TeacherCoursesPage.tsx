@@ -3,7 +3,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import courseApi, { Course } from '../../../api/services/courseApi';
 import studentApi from '../../../api/services/studentApi';
 import teacherApi, { Teacher } from '../../../api/services/teacherApi';
-import { Search, BookOpen, Users, Calendar, Eye, Clock } from 'lucide-react';
+import { Search, BookOpen, Users, Calendar, Eye, Clock, Code } from 'lucide-react';
 
 const TeacherCoursesPage: React.FC = () => {
   const { user } = useAuth();
@@ -209,89 +209,119 @@ const TeacherCoursesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCourses.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <BookOpen size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm || statusFilter ? 'No courses match your search criteria' : 'No courses assigned'}
-            </h3>
-            <p className="text-gray-500">
-              {searchTerm || statusFilter 
-                ? 'Try adjusting your search or filter criteria' 
-                : 'You have not been assigned to any courses yet'
-              }
-            </p>
-          </div>
-        ) : (
-          filteredCourses.map((course: Course) => (
-            <div key={course.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{course.name}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{course.code}</p>
-                </div>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  course.active 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {course.active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <Users size={16} className="mr-2" />
-                    <span>{courseStudentCounts[course.id] || 0} Students</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <Calendar size={16} className="mr-2" />
-                    <span>{course.year || new Date().getFullYear()}</span>
-                  </div>
-                </div>
-
-                {course.term && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Clock size={16} className="mr-2" />
-                    <span>{course.term} Term</span>
-                  </div>
-                )}
-
-                {course.type && (
-                  <div className="flex items-center text-sm">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      course.type === 'CORE' 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : 'bg-purple-100 text-purple-800'
-                    }`}>
-                      {course.type}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 flex justify-between items-center">
-                <button
-                  onClick={() => handleViewDetails(course)}
-                  className="text-blue-600 hover:text-blue-900 flex items-center text-sm font-medium"
-                >
-                  <Eye size={16} className="mr-1" />
-                  View Details
-                </button>
-                <button
-                  onClick={() => window.location.href = `/app/students?course=${course.id}`}
-                  className="text-gray-600 hover:text-gray-900 flex items-center text-sm"
-                >
-                  <Users size={16} className="mr-1" />
-                  View Students
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+      {/* Courses Table */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Course
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Code
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Students
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Term
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredCourses.length > 0 ? (
+                filteredCourses.map((course: Course) => (
+                  <tr key={course.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                          <BookOpen size={16} className="text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{course.name}</div>
+                          {course.type && (
+                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                              course.type === 'CORE' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-purple-100 text-purple-800'
+                            }`}>
+                              {course.type}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-900">
+                        <Code size={16} className="mr-2 text-gray-400" />
+                        {course.code}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-900">
+                        <Users size={16} className="mr-2 text-gray-400" />
+                        {courseStudentCounts[course.id] || 0}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-900">
+                        <Clock size={16} className="mr-2 text-gray-400" />
+                        {course.term || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        course.active 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {course.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleViewDetails(course)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => window.location.href = `/app/students?course=${course.id}`}
+                          className="text-green-600 hover:text-green-900"
+                          title="View Students"
+                        >
+                          <Users size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">No courses found</h3>
+                    <p className="text-sm text-gray-500">
+                      {searchTerm || statusFilter 
+                        ? 'Try adjusting your search or filter criteria.' 
+                        : 'You have not been assigned to any courses yet.'
+                      }
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

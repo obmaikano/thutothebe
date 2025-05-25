@@ -104,6 +104,42 @@ const assignmentApi = {
   delete: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
     return api.delete(`/assignments/${id}`);
   },
+
+  /**
+   * Get assignments by teacher
+   * @param teacherId Teacher ID
+   * @returns Response with assignments for the teacher
+   */
+  getByTeacher: async (teacherId: number): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.get(`/assignments/teacher/${teacherId}`);
+  },
+
+  /**
+   * Get active assignments by teacher
+   * @param teacherId Teacher ID
+   * @returns Response with active assignments for the teacher
+   */
+  getActiveByTeacher: async (teacherId: number): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.get(`/assignments/teacher/${teacherId}/active`);
+  },
+
+  /**
+   * Get assignments by instructor
+   * @param instructorId Instructor ID
+   * @returns Response with assignments for the instructor
+   */
+  getByInstructor: async (instructorId: number): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.get(`/assignments/instructor/${instructorId}`);
+  },
+
+  /**
+   * Get active assignments by instructor
+   * @param instructorId Instructor ID
+   * @returns Response with active assignments for the instructor
+   */
+  getActiveByInstructor: async (instructorId: number): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.get(`/assignments/instructor/${instructorId}/active`);
+  },
 };
 
 export default assignmentApi; 

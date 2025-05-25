@@ -1,12 +1,15 @@
 package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.SubmissionDTO;
+import com.ohma.thutothebe.entity.Assignment;
 import com.ohma.thutothebe.entity.Submission;
+import com.ohma.thutothebe.entity.SubmissionStatus;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.entity.Course;
 import com.ohma.thutothebe.entity.enums.SubmissionPhase;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.SubmissionMapper;
+import com.ohma.thutothebe.repository.AssignmentRepository;
 import com.ohma.thutothebe.repository.SubmissionRepository;
 import com.ohma.thutothebe.repository.UserRepository;
 import com.ohma.thutothebe.repository.CourseRepository;
@@ -26,6 +29,7 @@ public class SubmissionServiceImpl extends BaseServiceImpl<Submission, Submissio
     private final SubmissionRepository submissionRepository;
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
+    private final AssignmentRepository assignmentRepository;
     private final SubmissionMapper submissionMapper;
 
     @Autowired
@@ -33,12 +37,14 @@ public class SubmissionServiceImpl extends BaseServiceImpl<Submission, Submissio
             SubmissionRepository submissionRepository,
             UserRepository userRepository,
             CourseRepository courseRepository,
+            AssignmentRepository assignmentRepository,
             SubmissionMapper submissionMapper
     ) {
         super(submissionRepository);
         this.submissionRepository = submissionRepository;
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
+        this.assignmentRepository = assignmentRepository;
         this.submissionMapper = submissionMapper;
     }
 
@@ -151,38 +157,79 @@ public class SubmissionServiceImpl extends BaseServiceImpl<Submission, Submissio
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SubmissionDTO getSubmissionByAssignmentAndStudent(Long assignmentId, Long studentId) {
-        return null;
+        return submissionRepository.findByAssignmentAndStudent(
+            assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found")),
+            userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"))
+        ).map(submissionMapper::toDto)
+         .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SubmissionDTO> getSubmissionsByAssignment(Long assignmentId) {
-        return List.of();
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
+        return submissionRepository.findByAssignment(assignment).stream()
+            .map(submissionMapper::toDto)
+            .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SubmissionDTO> getSubmissionsByStudent(Long studentId) {
-        return List.of();
+        User student = userRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        return submissionRepository.findByStudent(student).stream()
+            .map(submissionMapper::toDto)
+            .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SubmissionDTO> getGradedSubmissionsByAssignment(Long assignmentId) {
-        return List.of();
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
+        return submissionRepository.findGradedByAssignment(assignment).stream()
+            .map(submissionMapper::toDto)
+            .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SubmissionDTO> getGradedSubmissionsByStudent(Long studentId) {
-        return List.of();
+        User student = userRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        return submissionRepository.findGradedByStudent(student).stream()
+            .map(submissionMapper::toDto)
+            .toList();
     }
 
     @Override
+    @Transactional
     public SubmissionDTO gradeSubmission(Long submissionId, int score, String feedback) {
-        return null;
+        Submission submission = submissionRepository.findById(submissionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
+        
+        submission.setFinalScore((double) score);
+        submission.setFeedback(feedback);
+        submission.setStatus(SubmissionStatus.GRADED);
+        
+        Submission gradedSubmission = submissionRepository.save(submission);
+        return submissionMapper.toDto(gradedSubmission);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean existsByAssignmentAndStudent(Long assignmentId, Long studentId) {
-        return false;
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
+        User student = userRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        return submissionRepository.existsByAssignmentAndStudent(assignment, student);
     }
 
     @Override
@@ -198,5 +245,45 @@ public class SubmissionServiceImpl extends BaseServiceImpl<Submission, Submissio
     @Override
     protected void updateEntity(Submission entity, SubmissionDTO dto) {
         submissionMapper.updateEntityFromDto(dto, entity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubmissionDTO> getSubmissionsByTeacher(Long teacherId) {
+        return submissionRepository.findByTeacherId(teacherId).stream()
+            .map(submissionMapper::toDto)
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubmissionDTO> getPendingSubmissionsByTeacher(Long teacherId) {
+        return submissionRepository.findPendingByTeacherId(teacherId).stream()
+            .map(submissionMapper::toDto)
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubmissionDTO> getLateSubmissionsByTeacher(Long teacherId) {
+        return submissionRepository.findLateByTeacherId(teacherId).stream()
+            .map(submissionMapper::toDto)
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubmissionDTO> getPendingSubmissionsByCourse(Long courseId) {
+        return submissionRepository.findPendingByCourseId(courseId).stream()
+            .map(submissionMapper::toDto)
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubmissionDTO> getLateSubmissionsByCourse(Long courseId) {
+        return submissionRepository.findLateByCourseId(courseId).stream()
+            .map(submissionMapper::toDto)
+            .toList();
     }
 } 

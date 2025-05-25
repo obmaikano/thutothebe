@@ -16,4 +16,14 @@ public interface ContentService extends BaseService<ContentDTO, Long> {
     List<ContentDTO> getActiveByType(Long courseId, ContentType type);
     
     boolean existsByTitleAndCourse(String title, Long courseId);
+    
+    List<ContentDTO> getContentByTeacher(Long teacherId);
+    
+    List<ContentDTO> getActiveContentByTeacher(Long teacherId);
+    
+    List<ContentDTO> getContentByTeacherAndType(Long teacherId, ContentType type);
+    
+    List<ContentDTO> getContentByCreator(Long userId);
+    
+    List<ContentDTO> getActiveContentByCreator(Long userId);
 } 

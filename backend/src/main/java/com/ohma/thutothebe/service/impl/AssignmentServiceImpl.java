@@ -160,4 +160,36 @@ public class AssignmentServiceImpl extends BaseServiceImpl<Assignment, Assignmen
     protected RuntimeException notFoundException(Long id) {
         return AssignmentNotFoundException.withId(id);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssignmentDTO> getAssignmentsByTeacher(Long teacherId) {
+        return assignmentRepository.findByTeacherId(teacherId).stream()
+            .map(assignmentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssignmentDTO> getActiveAssignmentsByTeacher(Long teacherId) {
+        return assignmentRepository.findByTeacherIdAndActive(teacherId, true).stream()
+            .map(assignmentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssignmentDTO> getAssignmentsByInstructor(Long instructorId) {
+        return assignmentRepository.findByInstructorId(instructorId).stream()
+            .map(assignmentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssignmentDTO> getActiveAssignmentsByInstructor(Long instructorId) {
+        return assignmentRepository.findByInstructorIdAndActive(instructorId, true).stream()
+            .map(assignmentMapper::toDto)
+            .collect(Collectors.toList());
+    }
 } 

@@ -97,4 +97,44 @@ public class ContentServiceImpl extends BaseServiceImpl<Content, ContentDTO, Lon
     protected RuntimeException notFoundException(Long id) {
         return ContentNotFoundException.withId(id);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContentDTO> getContentByTeacher(Long teacherId) {
+        return contentRepository.findByTeacherId(teacherId).stream()
+            .map(contentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContentDTO> getActiveContentByTeacher(Long teacherId) {
+        return contentRepository.findByTeacherIdAndActive(teacherId, true).stream()
+            .map(contentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContentDTO> getContentByTeacherAndType(Long teacherId, ContentType type) {
+        return contentRepository.findByTeacherIdAndType(teacherId, type).stream()
+            .map(contentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContentDTO> getContentByCreator(Long userId) {
+        return contentRepository.findByCreatedById(userId).stream()
+            .map(contentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContentDTO> getActiveContentByCreator(Long userId) {
+        return contentRepository.findByCreatedByIdAndActive(userId, true).stream()
+            .map(contentMapper::toDto)
+            .collect(Collectors.toList());
+    }
 } 

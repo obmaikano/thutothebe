@@ -45,4 +45,19 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     @Query("SELECT COUNT(s) FROM Submission s WHERE s.course.id = :courseId")
     long countSubmissionsByCourseId(Long courseId);
+
+    @Query("SELECT s FROM Submission s JOIN s.assignment a JOIN a.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId")
+    List<Submission> findByTeacherId(@Param("teacherId") Long teacherId);
+
+    @Query("SELECT s FROM Submission s JOIN s.assignment a JOIN a.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId AND s.status = 'PENDING'")
+    List<Submission> findPendingByTeacherId(@Param("teacherId") Long teacherId);
+
+    @Query("SELECT s FROM Submission s JOIN s.assignment a JOIN a.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId AND s.submittedAt > a.dueDate")
+    List<Submission> findLateByTeacherId(@Param("teacherId") Long teacherId);
+
+    @Query("SELECT s FROM Submission s WHERE s.course.id = :courseId AND s.status = 'PENDING'")
+    List<Submission> findPendingByCourseId(@Param("courseId") Long courseId);
+
+    @Query("SELECT s FROM Submission s JOIN s.assignment a WHERE s.course.id = :courseId AND s.submittedAt > a.dueDate")
+    List<Submission> findLateByCourseId(@Param("courseId") Long courseId);
 } 
