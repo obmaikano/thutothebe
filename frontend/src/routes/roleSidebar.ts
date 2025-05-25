@@ -63,21 +63,21 @@ export const studentMenuItems: MenuItem[] = [
   ...commonMenuItems,
   {
     icon: BookOpen,
-    label: 'Courses',
-    path: '/app/courses',
-    description: 'View and access your courses'
+    label: 'My Courses',
+    path: '/app/student-courses',
+    description: 'View and access your enrolled courses'
   },
   {
     icon: ClipboardList,
-    label: 'Assignments',
-    path: '/app/assignments',
+    label: 'My Assignments',
+    path: '/app/student-assignments',
     description: 'View and submit assignments'
   },
   {
     icon: BarChart,
-    label: 'Grades',
-    path: '/app/grades',
-    description: 'View your academic performance'
+    label: 'My Grades',
+    path: '/app/student-grades',
+    description: 'View your academic performance and grades'
   },
   {
     icon: Calendar,

@@ -48,6 +48,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
     }
 
     @GetMapping("/assignment/{assignmentId}/student/{studentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<SubmissionDTO>> getSubmissionByAssignmentAndStudent(
             @PathVariable Long assignmentId,
             @PathVariable Long studentId) {
@@ -70,6 +71,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
     }
 
     @GetMapping("/assignment/{assignmentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<SubmissionDTO>>> getSubmissionsByAssignment(
             @PathVariable Long assignmentId) {
         try {
@@ -89,6 +91,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
     }
 
     @GetMapping("/student/{studentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<SubmissionDTO>>> getSubmissionsByStudent(
             @PathVariable Long studentId) {
         try {
@@ -104,6 +107,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
     }
 
     @GetMapping("/assignment/{assignmentId}/graded")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<SubmissionDTO>>> getGradedSubmissionsByAssignment(
             @PathVariable Long assignmentId) {
         try {
@@ -123,6 +127,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
     }
 
     @GetMapping("/student/{studentId}/graded")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<SubmissionDTO>>> getGradedSubmissionsByStudent(
             @PathVariable Long studentId) {
         try {
@@ -138,6 +143,7 @@ public class SubmissionController extends BaseController<SubmissionDTO, Long> {
     }
 
     @PostMapping("/{id}/grade")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<SubmissionDTO>> gradeSubmission(
             @PathVariable Long id,
             @RequestParam Integer score,

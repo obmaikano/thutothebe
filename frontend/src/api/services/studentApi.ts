@@ -77,6 +77,15 @@ const studentApi = {
   },
 
   /**
+   * Get student by user ID
+   * @param userId User ID
+   * @returns Response with student details
+   */
+  getByUserId: async (userId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/user/${userId}`);
+  },
+
+  /**
    * Get all active students
    * @returns Response with a list of active students
    */
@@ -209,6 +218,52 @@ const studentApi = {
    */
   deactivate: async (id: number): Promise<AxiosResponse<StudentResponse>> => {
     return api.post(`/students/${id}/deactivate`);
+  },
+
+  // Student-specific endpoints for student role access
+  /**
+   * Get enrolled courses for a student
+   * @param studentId Student ID
+   * @returns Response with student's enrolled courses
+   */
+  getCourses: async (studentId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/${studentId}/courses`);
+  },
+
+  /**
+   * Get assignments for a student's enrolled courses
+   * @param studentId Student ID
+   * @returns Response with student's assignments
+   */
+  getAssignments: async (studentId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/${studentId}/assignments`);
+  },
+
+  /**
+   * Get performance analytics for a student
+   * @param studentId Student ID
+   * @returns Response with student's performance data
+   */
+  getPerformance: async (studentId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/${studentId}/performance`);
+  },
+
+  /**
+   * Get dashboard data for a student
+   * @param studentId Student ID
+   * @returns Response with student's dashboard data
+   */
+  getDashboard: async (studentId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.get(`/students/${studentId}/dashboard`);
+  },
+
+  /**
+   * Create a student record for a user if it doesn't exist
+   * @param userId User ID
+   * @returns Response with created student details
+   */
+  createForUser: async (userId: number): Promise<AxiosResponse<StudentResponse>> => {
+    return api.post(`/students/create-for-user/${userId}`);
   },
 };
 

@@ -24,6 +24,14 @@ const TeacherAssignments = lazy(() => import('../pages/protected/TeacherAssignme
 const TeacherResources = lazy(() => import('../pages/protected/TeacherResources'));
 const TeacherSubmissions = lazy(() => import('../pages/protected/TeacherSubmissions'));
 
+// Student role pages
+const StudentDashboard = lazy(() => import('../pages/protected/StudentDashboard'));
+const StudentCourses = lazy(() => import('../pages/protected/StudentCourses'));
+const StudentAssignments = lazy(() => import('../pages/protected/StudentAssignments'));
+const StudentGrades = lazy(() => import('../pages/protected/StudentGrades'));
+const StudentMessages = lazy(() => import('../pages/protected/StudentMessages'));
+const StudentSchedule = lazy(() => import('../pages/protected/StudentSchedule'));
+
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
 
 // App routes - nested under /app path
@@ -111,6 +119,31 @@ export const appRoutes = [
   {
     path: 'teacher-submissions',
     element: TeacherSubmissions
+  },
+  // Student role routes
+  {
+    path: 'student-dashboard',
+    element: StudentDashboard
+  },
+  {
+    path: 'student-courses',
+    element: StudentCourses
+  },
+  {
+    path: 'student-assignments',
+    element: StudentAssignments
+  },
+  {
+    path: 'student-grades',
+    element: StudentGrades
+  },
+  {
+    path: 'messages',
+    element: StudentMessages
+  },
+  {
+    path: 'schedule',
+    element: StudentSchedule
   },
   // Default redirect
   {
