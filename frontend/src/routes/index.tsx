@@ -31,6 +31,7 @@ const StudentAssignments = lazy(() => import('../pages/protected/StudentAssignme
 const StudentGrades = lazy(() => import('../pages/protected/StudentGrades'));
 const StudentMessages = lazy(() => import('../pages/protected/StudentMessages'));
 const StudentSchedule = lazy(() => import('../pages/protected/StudentSchedule'));
+const StudentHelp = lazy(() => import('../pages/protected/StudentHelp'));
 
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
 
@@ -144,6 +145,10 @@ export const appRoutes = [
   {
     path: 'schedule',
     element: StudentSchedule
+  },
+  {
+    path: 'help',
+    element: StudentHelp
   },
   // Default redirect
   {
