@@ -22,8 +22,9 @@ export const fetchStudents = createAsyncThunk(
     try {
       const response = await studentApi.getAll();
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch students');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch students';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -34,8 +35,9 @@ export const fetchStudentById = createAsyncThunk(
     try {
       const response = await studentApi.getById(id);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch student');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch student';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -46,8 +48,9 @@ export const fetchStudentByAdmissionNumber = createAsyncThunk(
     try {
       const response = await studentApi.getByAdmissionNumber(admissionNumber);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch student');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch student';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -58,8 +61,9 @@ export const fetchActiveStudents = createAsyncThunk(
     try {
       const response = await studentApi.getActive();
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch active students');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch active students';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -70,8 +74,9 @@ export const fetchStudentsByCourse = createAsyncThunk(
     try {
       const response = await studentApi.getByCourse(courseId);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch students by course');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch students by course';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -82,8 +87,9 @@ export const fetchStudentsByClass = createAsyncThunk(
     try {
       const response = await studentApi.getByClass(classId);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch students by class');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch students by class';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -94,8 +100,9 @@ export const fetchStudentsBySchool = createAsyncThunk(
     try {
       const response = await studentApi.getBySchool(schoolId);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch students by school');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch students by school';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -106,8 +113,9 @@ export const createStudent = createAsyncThunk(
     try {
       const response = await studentApi.create(studentData);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create student');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create student';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -118,8 +126,9 @@ export const updateStudent = createAsyncThunk(
     try {
       const response = await studentApi.update(id, studentData);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update student');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update student';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -130,8 +139,9 @@ export const deleteStudent = createAsyncThunk(
     try {
       await studentApi.delete(id);
       return { id };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete student');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete student';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -142,8 +152,9 @@ export const activateStudent = createAsyncThunk(
     try {
       await studentApi.activate(id);
       return { id };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to activate student');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to activate student';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -154,8 +165,9 @@ export const deactivateStudent = createAsyncThunk(
     try {
       await studentApi.deactivate(id);
       return { id };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to deactivate student');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to deactivate student';
+      return rejectWithValue(errorMessage);
     }
   }
 );

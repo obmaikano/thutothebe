@@ -19,11 +19,9 @@ public interface StudentService extends BaseService<StudentDTO, Long> {
     
     StudentDTO createStudent(StudentDTO studentDTO);
     
-    StudentDTO updateStudent(Long id, StudentDTO studentDTO);
-    
-    void deleteStudent(Long id);
-    
     void activateStudent(Long id);
+
+    StudentDTO updateStudent(Long id, StudentDTO studentDTO);
     
     void deactivateStudent(Long id);
     
@@ -38,4 +36,6 @@ public interface StudentService extends BaseService<StudentDTO, Long> {
     List<StudentDTO> getStudentsByClassId(Long classId);
     
     List<StudentDTO> getStudentsBySubjectId(Long subjectId);
+
+    List<StudentDTO> getStudentsByCourseId(Long courseId);
 } 

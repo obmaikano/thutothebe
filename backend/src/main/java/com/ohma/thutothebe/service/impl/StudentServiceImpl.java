@@ -3,7 +3,6 @@ package com.ohma.thutothebe.service.impl;
 import com.ohma.thutothebe.dto.StudentDTO;
 import com.ohma.thutothebe.dto.StudentOnboardingDTO;
 import com.ohma.thutothebe.entity.*;
-import com.ohma.thutothebe.entity.enums.Gender;
 import com.ohma.thutothebe.entity.enums.StudentStatus;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.StudentMapper;
@@ -179,15 +178,6 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
 
     @Override
     @Transactional
-    public void deleteStudent(Long id) {
-        if (!studentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Student not found with id: " + id);
-        }
-        delete(id);
-    }
-
-    @Override
-    @Transactional
     public void activateStudent(Long id) {
         Student student = studentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
@@ -280,5 +270,12 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         return studentRepository.findBySubjects_Id(subjectId).stream()
             .map(studentMapper::toDto)
             .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StudentDTO> getStudentsByCourseId(Long courseId) {
+        return studentRepository.findByCourseId(courseId).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
     }
 } 

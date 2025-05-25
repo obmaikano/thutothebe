@@ -38,6 +38,12 @@ const TakeAttendanceModal = lazy(() => import('../../classes/modals/TakeAttendan
 const GenerateReportModal = lazy(() => import('../../classes/modals/GenerateReportModal'));
 const CalendarViewModal = lazy(() => import('../../classes/modals/CalendarViewModal'));
 
+// Student management modals
+const CreateStudentModal = lazy(() => import('../../students/modals/CreateStudentModal'));
+const EditStudentModal = lazy(() => import('../../students/modals/EditStudentModal'));
+const DeleteStudentModal = lazy(() => import('../../students/modals/DeleteStudentModal'));
+const UpdateProgressModal = lazy(() => import('../../students/modals/UpdateProgressModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -227,6 +233,35 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <CalendarViewModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Student Management Modals
+    case MODAL_BODY_TYPES.STUDENT_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateStudentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.STUDENT_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditStudentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.STUDENT_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteStudentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.UPDATE_STUDENT_PROGRESS:
+      return (
+        <Suspense fallback={fallback}>
+          <UpdateProgressModal extraObject={contentProps} />
         </Suspense>
       );
       

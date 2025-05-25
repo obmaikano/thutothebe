@@ -25,6 +25,9 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByStudentClass_Id(Long classId);
     
     List<Student> findBySubjects_Id(Long subjectId);
+
+    @Query("SELECT s FROM Student s WHERE s.studentClass.id IN (SELECT c.classEntity.id FROM Course c WHERE c.id = :courseId)")
+    List<Student> findByCourseId(@Param("courseId") Long courseId);
     
     boolean existsByAdmissionNumber(String admissionNumber);
     

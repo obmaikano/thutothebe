@@ -11,6 +11,7 @@ import teachersReducer from '../features/teachers/teachersSlice';
 import assignmentsReducer from '../features/assignments/assignmentsSlice';
 import gradesReducer from '../features/grades/gradesSlice';
 import studentsReducer from '../features/students/studentsSlice';
+import progressReducer from '../features/progress/progressSlice';
 import rightDrawerReducer from '../features/common/rightDrawerSlice';
 import modalReducer from '../features/common/modalSlice';
 import headerReducer from '../features/common/headerSlice';
@@ -29,6 +30,7 @@ export const store = configureStore({
     assignments: assignmentsReducer,
     grades: gradesReducer,
     students: studentsReducer,
+    progress: progressReducer,
     rightDrawer: rightDrawerReducer,
     modal: modalReducer,
     header: headerReducer,

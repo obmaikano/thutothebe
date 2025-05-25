@@ -22,7 +22,7 @@ export interface Student {
   userId?: number;
   personId?: number;
   active: boolean;
-  status: 'ENROLLED' | 'GRADUATED' | 'TRANSFERRED' | 'DROPPED_OUT' | 'SUSPENDED';
+  status: 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'GRADUATED' | 'WITHDRAWN';
   onboardingNotes?: string;
   subjectIds?: number[];
 }
