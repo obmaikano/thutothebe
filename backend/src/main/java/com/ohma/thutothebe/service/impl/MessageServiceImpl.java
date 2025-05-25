@@ -16,6 +16,7 @@ import com.ohma.thutothebe.repository.StudentRepository;
 import com.ohma.thutothebe.repository.CourseRepository;
 import com.ohma.thutothebe.repository.CourseInstructorRepository;
 import com.ohma.thutothebe.service.MessageService;
+import com.ohma.thutothebe.service.RealTimeMessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class MessageServiceImpl extends BaseServiceImpl<Message, MessageDTO, Lon
     private final CourseInstructorRepository courseInstructorRepository;
     private final MessageMapper messageMapper;
     private final UserMapper userMapper;
+    private final RealTimeMessageService realTimeMessageService;
     
     @Autowired
     public MessageServiceImpl(
@@ -49,7 +51,8 @@ public class MessageServiceImpl extends BaseServiceImpl<Message, MessageDTO, Lon
             CourseRepository courseRepository,
             CourseInstructorRepository courseInstructorRepository,
             MessageMapper messageMapper,
-            UserMapper userMapper) {
+            UserMapper userMapper,
+            RealTimeMessageService realTimeMessageService) {
         super(messageRepository);
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
@@ -58,6 +61,7 @@ public class MessageServiceImpl extends BaseServiceImpl<Message, MessageDTO, Lon
         this.courseInstructorRepository = courseInstructorRepository;
         this.messageMapper = messageMapper;
         this.userMapper = userMapper;
+        this.realTimeMessageService = realTimeMessageService;
     }
     
     @Override
@@ -223,7 +227,7 @@ public class MessageServiceImpl extends BaseServiceImpl<Message, MessageDTO, Lon
                 conversation.put("name", partnerName);
                 conversation.put("lastMessage", message.getContent());
                 conversation.put("lastMessageTime", formatTimeAgo(message.getCreatedAt()));
-                conversation.put("unreadCount", 0); // TODO: Implement unread count
+                conversation.put("unreadCount", getUnreadMessageCountForConversation(userId, partnerId));
                 conversation.put("type", "individual");
                 conversation.put("participantId", partnerId);
                 
@@ -232,6 +236,177 @@ public class MessageServiceImpl extends BaseServiceImpl<Message, MessageDTO, Lon
         }
         
         return conversations.values().stream().collect(Collectors.toList());
+    }
+    
+    // Real-time messaging methods implementation
+    @Override
+    @Transactional
+    public MessageDTO sendMessage(MessageDTO messageDTO) {
+        log.info("Sending message from user {} to {}", messageDTO.senderId(), 
+            messageDTO.recipientId() != null ? "user " + messageDTO.recipientId() : "group " + messageDTO.groupId());
+        
+        MessageDTO savedMessage = create(messageDTO);
+        
+        // Broadcast real-time message
+        realTimeMessageService.broadcastMessageSent(savedMessage);
+        
+        log.info("Message sent successfully: {}", savedMessage.id());
+        return savedMessage;
+    }
+    
+    @Override
+    @Transactional
+    public MessageDTO updateMessage(Long messageId, MessageDTO messageDTO, Long userId) {
+        log.info("Updating message {} by user {}", messageId, userId);
+        
+        // Verify ownership
+        if (!isMessageOwner(messageId, userId)) {
+            throw new IllegalArgumentException("User is not authorized to update this message");
+        }
+        
+        MessageDTO updatedMessage = update(messageId, messageDTO);
+        
+        // Broadcast real-time update
+        realTimeMessageService.broadcastMessageUpdated(updatedMessage);
+        
+        log.info("Message updated successfully: {}", messageId);
+        return updatedMessage;
+    }
+    
+    @Override
+    @Transactional
+    public void deleteMessage(Long messageId, Long userId) {
+        log.info("Deleting message {} by user {}", messageId, userId);
+        
+        // Verify ownership
+        if (!isMessageOwner(messageId, userId)) {
+            throw new IllegalArgumentException("User is not authorized to delete this message");
+        }
+        
+        MessageDTO messageDTO = getById(messageId);
+        delete(messageId);
+        
+        // Broadcast real-time deletion
+        realTimeMessageService.broadcastMessageDeleted(messageDTO);
+        
+        log.info("Message deleted successfully: {}", messageId);
+    }
+    
+    @Override
+    @Transactional
+    public void markMessageAsDelivered(Long messageId, Long userId) {
+        log.debug("Marking message {} as delivered for user {}", messageId, userId);
+        
+        Message message = messageRepository.findById(messageId)
+            .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+        
+        // Only recipient can mark as delivered
+        if (message.getRecipient() == null || !message.getRecipient().getId().equals(userId)) {
+            throw new IllegalArgumentException("User is not authorized to mark this message as delivered");
+        }
+        
+        message.markAsDelivered();
+        messageRepository.save(message);
+        
+        MessageDTO messageDTO = messageMapper.toDto(message);
+        
+        // Broadcast delivery confirmation to sender
+        realTimeMessageService.broadcastMessageDelivered(messageDTO);
+        
+        log.debug("Message marked as delivered: {}", messageId);
+    }
+    
+    @Override
+    @Transactional
+    public void markMessageAsRead(Long messageId, Long userId) {
+        log.debug("Marking message {} as read for user {}", messageId, userId);
+        
+        Message message = messageRepository.findById(messageId)
+            .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+        
+        // Only recipient can mark as read
+        if (message.getRecipient() == null || !message.getRecipient().getId().equals(userId)) {
+            throw new IllegalArgumentException("User is not authorized to mark this message as read");
+        }
+        
+        message.markAsRead();
+        messageRepository.save(message);
+        
+        MessageDTO messageDTO = messageMapper.toDto(message);
+        
+        // Broadcast read confirmation to sender
+        realTimeMessageService.broadcastMessageRead(messageDTO);
+        
+        // Send unread count update to recipient
+        realTimeMessageService.sendUnreadCountUpdate(userId, null);
+        
+        log.debug("Message marked as read: {}", messageId);
+    }
+    
+    @Override
+    @Transactional
+    public void markConversationAsRead(Long userId, Long partnerId) {
+        log.info("Marking conversation as read for user {} with partner {}", userId, partnerId);
+        
+        messageRepository.markConversationMessagesAsRead(userId, partnerId);
+        
+        // Send unread count update
+        realTimeMessageService.sendUnreadCountUpdate(userId, null);
+        
+        log.info("Conversation marked as read for user {} with partner {}", userId, partnerId);
+    }
+    
+    @Override
+    @Transactional
+    public void markGroupMessagesAsRead(Long groupId, Long userId) {
+        log.info("Marking group messages as read for user {} in group {}", userId, groupId);
+        
+        messageRepository.markGroupMessagesAsRead(groupId, userId);
+        
+        // Send unread count update
+        realTimeMessageService.sendUnreadCountUpdate(userId, null);
+        
+        log.info("Group messages marked as read for user {} in group {}", userId, groupId);
+    }
+    
+    @Override
+    public List<MessageDTO> getConversationMessages(Long userId1, Long userId2) {
+        log.debug("Getting conversation messages between users {} and {}", userId1, userId2);
+        
+        return messageRepository.findConversationMessages(userId1, userId2).stream()
+            .map(messageMapper::toDto)
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<MessageDTO> getActiveConversationMessages(Long userId1, Long userId2) {
+        log.debug("Getting active conversation messages between users {} and {}", userId1, userId2);
+        
+        return messageRepository.findConversationMessagesAndActive(userId1, userId2, true).stream()
+            .map(messageMapper::toDto)
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public Long getUnreadMessageCount(Long userId) {
+        return messageRepository.countUnreadMessagesForUser(userId);
+    }
+    
+    @Override
+    public Long getUnreadMessageCountForConversation(Long userId, Long partnerId) {
+        return messageRepository.countUnreadMessagesInConversation(userId, partnerId);
+    }
+    
+    @Override
+    public Long getUnreadMessageCountForGroup(Long userId, Long groupId) {
+        return messageRepository.countUnreadMessagesInGroup(userId, groupId);
+    }
+    
+    @Override
+    public void sendTypingIndicator(Long userId, String channelId, boolean isTyping) {
+        log.debug("Sending typing indicator for user {} in channel {}: {}", userId, channelId, isTyping);
+        
+        realTimeMessageService.broadcastTypingIndicator(userId, channelId, isTyping);
     }
     
     private String formatTimeAgo(LocalDateTime dateTime) {

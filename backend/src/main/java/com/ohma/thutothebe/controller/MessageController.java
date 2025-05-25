@@ -181,4 +181,195 @@ public class MessageController extends BaseController<MessageDTO, Long> {
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
+
+    // Real-time messaging endpoints
+    @PostMapping
+    @Operation(summary = "Send a new message")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OhmaApiResponse<MessageDTO>> sendMessage(@RequestBody MessageDTO messageDTO) {
+        try {
+            MessageDTO sentMessage = messageService.sendMessage(messageDTO);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Message sent successfully", sentMessage, null));
+        } catch (Exception e) {
+            log.error("Error sending message: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PutMapping("/{messageId}")
+    @Operation(summary = "Update a message")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OhmaApiResponse<MessageDTO>> updateMessage(
+            @Parameter(description = "Message ID") @PathVariable Long messageId,
+            @RequestBody MessageDTO messageDTO,
+            @Parameter(description = "User ID") @RequestParam Long userId) {
+        try {
+            MessageDTO updatedMessage = messageService.updateMessage(messageId, messageDTO, userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Message updated successfully", updatedMessage, null));
+        } catch (Exception e) {
+            log.error("Error updating message: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @DeleteMapping("/{messageId}")
+    @Operation(summary = "Delete a message")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OhmaApiResponse<Void>> deleteMessage(
+            @Parameter(description = "Message ID") @PathVariable Long messageId,
+            @Parameter(description = "User ID") @RequestParam Long userId) {
+        try {
+            messageService.deleteMessage(messageId, userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Message deleted successfully", null, null));
+        } catch (Exception e) {
+            log.error("Error deleting message: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/{messageId}/delivered")
+    @Operation(summary = "Mark message as delivered")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OhmaApiResponse<Void>> markMessageAsDelivered(
+            @Parameter(description = "Message ID") @PathVariable Long messageId,
+            @Parameter(description = "User ID") @RequestParam Long userId) {
+        try {
+            messageService.markMessageAsDelivered(messageId, userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Message marked as delivered", null, null));
+        } catch (Exception e) {
+            log.error("Error marking message as delivered: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/{messageId}/read")
+    @Operation(summary = "Mark message as read")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OhmaApiResponse<Void>> markMessageAsRead(
+            @Parameter(description = "Message ID") @PathVariable Long messageId,
+            @Parameter(description = "User ID") @RequestParam Long userId) {
+        try {
+            messageService.markMessageAsRead(messageId, userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Message marked as read", null, null));
+        } catch (Exception e) {
+            log.error("Error marking message as read: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/conversation/read")
+    @Operation(summary = "Mark conversation as read")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OhmaApiResponse<Void>> markConversationAsRead(
+            @Parameter(description = "User ID") @RequestParam Long userId,
+            @Parameter(description = "Partner ID") @RequestParam Long partnerId) {
+        try {
+            messageService.markConversationAsRead(userId, partnerId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Conversation marked as read", null, null));
+        } catch (Exception e) {
+            log.error("Error marking conversation as read: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/group/{groupId}/read")
+    @Operation(summary = "Mark group messages as read")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OhmaApiResponse<Void>> markGroupMessagesAsRead(
+            @Parameter(description = "Group ID") @PathVariable Long groupId,
+            @Parameter(description = "User ID") @RequestParam Long userId) {
+        try {
+            messageService.markGroupMessagesAsRead(groupId, userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Group messages marked as read", null, null));
+        } catch (Exception e) {
+            log.error("Error marking group messages as read: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/conversation/{userId1}/{userId2}")
+    @Operation(summary = "Get conversation messages between two users")
+    @PreAuthorize("hasRole('ADMIN') or #userId1 == authentication.principal.id or #userId2 == authentication.principal.id")
+    public ResponseEntity<OhmaApiResponse<List<MessageDTO>>> getConversationMessages(
+            @Parameter(description = "User ID 1") @PathVariable Long userId1,
+            @Parameter(description = "User ID 2") @PathVariable Long userId2) {
+        try {
+            List<MessageDTO> messages = messageService.getConversationMessages(userId1, userId2);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Conversation messages retrieved successfully", messages, null));
+        } catch (Exception e) {
+            log.error("Error retrieving conversation messages: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/conversation/{userId1}/{userId2}/active")
+    @Operation(summary = "Get active conversation messages between two users")
+    @PreAuthorize("hasRole('ADMIN') or #userId1 == authentication.principal.id or #userId2 == authentication.principal.id")
+    public ResponseEntity<OhmaApiResponse<List<MessageDTO>>> getActiveConversationMessages(
+            @Parameter(description = "User ID 1") @PathVariable Long userId1,
+            @Parameter(description = "User ID 2") @PathVariable Long userId2) {
+        try {
+            List<MessageDTO> messages = messageService.getActiveConversationMessages(userId1, userId2);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active conversation messages retrieved successfully", messages, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active conversation messages: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/unread-count/{userId}")
+    @Operation(summary = "Get unread message count for user")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+    public ResponseEntity<OhmaApiResponse<Long>> getUnreadMessageCount(
+            @Parameter(description = "User ID") @PathVariable Long userId) {
+        try {
+            Long count = messageService.getUnreadMessageCount(userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unread message count retrieved successfully", count, null));
+        } catch (Exception e) {
+            log.error("Error retrieving unread message count: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/unread-count/conversation/{userId}/{partnerId}")
+    @Operation(summary = "Get unread message count for conversation")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+    public ResponseEntity<OhmaApiResponse<Long>> getUnreadMessageCountForConversation(
+            @Parameter(description = "User ID") @PathVariable Long userId,
+            @Parameter(description = "Partner ID") @PathVariable Long partnerId) {
+        try {
+            Long count = messageService.getUnreadMessageCountForConversation(userId, partnerId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unread conversation count retrieved successfully", count, null));
+        } catch (Exception e) {
+            log.error("Error retrieving unread conversation count: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/unread-count/group/{userId}/{groupId}")
+    @Operation(summary = "Get unread message count for group")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+    public ResponseEntity<OhmaApiResponse<Long>> getUnreadMessageCountForGroup(
+            @Parameter(description = "User ID") @PathVariable Long userId,
+            @Parameter(description = "Group ID") @PathVariable Long groupId) {
+        try {
+            Long count = messageService.getUnreadMessageCountForGroup(userId, groupId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unread group count retrieved successfully", count, null));
+        } catch (Exception e) {
+            log.error("Error retrieving unread group count: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
 } 

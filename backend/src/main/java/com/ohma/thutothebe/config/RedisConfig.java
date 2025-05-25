@@ -2,6 +2,7 @@ package com.ohma.thutothebe.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ohma.thutothebe.service.impl.RedisAnnouncementSubscriber;
+import com.ohma.thutothebe.service.impl.RedisMessageSubscriber;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -36,12 +37,16 @@ public class RedisConfig {
     @Bean
     public RedisMessageListenerContainer redisMessageListenerContainer(
             RedisConnectionFactory connectionFactory,
-            RedisAnnouncementSubscriber redisAnnouncementSubscriber) {
+            RedisAnnouncementSubscriber redisAnnouncementSubscriber,
+            RedisMessageSubscriber redisMessageSubscriber) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         
         // Subscribe to all announcement channels using pattern
         container.addMessageListener(redisAnnouncementSubscriber, new ChannelTopic("announcements:*"));
+        
+        // Subscribe to all message channels using pattern
+        container.addMessageListener(redisMessageSubscriber, new ChannelTopic("messages:*"));
         
         return container;
     }
