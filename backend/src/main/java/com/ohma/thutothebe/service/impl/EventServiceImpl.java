@@ -4,11 +4,13 @@ import com.ohma.thutothebe.dto.EventDto;
 import com.ohma.thutothebe.entity.Course;
 import com.ohma.thutothebe.entity.Event;
 import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.entity.Student;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.EventMapper;
 import com.ohma.thutothebe.repository.CourseRepository;
 import com.ohma.thutothebe.repository.EventRepository;
 import com.ohma.thutothebe.repository.UserRepository;
+import com.ohma.thutothebe.repository.StudentRepository;
 import com.ohma.thutothebe.service.EventService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,7 @@ public class EventServiceImpl extends BaseServiceImpl<Event, EventDto, Long> imp
     private final EventRepository eventRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+    private final StudentRepository studentRepository;
     private final EventMapper eventMapper;
 
     @Autowired
@@ -35,11 +38,13 @@ public class EventServiceImpl extends BaseServiceImpl<Event, EventDto, Long> imp
             EventRepository eventRepository,
             CourseRepository courseRepository,
             UserRepository userRepository,
+            StudentRepository studentRepository,
             EventMapper eventMapper) {
         super(eventRepository);
         this.eventRepository = eventRepository;
         this.courseRepository = courseRepository;
         this.userRepository = userRepository;
+        this.studentRepository = studentRepository;
         this.eventMapper = eventMapper;
     }
 
@@ -166,6 +171,51 @@ public class EventServiceImpl extends BaseServiceImpl<Event, EventDto, Long> imp
         // TODO: Implement recurrence rule parsing and event generation
         // This would require a proper recurrence rule parser (e.g., using iCal4j)
         // For now, we'll return an empty list
+        return List.of();
+    }
+
+    @Override
+    public List<EventDto> getStudentEvents(Long studentId) {
+        log.info("Fetching all events for student with id: {}", studentId);
+        
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+        
+        // Get courses for the student's class
+        if (student.getStudentClass() != null) {
+            List<Course> studentCourses = courseRepository.findByClassEntityIdAndActive(
+                student.getStudentClass().getId(), true);
+            
+            // Get all events for these courses
+            return studentCourses.stream()
+                .flatMap(course -> eventRepository.findByCourseId(course.getId()).stream())
+                .map(eventMapper::toDto)
+                .collect(Collectors.toList());
+        }
+        
+        return List.of();
+    }
+
+    @Override
+    public List<EventDto> getStudentEventsBetweenDates(Long studentId, LocalDateTime startTime, LocalDateTime endTime) {
+        log.info("Fetching events for student {} between {} and {}", studentId, startTime, endTime);
+        
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+        
+        // Get courses for the student's class
+        if (student.getStudentClass() != null) {
+            List<Course> studentCourses = courseRepository.findByClassEntityIdAndActive(
+                student.getStudentClass().getId(), true);
+            
+            // Get events for these courses within the date range
+            return studentCourses.stream()
+                .flatMap(course -> eventRepository.findCourseEventsBetweenDates(
+                    course.getId(), startTime, endTime).stream())
+                .map(eventMapper::toDto)
+                .collect(Collectors.toList());
+        }
+        
         return List.of();
     }
 } 

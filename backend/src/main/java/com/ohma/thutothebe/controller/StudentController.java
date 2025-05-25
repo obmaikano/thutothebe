@@ -56,6 +56,20 @@ public class StudentController extends BaseController<StudentDTO, Long> {
         }
     }
 
+    @GetMapping("/user/{userId}")
+    @Operation(summary = "Get student by user ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<StudentDTO>> getByUserId(@PathVariable Long userId) {
+        try {
+            StudentDTO student = studentService.getStudentByUserId(userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student retrieved successfully", student, null));
+        } catch (Exception e) {
+            log.error("Error retrieving student: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/active")
     @Operation(summary = "Get all active students")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
@@ -261,6 +275,77 @@ public class StudentController extends BaseController<StudentDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active students for class retrieved successfully", students, null));
         } catch (Exception e) {
             log.error("Error retrieving active students for class: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    // Student-specific endpoints for student role access
+    @GetMapping("/{studentId}/courses")
+    @Operation(summary = "Get enrolled courses for a student")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<List<Object>>> getStudentCourses(@PathVariable Long studentId) {
+        try {
+            List<Object> courses = studentService.getStudentCourses(studentId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student courses retrieved successfully", courses, null));
+        } catch (Exception e) {
+            log.error("Error retrieving courses for student: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/{studentId}/assignments")
+    @Operation(summary = "Get assignments for a student's enrolled courses")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<List<Object>>> getStudentAssignments(@PathVariable Long studentId) {
+        try {
+            List<Object> assignments = studentService.getStudentAssignments(studentId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student assignments retrieved successfully", assignments, null));
+        } catch (Exception e) {
+            log.error("Error retrieving assignments for student: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/{studentId}/performance")
+    @Operation(summary = "Get performance analytics for a student")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<Object>> getStudentPerformance(@PathVariable Long studentId) {
+        try {
+            Object performance = studentService.getStudentPerformanceAnalytics(studentId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student performance retrieved successfully", performance, null));
+        } catch (Exception e) {
+            log.error("Error retrieving performance for student: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/{studentId}/dashboard")
+    @Operation(summary = "Get dashboard data for a student")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<Object>> getStudentDashboard(@PathVariable Long studentId) {
+        try {
+            Object dashboardData = studentService.getStudentDashboardData(studentId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student dashboard data retrieved successfully", dashboardData, null));
+        } catch (Exception e) {
+            log.error("Error retrieving dashboard data for student: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/create-for-user/{userId}")
+    @Operation(summary = "Create a student record for a user if it doesn't exist")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<StudentDTO>> createStudentForUser(@PathVariable Long userId) {
+        try {
+            StudentDTO student = studentService.createStudentForUser(userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student record created successfully", student, null));
+        } catch (Exception e) {
+            log.error("Error creating student record for user: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

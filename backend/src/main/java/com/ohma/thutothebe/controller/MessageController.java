@@ -1,6 +1,8 @@
 package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.MessageDTO;
+import com.ohma.thutothebe.dto.UserDTO;
+import com.ohma.thutothebe.entity.UserRole;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.service.MessageService;
 import com.ohma.thutothebe.service.MessageGroupService;
@@ -124,6 +126,57 @@ public class MessageController extends BaseController<MessageDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Messages retrieved successfully", messages, null));
         } catch (Exception e) {
             log.error("Error retrieving messages: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/contacts/student/{studentId}")
+    @Operation(summary = "Get contacts for a student")
+    @PreAuthorize("hasRole('ADMIN') or #studentId == authentication.principal.id")
+    public ResponseEntity<OhmaApiResponse<List<UserDTO>>> getContactsForStudent(
+            @Parameter(description = "Student ID") @PathVariable Long studentId) {
+        try {
+            List<UserDTO> contacts = messageService.getContactsForStudent(studentId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Contacts retrieved successfully", contacts, null));
+        } catch (Exception e) {
+            log.error("Error retrieving contacts: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/debug/admin-users")
+    @Operation(summary = "Debug endpoint to check admin users")
+    public ResponseEntity<OhmaApiResponse<Object>> getAdminUsers() {
+        try {
+            List<UserDTO> schoolAdmins = userService.getUsersByRole(UserRole.SCHOOL_ADMIN);
+            List<UserDTO> superAdmins = userService.getUsersByRole(UserRole.SUPER_ADMIN);
+            
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("schoolAdmins", schoolAdmins);
+            result.put("superAdmins", superAdmins);
+            result.put("schoolAdminCount", schoolAdmins.size());
+            result.put("superAdminCount", superAdmins.size());
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Admin users retrieved", result, null));
+        } catch (Exception e) {
+            log.error("Error retrieving admin users: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/conversations/user/{userId}")
+    @Operation(summary = "Get conversations for a user")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+    public ResponseEntity<OhmaApiResponse<List<Object>>> getConversationsForUser(
+            @Parameter(description = "User ID") @PathVariable Long userId) {
+        try {
+            List<Object> conversations = messageService.getConversationsForUser(userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Conversations retrieved successfully", conversations, null));
+        } catch (Exception e) {
+            log.error("Error retrieving conversations: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

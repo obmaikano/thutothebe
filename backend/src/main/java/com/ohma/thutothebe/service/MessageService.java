@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.MessageDTO;
+import com.ohma.thutothebe.dto.UserDTO;
 import java.util.List;
 
 public interface MessageService extends BaseService<MessageDTO, Long> {
@@ -18,4 +19,8 @@ public interface MessageService extends BaseService<MessageDTO, Long> {
     List<MessageDTO> findByGroupIdAndActive(Long groupId, boolean active);
     
     boolean isMessageOwner(Long messageId, Long userId);
+    
+    List<UserDTO> getContactsForStudent(Long studentId);
+    
+    List<Object> getConversationsForUser(Long userId);
 } 

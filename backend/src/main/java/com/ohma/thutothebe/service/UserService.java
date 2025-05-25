@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.UserDTO;
+import com.ohma.thutothebe.entity.UserRole;
 import java.util.List;
 
 public interface UserService extends BaseService<UserDTO, Long> {
@@ -10,6 +11,7 @@ public interface UserService extends BaseService<UserDTO, Long> {
     boolean existsByEmail(String email);
     void updatePassword(Long userId, String newPassword);
     UserDTO updateWithoutRoleAndPassword(Long userId, UserDTO dto);
+    List<UserDTO> getUsersByRole(UserRole role);
     
     // Parent-specific methods
     List<UserDTO> getAllParents();

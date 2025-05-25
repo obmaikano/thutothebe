@@ -18,4 +18,8 @@ public interface EventService extends BaseService<EventDto, Long> {
     List<EventDto> getAllRecurringEvents();
     
     List<EventDto> generateRecurringEvents(Long eventId, LocalDateTime until);
+    
+    List<EventDto> getStudentEvents(Long studentId);
+    
+    List<EventDto> getStudentEventsBetweenDates(Long studentId, LocalDateTime startTime, LocalDateTime endTime);
 } 

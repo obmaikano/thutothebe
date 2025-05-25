@@ -370,8 +370,15 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
     @Transactional
     public void deactivateUser(Long userId) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         user.setActive(false);
         userRepository.save(user);
+    }
+
+    @Override
+    public List<UserDTO> getUsersByRole(UserRole role) {
+        return userRepository.findByRole(role).stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
     }
 } 

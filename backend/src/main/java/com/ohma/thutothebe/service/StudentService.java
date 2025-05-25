@@ -54,4 +54,16 @@ public interface StudentService extends BaseService<StudentDTO, Long> {
     String debugClassEnrollment(Long classId);
     
     void cleanupClassEnrollmentInconsistencies(Long classId);
+
+    // Student-specific methods for student role access
+    List<Object> getStudentCourses(Long studentId);
+    
+    List<Object> getStudentAssignments(Long studentId);
+    
+    Object getStudentPerformanceAnalytics(Long studentId);
+    
+    Object getStudentDashboardData(Long studentId);
+    
+    // Helper method to create student record for user if it doesn't exist
+    StudentDTO createStudentForUser(Long userId);
 } 

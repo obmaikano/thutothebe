@@ -3,6 +3,7 @@ package com.ohma.thutothebe.service.impl;
 import com.ohma.thutothebe.dto.StudentDTO;
 import com.ohma.thutothebe.dto.StudentOnboardingDTO;
 import com.ohma.thutothebe.entity.*;
+import com.ohma.thutothebe.entity.enums.Gender;
 import com.ohma.thutothebe.entity.enums.StudentStatus;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.StudentMapper;
@@ -12,7 +13,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -400,8 +405,150 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
     @Override
     @Transactional(readOnly = true)
     public List<StudentDTO> getActiveStudentsByClassId(Long classId) {
-        return getStudentsByClassId(classId).stream()
-            .filter(student -> student.active())
-            .collect(Collectors.toList());
+        return studentRepository.findByStudentClass_Id(classId).stream()
+                .filter(student -> student.isActive())
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    // Student-specific methods for student role access
+    @Override
+    @Transactional(readOnly = true)
+    public List<Object> getStudentCourses(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+        
+        // Get courses based on student's class
+        if (student.getStudentClass() != null) {
+            return courseRepository.findByClassEntityIdAndActive(student.getStudentClass().getId(), true)
+                .stream()
+                .map(course -> (Object) course)
+                .collect(Collectors.toList());
+        }
+        
+        return List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Object> getStudentAssignments(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+        
+        // Get assignments from student's courses
+        if (student.getStudentClass() != null) {
+            List<Course> studentCourses = courseRepository.findByClassEntityIdAndActive(student.getStudentClass().getId(), true);
+            // For now, return empty list - this would need AssignmentRepository integration
+            return List.of();
+        }
+        
+        return List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getStudentPerformanceAnalytics(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+        
+        // Return basic performance data structure
+        return new Object() {
+            public final Long studentId = student.getId();
+            public final String studentName = student.getFirstName() + " " + student.getLastName();
+            public final String admissionNumber = student.getAdmissionNumber();
+            public final boolean active = student.isActive();
+        };
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getStudentDashboardData(Long studentId) {
+        // TODO: Implement dashboard data aggregation
+        // This should return comprehensive dashboard information including:
+        // - Course count, class information, school information
+        // - Recent assignments, grades, announcements
+        // - Performance metrics, attendance, etc.
+        
+        // For now, return basic information
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+        
+        Map<String, Object> dashboardData = new HashMap<>();
+        dashboardData.put("studentId", student.getId());
+        dashboardData.put("studentName", student.getFirstName() + " " + student.getLastName());
+        dashboardData.put("admissionNumber", student.getAdmissionNumber());
+        dashboardData.put("className", student.getStudentClass() != null ? student.getStudentClass().getName() : null);
+        dashboardData.put("schoolName", student.getSchool() != null ? student.getSchool().getName() : null);
+        dashboardData.put("status", student.getStatus());
+        dashboardData.put("active", student.isActive());
+        
+        // Add course count (placeholder)
+        dashboardData.put("courseCount", 0);
+        
+        return dashboardData;
+    }
+
+    @Override
+    @Transactional
+    public StudentDTO createStudentForUser(Long userId) {
+        // Check if student record already exists
+        Optional<Student> existingStudent = studentRepository.findByUser_Id(userId);
+        if (existingStudent.isPresent()) {
+            return studentMapper.toDto(existingStudent.get());
+        }
+        
+        // Get the user
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        
+        // Validate that the user has STUDENT role
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new IllegalArgumentException("User must have STUDENT role to create a student record");
+        }
+        
+        // Check if user has a school assigned
+        if (user.getSchool() == null) {
+            throw new IllegalArgumentException("User must be assigned to a school to create a student record");
+        }
+        
+        // Generate admission number
+        String admissionNumber = generateStudentId();
+        
+        // Create student DTO
+        StudentDTO studentDTO = new StudentDTO(
+            null, // id
+            admissionNumber, // admissionNumber
+            user.getFirstName(), // firstName
+            user.getLastName(), // lastName
+            user.getPerson() != null ? user.getPerson().getDateOfBirth() : LocalDate.now().minusYears(18), // dateOfBirth
+            user.getPerson() != null ? user.getPerson().getGender() : Gender.OTHER, // gender
+            "", // phone - will be updated during onboarding
+            user.getEmail(), // email
+            "", // address - will be updated during onboarding
+            LocalDate.now().getYear(), // academicYear
+            null, // classId - will be set during onboarding
+            null, // medicalConditions
+            null, // disabilities
+            user.getPerson() != null ? user.getPerson().getFirstName() : "Emergency Contact", // emergencyContactName
+            "", // emergencyContactPhone - will be updated during onboarding
+            "Parent", // emergencyContactRelation
+            user.getSchool().getId(), // schoolId
+            user.getId(), // userId
+            user.getPerson() != null ? user.getPerson().getId() : null, // personId
+            true, // active
+            StudentStatus.PENDING, // status
+            "Student record created automatically", // onboardingNotes
+            null // subjectIds
+        );
+        
+        return createStudent(studentDTO);
+    }
+    
+    private String generateStudentId() {
+        int currentYear = LocalDate.now().getYear();
+        // Get count of students enrolled this year
+        long studentCount = studentRepository.countByEnrollmentYear(currentYear);
+        // Format with leading zeros to ensure 4 digits
+        return String.format("STU-%d-%04d", currentYear, studentCount + 1);
     }
 } 

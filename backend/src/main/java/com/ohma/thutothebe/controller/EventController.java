@@ -116,4 +116,34 @@ public class EventController extends BaseController<EventDto, Long> {
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
+
+    @Operation(summary = "Get events for a student", description = "Retrieves all calendar events for a student based on their enrolled courses")
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<OhmaApiResponse<List<EventDto>>> getStudentEvents(@PathVariable Long studentId) {
+        try {
+            List<EventDto> events = eventService.getStudentEvents(studentId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student events retrieved successfully", events, null));
+        } catch (Exception e) {
+            log.error("Error fetching student events: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @Operation(summary = "Get student events between dates", description = "Retrieves calendar events for a student between specified dates based on their enrolled courses")
+    @GetMapping("/student/{studentId}/between")
+    public ResponseEntity<OhmaApiResponse<List<EventDto>>> getStudentEventsBetweenDates(
+        @PathVariable Long studentId,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime
+    ) {
+        try {
+            List<EventDto> events = eventService.getStudentEventsBetweenDates(studentId, startTime, endTime);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student events retrieved successfully", events, null));
+        } catch (Exception e) {
+            log.error("Error fetching student events between dates: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
 } 
