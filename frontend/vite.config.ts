@@ -9,6 +9,14 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './src'),
     },
+    dedupe: ['react', 'react-dom'],
+  },
+  define: {
+    global: 'globalThis',
+    'process.env': {},
+  },
+  optimizeDeps: {
+    include: ['@stomp/stompjs', 'sockjs-client'],
   },
   server: {
     proxy: {

@@ -29,7 +29,7 @@ const StudentDashboard = lazy(() => import('../pages/protected/StudentDashboard'
 const StudentCourses = lazy(() => import('../pages/protected/StudentCourses'));
 const StudentAssignments = lazy(() => import('../pages/protected/StudentAssignments'));
 const StudentGrades = lazy(() => import('../pages/protected/StudentGrades'));
-const StudentMessages = lazy(() => import('../pages/protected/StudentMessages'));
+const StudentMessages = lazy(() => import('../pages/protected/StudentMessagesPage'));
 const StudentSchedule = lazy(() => import('../pages/protected/StudentSchedule'));
 const StudentHelp = lazy(() => import('../pages/protected/StudentHelp'));
 

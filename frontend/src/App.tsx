@@ -1,9 +1,13 @@
+// Import polyfills first to ensure global variables are available
+import './utils/polyfills';
+
 import { lazy, Suspense, useEffect } from 'react';
 import './index.css';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './app/store'; // Import your store
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { MessagingProvider } from './contexts/MessagingContext';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 //import 'react-leaflet-draw/dist/react-leaflet-draw.css';
@@ -142,7 +146,9 @@ function App() {
         <Provider store={store}> 
             <Router>
                 <AuthProvider>
-                    <AuthGuard />
+                    <MessagingProvider>
+                        <AuthGuard />
+                    </MessagingProvider>
                 </AuthProvider>
             </Router>
         </Provider>

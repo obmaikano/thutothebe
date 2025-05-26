@@ -58,7 +58,9 @@ public class SecurityConfig {
                     new AntPathRequestMatcher("/auth/login"),
                     new AntPathRequestMatcher("/api-docs/**"),
                     new AntPathRequestMatcher("/swagger-ui/**"),
-                    new AntPathRequestMatcher("/swagger-ui.html")
+                    new AntPathRequestMatcher("/swagger-ui.html"),
+                    new AntPathRequestMatcher("/ws/**"),
+                    new AntPathRequestMatcher("/ws")
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -80,7 +82,9 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-        
+
+        configuration.setExposedHeaders(Arrays.asList("Access-Control-Allow-Origin"));
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

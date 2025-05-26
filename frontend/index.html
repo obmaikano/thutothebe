@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thuto Thebe</title>
+    <title>Thuto Thebe | Learning Management System</title>
+    <script>
+      // Polyfills for Node.js globals in browser environment
+      if (typeof global === 'undefined') {
+        window.global = globalThis;
+      }
+      if (typeof process === 'undefined') {
+        window.process = {
+          env: {},
+          nextTick: function(callback) { setTimeout(callback, 0); },
+          version: '',
+          platform: 'browser'
+        };
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

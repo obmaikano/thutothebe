@@ -12,14 +12,31 @@ import messageApi, {
   CreateMessageRequest,
   RealTimeMessage 
 } from '../../api/services/messageApi';
-import webSocketService, { TypingIndicator, UnreadCountUpdate } from '../../services/websocketService';
-import { MessageSquare, Users, Send, Search, Plus, MoreVertical, Clock, Check, CheckCheck, Wifi, WifiOff } from 'lucide-react';
+import { useMessaging } from '../../contexts/MessagingContext';
+import { 
+  MessageSquare, 
+  Users, 
+  Send, 
+  Search, 
+  Plus, 
+  MoreVertical, 
+  Clock, 
+  Check, 
+  CheckCheck, 
+  Wifi, 
+  WifiOff,
+  Phone,
+  Video,
+  Paperclip,
+  Smile
+} from 'lucide-react';
 
-const StudentMessages = () => {
+const StudentMessagesPage = () => {
     const dispatch = useDispatch();
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const messaging = useMessaging();
+    
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
@@ -29,13 +46,12 @@ const StudentMessages = () => {
     const [showNewMessageModal, setShowNewMessageModal] = useState(false);
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [studentData, setStudentData] = useState<any>(null);
-    const [isConnected, setIsConnected] = useState(false);
-    const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
-    const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map());
     const [isTyping, setIsTyping] = useState(false);
+    const [messagesLoading, setMessagesLoading] = useState(false);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const messageInputRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         dispatch(setPageTitle({ title: "Messages" }));
@@ -48,13 +64,13 @@ const StudentMessages = () => {
         }
     }, [isAuthenticated, navigate]);
 
-    // WebSocket message handler
+    // Handle real-time messages for the current conversation
     const handleRealTimeMessage = useCallback((realTimeMessage: RealTimeMessage) => {
         console.log('Received real-time message:', realTimeMessage);
         
         switch (realTimeMessage.eventType) {
             case 'SENT':
-                // Add new message to the conversation
+                // Add new message to the conversation if it's the current one
                 if (selectedConversation && 
                     ((realTimeMessage.senderId === selectedConversation.participantId && realTimeMessage.recipientId === user?.id) ||
                      (realTimeMessage.senderId === user?.id && realTimeMessage.recipientId === selectedConversation.participantId) ||
@@ -82,11 +98,16 @@ const StudentMessages = () => {
                         replyToMessageId: undefined
                     };
                     
-                    setMessages(prev => [...prev, newMsg]);
+                    setMessages(prev => {
+                        // Check if message already exists to avoid duplicates
+                        const exists = prev.find(msg => msg.id === newMsg.id);
+                        if (exists) return prev;
+                        return [...prev, newMsg];
+                    });
                     
                     // Mark as delivered if we're the recipient
                     if (realTimeMessage.recipientId === user?.id && !realTimeMessage.isDelivered) {
-                        webSocketService.markMessageAsDelivered(realTimeMessage.id, user.id);
+                        messageApi.markMessageAsDelivered(realTimeMessage.id, user.id);
                     }
                 }
                 break;
@@ -109,39 +130,16 @@ const StudentMessages = () => {
         }
     }, [selectedConversation, user?.id]);
 
-    // Typing indicator handler
-    const handleTypingIndicator = useCallback((typing: TypingIndicator) => {
-        if (typing.userId === user?.id) return; // Ignore our own typing
-        
-        setTypingUsers(prev => {
-            const newMap = new Map(prev);
-            if (typing.isTyping) {
-                newMap.set(typing.channelId, `User ${typing.userId} is typing...`);
-            } else {
-                newMap.delete(typing.channelId);
-            }
-            return newMap;
-        });
-    }, [user?.id]);
-
-    // Unread count handler
-    const handleUnreadCountUpdate = useCallback((update: UnreadCountUpdate) => {
-        setUnreadCounts(prev => {
-            const newMap = new Map(prev);
-            if (update.channelId) {
-                newMap.set(update.channelId, update.channelCount || 0);
-            }
-            return newMap;
-        });
-    }, []);
-
-    // Connection status handler
-    const handleConnectionStatus = useCallback((connected: boolean) => {
-        setIsConnected(connected);
-    }, []);
+    // Register message handler
+    useEffect(() => {
+        messaging.onMessageReceived(handleRealTimeMessage);
+        return () => {
+            messaging.offMessageReceived(handleRealTimeMessage);
+        };
+    }, [messaging]);
 
     useEffect(() => {
-        const fetchMessagesData = async () => {
+        const fetchInitialData = async () => {
             if (!isAuthenticated || !user?.id) {
                 setLoading(false);
                 return;
@@ -171,28 +169,6 @@ const StudentMessages = () => {
                 setStudentData(student);
                 console.log('Student data:', student);
 
-                // Initialize WebSocket connection
-                try {
-                    await webSocketService.connect(
-                        { 
-                            url: `${process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1'}/ws`,
-                            debug: process.env.NODE_ENV === 'development'
-                        },
-                        user.id
-                    );
-                    
-                    // Add event handlers
-                    webSocketService.addMessageHandler(handleRealTimeMessage);
-                    webSocketService.addTypingHandler(handleTypingIndicator);
-                    webSocketService.addUnreadCountHandler(handleUnreadCountUpdate);
-                    webSocketService.addConnectionHandler(handleConnectionStatus);
-                    
-                    console.log('WebSocket connected successfully');
-                } catch (wsError) {
-                    console.error('WebSocket connection failed:', wsError);
-                    // Continue without real-time features
-                }
-
                 // Fetch contacts for the student
                 try {
                     const contactsResponse = await messageApi.getContactsForStudent(student.id);
@@ -212,7 +188,9 @@ const StudentMessages = () => {
                     if (conversationsResponse.data.status === 'SUCCESS') {
                         const conversationsData = (conversationsResponse.data.data as Conversation[]) || [];
                         console.log('Fetched conversations:', conversationsData);
-                        setConversations(conversationsData);
+                        
+                        // Add conversations to messaging context
+                        conversationsData.forEach(conv => messaging.addConversation(conv));
                         
                         if (conversationsData.length > 0) {
                             setSelectedConversation(conversationsData[0]);
@@ -222,32 +200,23 @@ const StudentMessages = () => {
                 } catch (conversationsErr: any) {
                     console.error('Error fetching conversations:', conversationsErr);
                     // Continue with empty conversations
-                    setConversations([]);
                 }
             } catch (err: any) {
-                console.error('Error fetching messages data:', err);
+                console.error('Error fetching initial data:', err);
                 setError(err.response?.data?.message || 'Failed to fetch messages');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchMessagesData();
-
-        // Cleanup on unmount
-        return () => {
-            webSocketService.removeMessageHandler(handleRealTimeMessage);
-            webSocketService.removeTypingHandler(handleTypingIndicator);
-            webSocketService.removeUnreadCountHandler(handleUnreadCountUpdate);
-            webSocketService.removeConnectionHandler(handleConnectionStatus);
-            webSocketService.disconnect();
-        };
-    }, [user?.id, isAuthenticated, handleRealTimeMessage, handleTypingIndicator, handleUnreadCountUpdate, handleConnectionStatus]);
+        fetchInitialData();
+    }, [user?.id, isAuthenticated]);
 
     const fetchMessagesForConversation = async (conversation: Conversation) => {
         if (!user?.id || !conversation.participantId) return;
 
         try {
+            setMessagesLoading(true);
             const messagesResponse = await messageApi.getActiveConversationMessages(user.id, conversation.participantId);
             if (messagesResponse.data.status === 'SUCCESS') {
                 const messagesData = (messagesResponse.data.data as Message[]) || [];
@@ -256,18 +225,19 @@ const StudentMessages = () => {
                 setMessages(messagesData);
                 
                 // Subscribe to conversation channel for real-time updates
-                if (webSocketService.connected) {
-                    webSocketService.subscribeToConversation(user.id, conversation.participantId);
-                }
+                messaging.subscribeToConversation(user.id, conversation.participantId);
                 
                 // Mark conversation as read
                 if (messagesData.length > 0) {
                     await messageApi.markConversationAsRead(user.id, conversation.participantId);
+                    messaging.markConversationAsRead(conversation.id);
                 }
             }
         } catch (err: any) {
             console.error('Error fetching messages for conversation:', err);
             setMessages([]);
+        } finally {
+            setMessagesLoading(false);
         }
     };
 
@@ -276,7 +246,7 @@ const StudentMessages = () => {
 
         try {
             const messageData: CreateMessageRequest = {
-                content: newMessage,
+                content: newMessage.trim(),
                 senderId: user.id,
                 recipientId: selectedConversation.participantId,
                 groupId: selectedConversation.groupId,
@@ -291,11 +261,13 @@ const StudentMessages = () => {
                 // Stop typing indicator
                 if (isTyping && selectedConversation.participantId) {
                     const channelId = generateConversationChannelId(user.id, selectedConversation.participantId);
-                    webSocketService.sendTypingIndicator(user.id, channelId, false);
+                    messaging.sendTypingIndicator(channelId, false);
                     setIsTyping(false);
                 }
                 
-                // Message will be added via WebSocket real-time update
+                // Focus back on input
+                messageInputRef.current?.focus();
+                
                 console.log('Message sent successfully');
             }
         } catch (err: any) {
@@ -305,12 +277,12 @@ const StudentMessages = () => {
     };
 
     const handleTyping = () => {
-        if (!selectedConversation?.participantId || !user?.id || !webSocketService.connected) return;
+        if (!selectedConversation?.participantId || !user?.id || !messaging.isConnected) return;
         
         const channelId = generateConversationChannelId(user.id, selectedConversation.participantId);
         
         if (!isTyping) {
-            webSocketService.sendTypingIndicator(user.id, channelId, true);
+            messaging.sendTypingIndicator(channelId, true);
             setIsTyping(true);
         }
         
@@ -321,7 +293,7 @@ const StudentMessages = () => {
         
         // Set new timeout to stop typing indicator
         typingTimeoutRef.current = setTimeout(() => {
-            webSocketService.sendTypingIndicator(user.id, channelId, false);
+            messaging.sendTypingIndicator(channelId, false);
             setIsTyping(false);
         }, 3000);
     };
@@ -363,7 +335,7 @@ const StudentMessages = () => {
         if (!user?.id) return;
         
         // Check if conversation already exists
-        const existingConversation = conversations.find(conv => conv.participantId === contact.id);
+        const existingConversation = messaging.conversations.find(conv => conv.participantId === contact.id);
         if (existingConversation) {
             setSelectedConversation(existingConversation);
             await fetchMessagesForConversation(existingConversation);
@@ -379,13 +351,12 @@ const StudentMessages = () => {
                 participantId: contact.id
             };
             
+            messaging.addConversation(newConversation);
             setSelectedConversation(newConversation);
             setMessages([]);
             
             // Subscribe to conversation channel
-            if (webSocketService.connected) {
-                webSocketService.subscribeToConversation(user.id, contact.id);
-            }
+            messaging.subscribeToConversation(user.id, contact.id);
         }
         
         setShowNewMessageModal(false);
@@ -401,7 +372,7 @@ const StudentMessages = () => {
         contact.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const filteredConversations = conversations.filter(conversation =>
+    const filteredConversations = messaging.conversations.filter(conversation =>
         conversation.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -441,13 +412,18 @@ const StudentMessages = () => {
                             Messages
                         </h1>
                         <div className="flex items-center space-x-2">
-                            <div title="Connected">
-                                {isConnected ? (
+                            <div title={messaging.isConnected ? "Connected" : "Disconnected"}>
+                                {messaging.isConnected ? (
                                     <Wifi className="text-green-500" size={16} />
                                 ) : (
                                     <WifiOff className="text-red-500" size={16} />
                                 )}
                             </div>
+                            {messaging.totalUnreadCount > 0 && (
+                                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                                    {messaging.totalUnreadCount}
+                                </span>
+                            )}
                             <button
                                 onClick={() => setShowNewMessageModal(true)}
                                 className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
@@ -541,15 +517,27 @@ const StudentMessages = () => {
                                         </p>
                                     </div>
                                 </div>
-                                <button className="p-2 text-gray-400 hover:text-gray-600">
-                                    <MoreVertical size={20} />
-                                </button>
+                                <div className="flex items-center space-x-2">
+                                    <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
+                                        <Phone size={20} />
+                                    </button>
+                                    <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
+                                        <Video size={20} />
+                                    </button>
+                                    <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
+                                        <MoreVertical size={20} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {messages.length === 0 ? (
+                            {messagesLoading ? (
+                                <div className="flex justify-center items-center h-32">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                </div>
+                            ) : messages.length === 0 ? (
                                 <div className="text-center text-gray-500 mt-8">
                                     <MessageSquare size={48} className="mx-auto mb-2 text-gray-300" />
                                     <p>No messages in this conversation</p>
@@ -591,7 +579,7 @@ const StudentMessages = () => {
                             )}
                             
                             {/* Typing Indicator */}
-                            {selectedConversation.participantId && typingUsers.has(generateConversationChannelId(user?.id || 0, selectedConversation.participantId)) && (
+                            {selectedConversation.participantId && messaging.typingUsers.has(generateConversationChannelId(user?.id || 0, selectedConversation.participantId)) && (
                                 <div className="flex justify-start">
                                     <div className="bg-gray-200 text-gray-900 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
                                         <div className="flex items-center space-x-1">
@@ -611,9 +599,13 @@ const StudentMessages = () => {
 
                         {/* Message Input */}
                         <div className="p-4 bg-white border-t border-gray-200">
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-end space-x-2">
+                                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
+                                    <Paperclip size={20} />
+                                </button>
                                 <div className="flex-1 relative">
                                     <textarea
+                                        ref={messageInputRef}
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
                                         onKeyPress={handleKeyPress}
@@ -623,6 +615,9 @@ const StudentMessages = () => {
                                         style={{ minHeight: '40px', maxHeight: '120px' }}
                                     />
                                 </div>
+                                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
+                                    <Smile size={20} />
+                                </button>
                                 <button
                                     onClick={handleSendMessage}
                                     disabled={!newMessage.trim()}
@@ -701,4 +696,4 @@ const StudentMessages = () => {
     );
 };
 
-export default StudentMessages; 
+export default StudentMessagesPage; 
