@@ -40,6 +40,20 @@ public class ClassController extends BaseController<ClassDTO, Long> {
         }
     }
 
+    @GetMapping("/active")
+    @Operation(summary = "Get all active classes")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getActiveClasses() {
+        try {
+            List<ClassDTO> classes = classService.getActiveClasses();
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active classes retrieved successfully", classes, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active classes: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/school/{schoolId}/active")
     @Operation(summary = "Get active classes by school ID")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")

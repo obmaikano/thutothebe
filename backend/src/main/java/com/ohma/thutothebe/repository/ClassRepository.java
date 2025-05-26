@@ -14,6 +14,8 @@ public interface ClassRepository extends JpaRepository<Class, Long> {
     
     List<Class> findBySchoolId(Long schoolId);
     
+    List<Class> findByActive(boolean active);
+    
     List<Class> findBySchoolIdAndActive(Long schoolId, boolean active);
     
     @Query("SELECT c FROM Class c LEFT JOIN FETCH c.teachers WHERE c.id = :id")
@@ -22,10 +24,10 @@ public interface ClassRepository extends JpaRepository<Class, Long> {
     @Query("SELECT c FROM Class c LEFT JOIN FETCH c.students WHERE c.id = :id")
     Optional<Class> findByIdWithStudents(Long id);
     
-    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE c.school.id = :schoolId AND t.id = (SELECT teacher.user.id FROM Teacher teacher WHERE teacher.id = :teacherId)")
+    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE c.school.id = :schoolId AND t.id = :teacherId")
     List<Class> findBySchoolIdAndTeacherId(Long schoolId, Long teacherId);
     
-    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE t.id = (SELECT teacher.user.id FROM Teacher teacher WHERE teacher.id = :teacherId)")
+    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE t.id = :teacherId")
     List<Class> findByTeacherId(Long teacherId);
     
     @Query("SELECT c FROM Class c WHERE c.school.id = :schoolId AND :studentId MEMBER OF c.students")

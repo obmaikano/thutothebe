@@ -29,7 +29,7 @@ public class Class extends BaseEntity {
         joinColumns = @JoinColumn(name = "class_id"),
         inverseJoinColumns = @JoinColumn(name = "teacher_id")
     )
-    private Set<User> teachers = new HashSet<>();
+    private Set<Teacher> teachers = new HashSet<>();
     
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

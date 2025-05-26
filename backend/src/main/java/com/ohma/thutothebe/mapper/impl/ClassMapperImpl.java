@@ -5,6 +5,7 @@ import com.ohma.thutothebe.entity.Class;
 import com.ohma.thutothebe.mapper.ClassMapper;
 import com.ohma.thutothebe.repository.SchoolRepository;
 import com.ohma.thutothebe.repository.UserRepository;
+import com.ohma.thutothebe.repository.TeacherRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,9 @@ public class ClassMapperImpl implements ClassMapper {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private TeacherRepository teacherRepository;
 
     @Override
     public ClassDTO toDto(Class entity) {
@@ -56,7 +60,7 @@ public class ClassMapperImpl implements ClassMapper {
         entity.setSchool(schoolRepository.findById(dto.schoolId()).orElse(null));
         entity.setTeachers(dto.teacherIds() != null ?
                 dto.teacherIds().stream()
-                .map(teacher -> userRepository.findById(teacher).orElse(null))
+                .map(teacher -> teacherRepository.findById(teacher).orElse(null))
                 .collect(Collectors.toSet()) :
                 null);
         entity.setStudents(dto.studentIds() != null ?

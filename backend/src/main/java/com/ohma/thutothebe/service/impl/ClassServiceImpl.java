@@ -4,11 +4,13 @@ import com.ohma.thutothebe.dto.ClassDTO;
 import com.ohma.thutothebe.entity.Class;
 import com.ohma.thutothebe.entity.School;
 import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.entity.Teacher;
 import com.ohma.thutothebe.mapper.ClassMapper;
 import com.ohma.thutothebe.repository.ClassRepository;
 import com.ohma.thutothebe.repository.SchoolRepository;
 import com.ohma.thutothebe.repository.StudentRepository;
 import com.ohma.thutothebe.repository.UserRepository;
+import com.ohma.thutothebe.repository.TeacherRepository;
 import com.ohma.thutothebe.service.ClassService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,16 +27,18 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
+    private final TeacherRepository teacherRepository;
     private final ClassMapper classMapper;
 
     @Autowired
     public ClassServiceImpl(ClassRepository classRepository, SchoolRepository schoolRepository, 
-                          UserRepository userRepository, StudentRepository studentRepository, ClassMapper classMapper) {
+                          UserRepository userRepository, StudentRepository studentRepository, TeacherRepository teacherRepository, ClassMapper classMapper) {
         super(classRepository);
         this.classRepository = classRepository;
         this.schoolRepository = schoolRepository;
         this.userRepository = userRepository;
         this.studentRepository = studentRepository;
+        this.teacherRepository = teacherRepository;
         this.classMapper = classMapper;
     }
 
@@ -64,6 +68,14 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     @Transactional(readOnly = true)
     public List<ClassDTO> getClassesBySchoolId(Long schoolId) {
         return classRepository.findBySchoolId(schoolId).stream()
+            .map(classMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassDTO> getActiveClasses() {
+        return classRepository.findByActive(true).stream()
             .map(classMapper::toDto)
             .collect(Collectors.toList());
     }
@@ -121,7 +133,7 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
         // Add teachers
         if (classDTO.teacherIds() != null) {
             classDTO.teacherIds().forEach(teacherId -> {
-                User teacher = userRepository.findById(teacherId)
+                Teacher teacher = teacherRepository.findById(teacherId)
                     .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + teacherId));
                 classEntity.getTeachers().add(teacher);
             });
@@ -180,8 +192,10 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     public void addTeacherToClass(Long classId, Long teacherId) {
         Class classEntity = classRepository.findById(classId)
             .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + classId));
-        User teacher = userRepository.findById(teacherId)
+        
+        Teacher teacher = teacherRepository.findById(teacherId)
             .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + teacherId));
+        
         classEntity.getTeachers().add(teacher);
         classRepository.save(classEntity);
     }
@@ -191,8 +205,10 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     public void removeTeacherFromClass(Long classId, Long teacherId) {
         Class classEntity = classRepository.findById(classId)
             .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + classId));
-        User teacher = userRepository.findById(teacherId)
+        
+        Teacher teacher = teacherRepository.findById(teacherId)
             .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + teacherId));
+        
         classEntity.getTeachers().remove(teacher);
         classRepository.save(classEntity);
     }

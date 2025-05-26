@@ -274,14 +274,8 @@ const coursesSlice = createSlice({
       })
       .addCase(addTeacherToCourse.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        const updatedCourse = action.payload as Course;
-        const index = state.courses.findIndex(course => course.id === updatedCourse.id);
-        if (index !== -1) {
-          state.courses[index] = updatedCourse;
-        }
-        if (state.currentCourse?.id === updatedCourse.id) {
-          state.currentCourse = updatedCourse;
-        }
+        // Backend returns null data, so we just mark the operation as successful
+        // The UI should refresh the data separately if needed
       })
       .addCase(addTeacherToCourse.rejected, (state, action) => {
         state.status = 'failed';
@@ -295,14 +289,8 @@ const coursesSlice = createSlice({
       })
       .addCase(removeTeacherFromCourse.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        const updatedCourse = action.payload as Course;
-        const index = state.courses.findIndex(course => course.id === updatedCourse.id);
-        if (index !== -1) {
-          state.courses[index] = updatedCourse;
-        }
-        if (state.currentCourse?.id === updatedCourse.id) {
-          state.currentCourse = updatedCourse;
-        }
+        // Backend returns null data, so we just mark the operation as successful
+        // The UI should refresh the data separately if needed
       })
       .addCase(removeTeacherFromCourse.rejected, (state, action) => {
         state.status = 'failed';

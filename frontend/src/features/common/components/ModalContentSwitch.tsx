@@ -225,7 +225,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
     case MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS:
       return (
         <Suspense fallback={fallback}>
-          <TeacherAssignClassModal extraObject={contentProps} />
+          <AssignClassModal extraObject={contentProps} />
         </Suspense>
       );
 
@@ -341,13 +341,6 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <AssignCourseModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS:
-      return (
-        <Suspense fallback={fallback}>
-          <AssignClassModal extraObject={contentProps} />
         </Suspense>
       );
       

@@ -6,6 +6,7 @@ import java.util.Set;
 
 public interface ClassService extends BaseService<ClassDTO, Long> {
     List<ClassDTO> getClassesBySchoolId(Long schoolId);
+    List<ClassDTO> getActiveClasses();
     List<ClassDTO> getActiveClassesBySchoolId(Long schoolId);
     List<ClassDTO> getClassesBySchoolIdAndTeacherId(Long schoolId, Long teacherId);
     List<ClassDTO> getClassesBySchoolIdAndStudentId(Long schoolId, Long studentId);
