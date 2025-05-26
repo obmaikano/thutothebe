@@ -26,7 +26,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/schedules")
+@RequestMapping("/schedules")
 @Tag(name = "Schedule Management", description = "APIs for managing schedules and timetables with role-based access control")
 public class ScheduleController extends BaseController<ScheduleDTO, Long> {
 
