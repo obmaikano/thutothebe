@@ -39,10 +39,10 @@ public class GradeReport extends BaseEntity {
     @Column(name = "academic_year", nullable = false)
     private Integer academicYear;
 
-    @Column(name = "overall_grade", precision = 5, scale = 2)
+    @Column(name = "overall_grade")
     private Double overallGrade;
 
-    @Column(name = "overall_percentage", precision = 5, scale = 2)
+    @Column(name = "overall_percentage")
     private Double overallPercentage;
 
     @Column(name = "grade_letter")

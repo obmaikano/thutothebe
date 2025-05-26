@@ -45,13 +45,13 @@ public class Grade extends BaseEntity {
     @NotNull
     @DecimalMin(value = "0.0", message = "Grade cannot be negative")
     @DecimalMax(value = "100.0", message = "Grade cannot exceed 100")
-    @Column(name = "score", nullable = false, precision = 5, scale = 2)
+    @Column(name = "score", nullable = false)
     private Double score;
 
-    @Column(name = "max_score", precision = 5, scale = 2)
+    @Column(name = "max_score")
     private Double maxScore = 100.0;
 
-    @Column(name = "weight", precision = 5, scale = 2)
+    @Column(name = "weight")
     private Double weight = 1.0;
 
     @Column(name = "feedback", columnDefinition = "TEXT")
@@ -81,7 +81,7 @@ public class Grade extends BaseEntity {
     @Column(name = "moderation_notes", columnDefinition = "TEXT")
     private String moderationNotes;
 
-    @Column(name = "original_score", precision = 5, scale = 2)
+    @Column(name = "original_score")
     private Double originalScore;
 
     @Column(name = "active", nullable = false)

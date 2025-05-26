@@ -26,13 +26,13 @@ public class GradeCalculationRule extends BaseEntity {
     @NotNull
     @DecimalMin(value = "0.0", message = "Weight cannot be negative")
     @DecimalMax(value = "100.0", message = "Weight cannot exceed 100%")
-    @Column(name = "weight_percentage", nullable = false, precision = 5, scale = 2)
+    @Column(name = "weight_percentage", nullable = false)
     private Double weightPercentage;
 
     @NotNull
     @DecimalMin(value = "0.0", message = "Passing grade cannot be negative")
     @DecimalMax(value = "100.0", message = "Passing grade cannot exceed 100")
-    @Column(name = "passing_grade", nullable = false, precision = 5, scale = 2)
+    @Column(name = "passing_grade", nullable = false)
     private Double passingGrade = 50.0;
 
     @Column(name = "description")
