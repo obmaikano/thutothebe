@@ -37,4 +37,11 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     
     @Query("SELECT COUNT(s) FROM Student s WHERE EXTRACT(YEAR FROM s.createdAt) = :year")
     long countByEnrollmentYear(@Param("year") int year);
+    
+    // Schedule access control methods
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.user.id = :userId AND s.studentClass.id = :classId")
+    boolean existsByUserIdAndStudentClassId(@Param("userId") Long userId, @Param("classId") Long classId);
+    
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Student s WHERE s.user.parent.id = :parentId AND s.studentClass.id = :classId")
+    boolean existsByUserParentIdAndStudentClassId(@Param("parentId") Long parentId, @Param("classId") Long classId);
 } 
