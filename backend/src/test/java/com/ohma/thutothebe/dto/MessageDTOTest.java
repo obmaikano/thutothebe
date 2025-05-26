@@ -1,5 +1,6 @@
 package com.ohma.thutothebe.dto;
 
+import com.ohma.thutothebe.entity.MessageType;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 
@@ -10,27 +11,35 @@ class MessageDTOTest {
     @Test
     void constructor_ShouldThrowException_WhenContentIsBlank() {
         assertThrows(IllegalArgumentException.class, () -> 
-            new MessageDTO(1L, "", 1L, 2L, null, LocalDateTime.now(), true)
+            new MessageDTO(1L, "", 1L, "Sender", 2L, "Recipient", null, null, 
+                MessageType.TEXT, LocalDateTime.now(), null, true, 
+                false, false, null, null, null, false, null)
         );
     }
 
     @Test
     void constructor_ShouldThrowException_WhenSenderIdIsNull() {
         assertThrows(IllegalArgumentException.class, () -> 
-            new MessageDTO(1L, "Test message", null, 2L, null, LocalDateTime.now(), true)
+            new MessageDTO(1L, "Test message", null, "Sender", 2L, "Recipient", null, null, 
+                MessageType.TEXT, LocalDateTime.now(), null, true, 
+                false, false, null, null, null, false, null)
         );
     }
 
     @Test
     void constructor_ShouldThrowException_WhenBothRecipientAndGroupAreNull() {
         assertThrows(IllegalArgumentException.class, () -> 
-            new MessageDTO(1L, "Test message", 1L, null, null, LocalDateTime.now(), true)
+            new MessageDTO(1L, "Test message", 1L, "Sender", null, null, null, null, 
+                MessageType.TEXT, LocalDateTime.now(), null, true, 
+                false, false, null, null, null, false, null)
         );
     }
 
     @Test
     void constructor_ShouldSucceed_WhenOnlyGroupIdIsProvided() {
-        MessageDTO dto = new MessageDTO(1L, "Test message", 1L, null, 1L, LocalDateTime.now(), true);
+        MessageDTO dto = new MessageDTO(1L, "Test message", 1L, "Sender", null, null, 1L, "Group", 
+            MessageType.TEXT, LocalDateTime.now(), null, true, 
+            false, false, null, null, null, false, null);
         assertNotNull(dto);
         assertEquals(1L, dto.id());
         assertEquals("Test message", dto.content());
@@ -41,7 +50,9 @@ class MessageDTOTest {
 
     @Test
     void constructor_ShouldSucceed_WhenOnlyRecipientIdIsProvided() {
-        MessageDTO dto = new MessageDTO(1L, "Test message", 1L, 2L, null, LocalDateTime.now(), true);
+        MessageDTO dto = new MessageDTO(1L, "Test message", 1L, "Sender", 2L, "Recipient", null, null, 
+            MessageType.TEXT, LocalDateTime.now(), null, true, 
+            false, false, null, null, null, false, null);
         assertNotNull(dto);
         assertEquals(1L, dto.id());
         assertEquals("Test message", dto.content());

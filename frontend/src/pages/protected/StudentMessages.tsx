@@ -341,16 +341,29 @@ const StudentMessages = () => {
     };
 
     const formatMessageTime = (timestamp: string) => {
+        if (!timestamp || timestamp.trim() === '') {
+            return '';
+        }
+        
         const date = new Date(timestamp);
+        
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+        
         const now = new Date();
         const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
         
-        if (diffInHours < 24) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (diffInHours < 1) {
+            return 'Just now';
+        } else if (diffInHours < 24) {
+            return `${Math.floor(diffInHours)} hours ago`;
         } else if (diffInHours < 168) { // 7 days
-            return date.toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+            const days = Math.floor(diffInHours / 24);
+            return `${days} day${days > 1 ? 's' : ''} ago`;
         } else {
-            return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
         }
     };
 

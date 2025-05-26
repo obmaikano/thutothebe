@@ -78,17 +78,23 @@ const StudentMessagesPage = () => {
     // Handle real-time messages for the current conversation
     const handleRealTimeMessage = useCallback((realTimeMessage: RealTimeMessage) => {
         console.log('Received real-time message:', realTimeMessage);
+        console.log('Current conversation:', selectedConversationRef.current);
+        console.log('Current user ID:', userIdRef.current);
         
         const currentConversation = selectedConversationRef.current;
         const currentUserId = userIdRef.current;
         
         switch (realTimeMessage.eventType) {
             case 'SENT':
+                console.log('Processing SENT message...');
+                
                 // Add new message to the conversation if it's the current one
                 if (currentConversation && 
                     ((realTimeMessage.senderId === currentConversation.participantId && realTimeMessage.recipientId === currentUserId) ||
                      (realTimeMessage.senderId === currentUserId && realTimeMessage.recipientId === currentConversation.participantId) ||
                      (realTimeMessage.groupId === currentConversation.groupId))) {
+                    
+                    console.log('Message matches current conversation, adding to UI...');
                     
                     const newMsg: Message = {
                         id: realTimeMessage.id,
@@ -115,7 +121,11 @@ const StudentMessagesPage = () => {
                     setMessages(prev => {
                         // Check if message already exists to avoid duplicates
                         const exists = prev.find(msg => msg.id === newMsg.id);
-                        if (exists) return prev;
+                        if (exists) {
+                            console.log('Message already exists, skipping...');
+                            return prev;
+                        }
+                        console.log('Adding new message to state...');
                         return [...prev, newMsg];
                     });
                     
@@ -123,6 +133,11 @@ const StudentMessagesPage = () => {
                     if (realTimeMessage.recipientId === currentUserId && !realTimeMessage.isDelivered && currentUserId) {
                         messageApi.markMessageAsDelivered(realTimeMessage.id, currentUserId);
                     }
+                } else {
+                    console.log('Message does not match current conversation, ignoring...');
+                    console.log('Sender ID:', realTimeMessage.senderId, 'Recipient ID:', realTimeMessage.recipientId);
+                    console.log('Current conversation participant ID:', currentConversation?.participantId);
+                    console.log('Current user ID:', currentUserId);
                 }
                 break;
                 
@@ -239,7 +254,9 @@ const StudentMessagesPage = () => {
                 setMessages(messagesData);
                 
                 // Subscribe to conversation channel for real-time updates
+                console.log('Subscribing to conversation channel for users:', user.id, conversation.participantId);
                 messaging.subscribeToConversation(user.id, conversation.participantId);
+                console.log('WebSocket connected:', messaging.isConnected);
                 
                 // Mark conversation as read
                 if (messagesData.length > 0) {
@@ -327,16 +344,29 @@ const StudentMessagesPage = () => {
     };
 
     const formatMessageTime = (timestamp: string) => {
+        if (!timestamp || timestamp.trim() === '') {
+            return '';
+        }
+        
         const date = new Date(timestamp);
+        
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+        
         const now = new Date();
         const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
         
-        if (diffInHours < 24) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (diffInHours < 1) {
+            return 'Just now';
+        } else if (diffInHours < 24) {
+            return `${Math.floor(diffInHours)} hours ago`;
         } else if (diffInHours < 168) { // 7 days
-            return date.toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+            const days = Math.floor(diffInHours / 24);
+            return `${days} day${days > 1 ? 's' : ''} ago`;
         } else {
-            return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
         }
     };
 

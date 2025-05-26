@@ -171,11 +171,15 @@ class WebSocketService {
    * Subscribe to a specific channel
    */
   subscribeToChannel(destination: string, handler: (message: IMessage) => void): void {
-    if (!this.client || !this.isConnected) return;
+    if (!this.client || !this.isConnected) {
+      console.warn('WebSocketService: Cannot subscribe to channel - not connected:', destination);
+      return;
+    }
 
+    console.log('WebSocketService: Subscribing to channel:', destination);
     const subscription = this.client.subscribe(destination, handler);
     this.subscriptions.set(destination, subscription);
-    console.log(`Subscribed to channel: ${destination}`);
+    console.log(`WebSocketService: Successfully subscribed to channel: ${destination}`);
   }
 
   /**
@@ -183,7 +187,9 @@ class WebSocketService {
    */
   subscribeToConversation(userId1: number, userId2: number): void {
     const channelId = this.generateConversationChannelId(userId1, userId2);
+    console.log('WebSocketService: Subscribing to conversation channel:', channelId);
     this.subscribeToChannel(`/topic/messages/${channelId}`, (message) => {
+      console.log('WebSocketService: Received message on conversation channel:', channelId, message);
       this.handleIncomingMessage(message);
     });
   }
@@ -289,10 +295,12 @@ class WebSocketService {
    */
   private handleIncomingMessage(message: IMessage): void {
     try {
+      console.log('WebSocketService: Raw incoming message:', message.body);
       const realTimeMessage: RealTimeMessage = JSON.parse(message.body);
-      console.log('Received real-time message:', realTimeMessage);
+      console.log('WebSocketService: Parsed real-time message:', realTimeMessage);
       
       // Notify all message handlers
+      console.log('WebSocketService: Notifying', this.messageHandlers.size, 'message handlers');
       this.messageHandlers.forEach(handler => {
         try {
           handler(realTimeMessage);

@@ -34,9 +34,16 @@ public class RealTimeMessageServiceImpl implements RealTimeMessageService {
 
     @Override
     public void broadcastMessageSent(MessageDTO message) {
+        log.info("Starting to broadcast message sent: {}", message.id());
+        log.info("Message details - Sender: {}, Recipient: {}, Content: {}", 
+                message.senderId(), message.recipientId(), message.content());
+        
         List<String> targetChannels = messageChannelService.determineTargetChannels(message);
+        log.info("Determined target channels: {}", targetChannels);
         
         for (String channelId : targetChannels) {
+            log.info("Broadcasting to channel: {}", channelId);
+            
             RealTimeMessageDTO realTimeMessage = convertToRealTimeDTO(
                 message, 
                 "SENT", 
@@ -44,12 +51,15 @@ public class RealTimeMessageServiceImpl implements RealTimeMessageService {
                 "New message received"
             );
             
+            log.info("Created real-time message DTO: {}", realTimeMessage);
+            
             sendToChannel(channelId, realTimeMessage);
             publishToRedis(channelId, realTimeMessage);
         }
         
         // Send unread count update to recipient
         if (message.recipientId() != null) {
+            log.info("Sending unread count update to recipient: {}", message.recipientId());
             sendUnreadCountUpdate(message.recipientId(), null);
         }
         
@@ -176,8 +186,11 @@ public class RealTimeMessageServiceImpl implements RealTimeMessageService {
     public void sendToChannel(String channelId, RealTimeMessageDTO realTimeMessage) {
         try {
             String destination = WEBSOCKET_TOPIC_PREFIX + channelId;
+            log.info("Sending real-time message to WebSocket destination: {}", destination);
+            log.info("Message content: {}", realTimeMessage);
+            
             messagingTemplate.convertAndSend(destination, realTimeMessage);
-            log.debug("Sent real-time message to WebSocket topic: {}", destination);
+            log.info("Successfully sent real-time message to WebSocket topic: {}", destination);
         } catch (Exception e) {
             log.error("Failed to send real-time message to channel {}: {}", channelId, e.getMessage(), e);
         }

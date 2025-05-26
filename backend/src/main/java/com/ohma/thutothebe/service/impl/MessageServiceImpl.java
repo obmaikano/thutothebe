@@ -226,7 +226,7 @@ public class MessageServiceImpl extends BaseServiceImpl<Message, MessageDTO, Lon
                 conversation.put("id", partnerId.toString());
                 conversation.put("name", partnerName);
                 conversation.put("lastMessage", message.getContent());
-                conversation.put("lastMessageTime", formatTimeAgo(message.getCreatedAt()));
+                conversation.put("lastMessageTime", message.getCreatedAt().toString());
                 conversation.put("unreadCount", getUnreadMessageCountForConversation(userId, partnerId));
                 conversation.put("type", "individual");
                 conversation.put("participantId", partnerId);
