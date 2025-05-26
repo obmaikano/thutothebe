@@ -53,6 +53,11 @@ public class ClassMapperImpl implements ClassMapper {
             entity.getId(),
             entity.getName(),
             entity.getDescription(),
+            entity.getGradeLevel(),
+            entity.getCapacity(),
+            entity.getTotalEnrolled(),
+            entity.getSpotsLeft(),
+            entity.getOverCapacity(),
             entity.getSchool() != null ? entity.getSchool().getId() : null,
             teacherIds,
             studentIds,
@@ -69,6 +74,8 @@ public class ClassMapperImpl implements ClassMapper {
         entity.setId(dto.id());
         entity.setName(dto.name());
         entity.setDescription(dto.description());
+        entity.setGradeLevel(dto.gradeLevel());
+        entity.setCapacity(dto.capacity() != null ? dto.capacity() : 30);
         entity.setActive(dto.active());
         
         if (dto.schoolId() != null) {

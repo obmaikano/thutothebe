@@ -56,6 +56,8 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     protected void updateEntity(Class entity, ClassDTO dto) {
         entity.setName(dto.name());
         entity.setDescription(dto.description());
+        entity.setGradeLevel(dto.gradeLevel());
+        entity.setCapacity(dto.capacity() != null ? dto.capacity() : 30);
         entity.setActive(dto.active());
         if (dto.schoolId() != null) {
             School school = schoolRepository.findById(dto.schoolId())
