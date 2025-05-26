@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { fetchTeacherById } from '../../teachers/teachersSlice';
+import { fetchTeacherById, activateTeacher, deactivateTeacher } from '../../teachers/teachersSlice';
 import { Teacher } from '../../../api/services/teacherApi';
 import classApi, { Class } from '../../../api/services/classApi';
 import courseApi, { Course } from '../../../api/services/courseApi';
@@ -10,7 +10,7 @@ import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { 
   ArrowLeft, User, Mail, Phone, MapPin, GraduationCap, 
   Calendar, BookOpen, Users, Award, CheckCircle, XCircle, 
-  Edit, Trash2, UserCheck, UserX, Clock, Code
+  Edit, Trash2, UserCheck, UserX, Clock, Code, Plus
 } from 'lucide-react';
 
 const StaffDetailPage: React.FC = () => {
@@ -81,8 +81,41 @@ const StaffDetailPage: React.FC = () => {
   };
 
   const handleToggleStatus = async () => {
-    // Implementation for toggling teacher status
-    console.log('Toggle teacher status');
+    if (currentTeacher) {
+      try {
+        if (currentTeacher.active) {
+          await dispatch(deactivateTeacher(currentTeacher.id)).unwrap();
+        } else {
+          await dispatch(activateTeacher(currentTeacher.id)).unwrap();
+        }
+        // Refresh the teacher data
+        dispatch(fetchTeacherById(currentTeacher.id));
+      } catch (error) {
+        console.error('Failed to toggle teacher status:', error);
+      }
+    }
+  };
+
+  const handleAssignCourse = () => {
+    if (currentTeacher) {
+      dispatch(openModal({
+        title: 'Assign Course',
+        bodyType: MODAL_BODY_TYPES.TEACHER_ASSIGN_COURSE,
+        extraObject: currentTeacher,
+        size: 'lg'
+      }));
+    }
+  };
+
+  const handleAssignClass = () => {
+    if (currentTeacher) {
+      dispatch(openModal({
+        title: 'Assign Class',
+        bodyType: MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS,
+        extraObject: currentTeacher,
+        size: 'lg'
+      }));
+    }
   };
 
   if (status === 'loading' || loading) {
@@ -118,10 +151,24 @@ const StaffDetailPage: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900">
               {currentTeacher.firstName} {currentTeacher.lastName}
             </h1>
-            <p className="text-gray-600 mt-1">Staff ID: {currentTeacher.staffId}</p>
+            <p className="text-gray-600 mt-1">Staff Profile & Assignment Management</p>
           </div>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={handleAssignCourse}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Plus size={16} />
+            Assign Course
+          </button>
+          <button
+            onClick={handleAssignClass}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Plus size={16} />
+            Assign Class
+          </button>
           <button
             onClick={handleEdit}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -159,11 +206,20 @@ const StaffDetailPage: React.FC = () => {
             </span>
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {currentTeacher.firstName} {currentTeacher.lastName}
-            </h2>
+            <div className="flex items-center gap-4 mb-4">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {currentTeacher.firstName} {currentTeacher.lastName}
+              </h2>
+              <div className="flex gap-2">
+                <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                  currentTeacher.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {currentTeacher.active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
             <p className="text-lg text-gray-700 mb-4">{currentTeacher.qualification}</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex items-center gap-2 text-gray-600">
                 <Mail size={16} />
                 <span>{currentTeacher.email}</span>
@@ -172,18 +228,9 @@ const StaffDetailPage: React.FC = () => {
                 <User size={16} />
                 <span>Staff ID: {currentTeacher.staffId}</span>
               </div>
-              <div className="flex items-center gap-2">
-                {currentTeacher.active ? (
-                  <>
-                    <CheckCircle size={16} className="text-green-600" />
-                    <span className="text-green-600 font-medium">Active</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle size={16} className="text-red-600" />
-                    <span className="text-red-600 font-medium">Inactive</span>
-                  </>
-                )}
+              <div className="flex items-center gap-2 text-gray-600">
+                <GraduationCap size={16} />
+                <span>{currentTeacher.qualification}</span>
               </div>
             </div>
           </div>
@@ -198,140 +245,164 @@ const StaffDetailPage: React.FC = () => {
               <BookOpen size={24} className="text-green-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">{courses.length}</div>
-              <div className="text-sm text-gray-500">Courses</div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Users size={24} className="text-purple-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">{classes.length}</div>
-              <div className="text-sm text-gray-500">Classes</div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <Award size={24} className="text-orange-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">
-                {currentTeacher.active ? 'Active' : 'Inactive'}
-              </div>
-              <div className="text-sm text-gray-500">Status</div>
+              <p className="text-2xl font-bold text-gray-900">{courses.length}</p>
+              <p className="text-sm text-gray-600">Assigned Courses</p>
             </div>
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-100 rounded-lg">
-              <GraduationCap size={24} className="text-blue-600" />
+              <Users size={24} className="text-blue-600" />
             </div>
             <div>
-              <div className="text-lg font-bold text-gray-900">Qualified</div>
-              <div className="text-sm text-gray-500">Certification</div>
+              <p className="text-2xl font-bold text-gray-900">{classes.length}</p>
+              <p className="text-sm text-gray-600">Assigned Classes</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <CheckCircle size={24} className="text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{currentTeacher.active ? 'Active' : 'Inactive'}</p>
+              <p className="text-sm text-gray-600">Status</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-yellow-100 rounded-lg">
+              <Award size={24} className="text-yellow-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">Certified</p>
+              <p className="text-sm text-gray-600">Qualification</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Courses Section */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <BookOpen size={24} className="text-blue-600" />
-            <h3 className="text-xl font-semibold text-gray-900">Assigned Courses</h3>
+      {/* Assigned Courses Section */}
+      <div className="bg-white border border-gray-200 rounded-lg">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Assigned Courses</h3>
+            <button
+              onClick={handleAssignCourse}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+            >
+              <Plus size={14} />
+              Assign Course
+            </button>
           </div>
-          <span className="text-sm text-gray-500">{courses.length} courses</span>
         </div>
-        {courses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {courses.map((course) => (
-              <div key={course.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-gray-900">{course.name}</h4>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    course.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {course.active ? 'Active' : 'Inactive'}
-                  </span>
+        <div className="p-6">
+          {courses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {courses.map((course) => (
+                <div key={course.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-gray-900">{course.name}</h4>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      course.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {course.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Code size={14} />
+                      <span>Code: {course.code}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar size={14} />
+                      <span>Year: {course.year}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock size={14} />
+                      <span>Term: {course.term}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Code size={14} />
-                    <span>Code: {course.code}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar size={14} />
-                    <span>Year {course.year} - {course.term} Term</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Award size={14} />
-                    <span>{course.type}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <BookOpen size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500">No courses assigned</p>
-          </div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <BookOpen size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600 mb-4">No courses assigned yet</p>
+              <button
+                onClick={handleAssignCourse}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto"
+              >
+                <Plus size={16} />
+                Assign First Course
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Classes Section */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Users size={24} className="text-purple-600" />
-            <h3 className="text-xl font-semibold text-gray-900">Assigned Classes</h3>
+      {/* Assigned Classes Section */}
+      <div className="bg-white border border-gray-200 rounded-lg">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Assigned Classes</h3>
+            <button
+              onClick={handleAssignClass}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+            >
+              <Plus size={14} />
+              Assign Class
+            </button>
           </div>
-          <span className="text-sm text-gray-500">{classes.length} classes</span>
         </div>
-        {classes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {classes.map((classItem) => (
-              <div key={classItem.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-gray-900">{classItem.name}</h4>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    classItem.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {classItem.active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <GraduationCap size={14} />
-                    <span>Grade {classItem.grade}</span>
+        <div className="p-6">
+          {classes.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {classes.map((classItem) => (
+                <div key={classItem.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-gray-900">{classItem.name}</h4>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      classItem.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {classItem.active ? 'Active' : 'Inactive'}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Users size={14} />
-                    <span>Capacity: {classItem.capacity || 'Not set'}</span>
-                  </div>
-                  {classItem.currentEnrollment !== undefined && (
+                  <div className="space-y-1 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <Users size={14} />
-                      <span>Enrolled: {classItem.currentEnrollment}</span>
+                      <span>Students: {classItem.currentEnrollment || 0}</span>
                     </div>
-                  )}
+                    <div className="flex items-center gap-2">
+                      <GraduationCap size={14} />
+                      <span>Grade: {classItem.grade}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users size={14} />
+                      <span>Capacity: {classItem.capacity || 'Not set'}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Users size={48} className="mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500">No classes assigned</p>
-          </div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600 mb-4">No classes assigned yet</p>
+              <button
+                onClick={handleAssignClass}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto"
+              >
+                <Plus size={16} />
+                Assign First Class
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

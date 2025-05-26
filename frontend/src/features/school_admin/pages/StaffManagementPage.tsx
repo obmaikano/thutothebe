@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import { useNavigate } from 'react-router-dom';
 import { fetchTeachers, clearTeachersError, activateTeacher, deactivateTeacher } from '../../teachers/teachersSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
@@ -8,6 +9,7 @@ import { Plus, Search, Users, Edit, Trash2, Eye, UserCheck, UserX, Filter, Downl
 
 const StaffManagementPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { teachers, status, error } = useAppSelector(state => state.teachers);
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
@@ -33,7 +35,8 @@ const StaffManagementPage: React.FC = () => {
     dispatch(openModal({
       title: 'Edit Teacher',
       bodyType: MODAL_BODY_TYPES.TEACHER_EDIT,
-      extraObject: teacher
+      extraObject: teacher,
+      size: 'lg'
     }));
   };
 
@@ -52,18 +55,15 @@ const StaffManagementPage: React.FC = () => {
       } else {
         await dispatch(activateTeacher(teacher.id)).unwrap();
       }
+      // Refresh the teachers list
+      dispatch(fetchTeachers());
     } catch (error) {
       console.error('Failed to toggle teacher status:', error);
     }
   };
 
   const handleViewDetails = (teacher: Teacher) => {
-    dispatch(openModal({
-      title: 'Teacher Details',
-      bodyType: MODAL_BODY_TYPES.TEACHER_VIEW_DETAILS,
-      extraObject: teacher,
-      size: 'xl'
-    }));
+    navigate(`/app/staff/${teacher.id}`);
   };
 
   const handleExportData = () => {
