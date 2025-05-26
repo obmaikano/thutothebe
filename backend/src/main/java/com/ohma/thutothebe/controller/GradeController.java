@@ -18,7 +18,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/grades")
+@RequestMapping("/grades")
 @Tag(name = "Grade Management", description = "Grade management operations for ThutoLMS")
 public class GradeController extends BaseController<GradeDTO, Long> {
 
@@ -341,6 +341,82 @@ public class GradeController extends BaseController<GradeDTO, Long> {
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId) {
         try {
             boolean exists = gradeService.existsByStudentIdAndAssignmentId(studentId, assignmentId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade existence checked successfully", exists, null));
+        } catch (Exception e) {
+            log.error("Error checking grade existence: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/category/{gradeCategoryId}")
+    @Operation(summary = "Get grades by grade category")
+    public ResponseEntity<OhmaApiResponse<List<GradeDTO>>> getGradesByCategory(
+            @Parameter(description = "Grade Category ID") @PathVariable Long gradeCategoryId) {
+        try {
+            List<GradeDTO> grades = gradeService.findByGradeCategoryId(gradeCategoryId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade category grades retrieved successfully", grades, null));
+        } catch (Exception e) {
+            log.error("Error retrieving grade category grades: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/student/{studentId}/category/{gradeCategoryId}")
+    @Operation(summary = "Get grades for student in specific grade category")
+    public ResponseEntity<OhmaApiResponse<List<GradeDTO>>> getGradesByStudentAndCategory(
+            @Parameter(description = "Student ID") @PathVariable Long studentId,
+            @Parameter(description = "Grade Category ID") @PathVariable Long gradeCategoryId) {
+        try {
+            List<GradeDTO> grades = gradeService.findByStudentIdAndGradeCategoryId(studentId, gradeCategoryId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student grade category grades retrieved successfully", grades, null));
+        } catch (Exception e) {
+            log.error("Error retrieving student grade category grades: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/statistics/average/category/{gradeCategoryId}")
+    @Operation(summary = "Calculate average score for grade category")
+    public ResponseEntity<OhmaApiResponse<Double>> getAverageScoreByGradeCategory(
+            @Parameter(description = "Grade Category ID") @PathVariable Long gradeCategoryId) {
+        try {
+            Double average = gradeService.calculateAverageScoreByGradeCategory(gradeCategoryId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade category average calculated successfully", average, null));
+        } catch (Exception e) {
+            log.error("Error calculating grade category average: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/category")
+    @Operation(summary = "Create grade for grade category")
+    public ResponseEntity<OhmaApiResponse<GradeDTO>> createGradeForCategory(
+            @Parameter(description = "Student ID") @RequestParam Long studentId,
+            @Parameter(description = "Grade Category ID") @RequestParam Long gradeCategoryId,
+            @Parameter(description = "Score") @RequestParam Double score,
+            @Parameter(description = "Graded by user ID") @RequestParam Long gradedById,
+            @Parameter(description = "Feedback") @RequestParam(required = false) String feedback) {
+        try {
+            GradeDTO grade = gradeService.createGradeForCategory(studentId, gradeCategoryId, score, gradedById, feedback);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade category grade created successfully", grade, null));
+        } catch (Exception e) {
+            log.error("Error creating grade category grade: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/exists/student/{studentId}/category/{gradeCategoryId}")
+    @Operation(summary = "Check if grade exists for student and grade category")
+    public ResponseEntity<OhmaApiResponse<Boolean>> checkGradeExistsForCategory(
+            @Parameter(description = "Student ID") @PathVariable Long studentId,
+            @Parameter(description = "Grade Category ID") @PathVariable Long gradeCategoryId) {
+        try {
+            boolean exists = gradeService.existsByStudentIdAndGradeCategoryId(studentId, gradeCategoryId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade existence checked successfully", exists, null));
         } catch (Exception e) {
             log.error("Error checking grade existence: {}", e.getMessage(), e);

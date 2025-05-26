@@ -6,11 +6,13 @@ import com.ohma.thutothebe.entity.Course;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.entity.Assessment;
 import com.ohma.thutothebe.entity.Assignment;
+import com.ohma.thutothebe.entity.GradeCategory;
 import com.ohma.thutothebe.mapper.BaseDtoMapper;
 import com.ohma.thutothebe.repository.UserRepository;
 import com.ohma.thutothebe.repository.CourseRepository;
 import com.ohma.thutothebe.repository.AssessmentRepository;
 import com.ohma.thutothebe.repository.AssignmentRepository;
+import com.ohma.thutothebe.repository.GradeCategoryRepository;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -30,6 +32,9 @@ public class GradeMapper implements BaseDtoMapper<Grade, GradeDTO> {
     @Autowired
     private AssignmentRepository assignmentRepository;
 
+    @Autowired
+    private GradeCategoryRepository gradeCategoryRepository;
+
     @Override
     public GradeDTO toDto(Grade entity) {
         if (entity == null) {
@@ -40,6 +45,7 @@ public class GradeMapper implements BaseDtoMapper<Grade, GradeDTO> {
                 entity.getId(),
                 entity.getStudent() != null ? entity.getStudent().getId() : null,
                 entity.getCourse() != null ? entity.getCourse().getId() : null,
+                entity.getGradeCategory() != null ? entity.getGradeCategory().getId() : null,
                 entity.getAssessment() != null ? entity.getAssessment().getId() : null,
                 entity.getAssignment() != null ? entity.getAssignment().getId() : null,
                 entity.getGradeType(),
@@ -95,6 +101,12 @@ public class GradeMapper implements BaseDtoMapper<Grade, GradeDTO> {
             grade.setCourse(course);
         }
 
+        if (dto.gradeCategoryId() != null) {
+            GradeCategory gradeCategory = gradeCategoryRepository.findById(dto.gradeCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Grade category not found with id: " + dto.gradeCategoryId()));
+            grade.setGradeCategory(gradeCategory);
+        }
+
         if (dto.assessmentId() != null) {
             Assessment assessment = assessmentRepository.findById(dto.assessmentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Assessment not found with id: " + dto.assessmentId()));
@@ -122,8 +134,8 @@ public class GradeMapper implements BaseDtoMapper<Grade, GradeDTO> {
         return grade;
     }
 
-    public Grade toEntityWithReferences(GradeDTO dto, User student, Course course, Assessment assessment, 
-                                       Assignment assignment, User gradedBy, User moderatedBy) {
+    public Grade toEntityWithReferences(GradeDTO dto, User student, Course course, GradeCategory gradeCategory,
+                                       Assessment assessment, Assignment assignment, User gradedBy, User moderatedBy) {
         Grade grade = new Grade();
         grade.setId(dto.id());
         grade.setScore(dto.score());
@@ -142,6 +154,7 @@ public class GradeMapper implements BaseDtoMapper<Grade, GradeDTO> {
         // Set provided entity references directly
         grade.setStudent(student);
         grade.setCourse(course);
+        grade.setGradeCategory(gradeCategory);
         grade.setAssessment(assessment);
         grade.setAssignment(assignment);
         grade.setGradedBy(gradedBy);

@@ -16,6 +16,8 @@ public record GradeDTO(
     @NotNull(message = "Course ID is required")
     Long courseId,
     
+    Long gradeCategoryId,
+    
     Long assessmentId,
     
     Long assignmentId,
@@ -28,8 +30,11 @@ public record GradeDTO(
     @DecimalMax(value = "100.0", message = "Score cannot exceed 100")
     Double score,
     
+    @DecimalMin(value = "0.0", message = "Max score cannot be negative")
+    @DecimalMax(value = "100.0", message = "Max score cannot exceed 100")
     Double maxScore,
     
+    @DecimalMin(value = "0.0", message = "Weight cannot be negative")
     Double weight,
     
     String feedback,
@@ -76,11 +81,14 @@ public record GradeDTO(
         if (score < 0 || score > 100) {
             throw new IllegalArgumentException("Score must be between 0 and 100");
         }
-        if (maxScore != null && maxScore <= 0) {
-            throw new IllegalArgumentException("Max score must be positive");
+        if (maxScore != null && (maxScore < 0 || maxScore > 100)) {
+            throw new IllegalArgumentException("Max score must be between 0 and 100");
         }
-        if (weight != null && (weight < 0 || weight > 100)) {
-            throw new IllegalArgumentException("Weight must be between 0 and 100");
+        if (weight != null && weight < 0) {
+            throw new IllegalArgumentException("Weight cannot be negative");
+        }
+        if (originalScore != null && (originalScore < 0 || originalScore > 100)) {
+            throw new IllegalArgumentException("Original score must be between 0 and 100");
         }
     }
 } 

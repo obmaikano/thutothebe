@@ -73,4 +73,16 @@ public interface GradeService extends BaseService<GradeDTO, Long> {
     void deactivateGrade(Long gradeId);
     
     void reactivateGrade(Long gradeId);
+
+    List<GradeDTO> findByGradeCategoryId(Long gradeCategoryId);
+    
+    List<GradeDTO> findByStudentIdAndGradeCategoryId(Long studentId, Long gradeCategoryId);
+    
+    Double calculateAverageScoreByGradeCategory(Long gradeCategoryId);
+    
+    Long countPassingGradesByGradeCategory(Long gradeCategoryId, Double passingGrade);
+    
+    boolean existsByStudentIdAndGradeCategoryId(Long studentId, Long gradeCategoryId);
+    
+    GradeDTO createGradeForCategory(Long studentId, Long gradeCategoryId, Double score, Long gradedById, String feedback);
 } 

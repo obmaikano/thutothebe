@@ -26,6 +26,10 @@ public class Grade extends BaseEntity {
     private Course course;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "grade_category_id")
+    private GradeCategory gradeCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assessment_id")
     private Assessment assessment;
 

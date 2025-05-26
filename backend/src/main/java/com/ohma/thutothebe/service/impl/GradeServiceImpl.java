@@ -38,6 +38,9 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
     private AssignmentRepository assignmentRepository;
 
     @Autowired
+    private GradeCategoryRepository gradeCategoryRepository;
+
+    @Autowired
     private GradeMapper gradeMapper;
 
     public GradeServiceImpl(GradeRepository gradeRepository) {
@@ -60,6 +63,7 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
         entity.setScore(dto.score());
         entity.setMaxScore(dto.maxScore());
         entity.setWeight(dto.weight());
+        entity.setGradeType(dto.gradeType());
         entity.setFeedback(dto.feedback());
         entity.setFinal(dto.isFinal());
         entity.setModerated(dto.isModerated());
@@ -76,9 +80,12 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
         
         Course course = courseRepository.findById(dto.courseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + dto.courseId()));
-        
-        User gradedBy = userRepository.findById(dto.gradedById())
-                .orElseThrow(() -> new ResourceNotFoundException("Graded by user not found with id: " + dto.gradedById()));
+
+        GradeCategory gradeCategory = null;
+        if (dto.gradeCategoryId() != null) {
+            gradeCategory = gradeCategoryRepository.findById(dto.gradeCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Grade category not found with id: " + dto.gradeCategoryId()));
+        }
 
         Assessment assessment = null;
         if (dto.assessmentId() != null) {
@@ -92,17 +99,20 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
                     .orElseThrow(() -> new ResourceNotFoundException("Assignment not found with id: " + dto.assignmentId()));
         }
 
+        User gradedBy = userRepository.findById(dto.gradedById())
+                .orElseThrow(() -> new ResourceNotFoundException("Graded by user not found with id: " + dto.gradedById()));
+
         User moderatedBy = null;
         if (dto.moderatedById() != null) {
             moderatedBy = userRepository.findById(dto.moderatedById())
                     .orElseThrow(() -> new ResourceNotFoundException("Moderated by user not found with id: " + dto.moderatedById()));
         }
 
-        Grade grade = gradeMapper.toEntityWithReferences(dto, student, course, assessment, assignment, gradedBy, moderatedBy);
+        Grade grade = gradeMapper.toEntityWithReferences(dto, student, course, gradeCategory, assessment, assignment, gradedBy, moderatedBy);
         beforeCreate(grade);
         Grade savedGrade = gradeRepository.save(grade);
         
-        log.info("Created grade with id: {} for student: {} in course: {}", savedGrade.getId(), student.getId(), course.getId());
+        log.info("Created grade with id: {} for student: {}", savedGrade.getId(), student.getId());
         return gradeMapper.toDto(savedGrade);
     }
 
@@ -139,16 +149,8 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
     }
 
     @Override
-    public List<GradeDTO> findByStudentIdAndGradeType(Long studentId, GradeType gradeType) {
-        return gradeRepository.findByStudentIdAndGradeTypeAndActive(studentId, gradeType, true)
-                .stream()
-                .map(gradeMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GradeDTO> findByCourseIdAndGradeType(Long courseId, GradeType gradeType) {
-        return gradeRepository.findByCourseIdAndGradeTypeAndActive(courseId, gradeType, true)
+    public List<GradeDTO> findByTerm(Term term) {
+        return gradeRepository.findByStudentIdAndTermAndActive(null, term, true)
                 .stream()
                 .map(gradeMapper::toDto)
                 .collect(Collectors.toList());
@@ -171,54 +173,6 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
     }
 
     @Override
-    public List<GradeDTO> findByTerm(Term term) {
-        return gradeRepository.findByTermAndActive(term, true)
-                .stream()
-                .map(gradeMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GradeDTO> findByStudentIdAndTerm(Long studentId, Term term) {
-        return gradeRepository.findByStudentIdAndTermAndActive(studentId, term, true)
-                .stream()
-                .map(gradeMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GradeDTO> findByAcademicYear(Integer year) {
-        return gradeRepository.findByAcademicYearAndActive(year, true)
-                .stream()
-                .map(gradeMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GradeDTO> findByStudentIdAndAcademicYear(Long studentId, Integer year) {
-        return gradeRepository.findByStudentIdAndAcademicYearAndActive(studentId, year, true)
-                .stream()
-                .map(gradeMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GradeDTO> findByClassId(Long classId) {
-        return gradeRepository.findByClassIdAndActive(classId, true)
-                .stream()
-                .map(gradeMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GradeDTO> findByStudentIdAndClassId(Long studentId, Long classId) {
-        return gradeRepository.findByStudentIdAndClassIdAndActive(studentId, classId, true)
-                .stream()
-                .map(gradeMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public List<GradeDTO> findByTeacherId(Long teacherId) {
         return gradeRepository.findByTeacherIdAndActive(teacherId, true)
                 .stream()
@@ -228,57 +182,26 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
 
     @Override
     public Page<GradeDTO> findByStudentId(Long studentId, Pageable pageable) {
-        return gradeRepository.findByStudentIdAndActive(studentId, true)
-                .stream()
-                .map(gradeMapper::toDto)
-                .collect(Collectors.collectingAndThen(
-                        Collectors.toList(),
-                        list -> {
-                            int start = (int) pageable.getOffset();
-                            int end = Math.min((start + pageable.getPageSize()), list.size());
-                            return new org.springframework.data.domain.PageImpl<>(
-                                    list.subList(start, end), pageable, list.size());
-                        }));
-    }
-
-    @Override
-    public Page<GradeDTO> findByCourseId(Long courseId, Pageable pageable) {
-        return gradeRepository.findByCourseIdAndActive(courseId, true)
-                .stream()
-                .map(gradeMapper::toDto)
-                .collect(Collectors.collectingAndThen(
-                        Collectors.toList(),
-                        list -> {
-                            int start = (int) pageable.getOffset();
-                            int end = Math.min((start + pageable.getPageSize()), list.size());
-                            return new org.springframework.data.domain.PageImpl<>(
-                                    list.subList(start, end), pageable, list.size());
-                        }));
+        return gradeRepository.findByStudentIdAndActive(studentId, true, pageable)
+                .map(gradeMapper::toDto);
     }
 
     @Override
     public Double calculateAverageScoreByStudentAndCourse(Long studentId, Long courseId) {
-        return gradeRepository.findAverageScoreByStudentAndCourse(studentId, courseId).orElse(0.0);
+        return gradeRepository.findAverageScoreByStudentAndCourse(studentId, courseId)
+                .orElse(0.0);
     }
 
     @Override
     public Double calculateAverageScoreByCourse(Long courseId) {
-        return gradeRepository.findAverageScoreByCourse(courseId).orElse(0.0);
+        return gradeRepository.findAverageScoreByCourse(courseId)
+                .orElse(0.0);
     }
 
     @Override
     public Double calculateAverageScoreByStudent(Long studentId) {
-        return gradeRepository.findAverageScoreByStudent(studentId).orElse(0.0);
-    }
-
-    @Override
-    public Long countPassingGradesByStudent(Long studentId, Double passingGrade) {
-        return gradeRepository.countPassingGradesByStudent(studentId, passingGrade);
-    }
-
-    @Override
-    public Long countPassingGradesByCourse(Long courseId, Double passingGrade) {
-        return gradeRepository.countPassingGradesByCourse(courseId, passingGrade);
+        return gradeRepository.findAverageScoreByStudent(studentId)
+                .orElse(0.0);
     }
 
     @Override
@@ -289,10 +212,11 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
         User moderator = userRepository.findById(moderatorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Moderator not found with id: " + moderatorId));
 
+        // Store original score if not already stored
         if (grade.getOriginalScore() == null) {
             grade.setOriginalScore(grade.getScore());
         }
-        
+
         grade.setScore(newScore);
         grade.setModerated(true);
         grade.setModeratedBy(moderator);
@@ -302,12 +226,13 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
 
         Grade savedGrade = gradeRepository.save(grade);
         log.info("Moderated grade with id: {} by moderator: {}", gradeId, moderatorId);
+        
         return gradeMapper.toDto(savedGrade);
     }
 
     @Override
     public List<GradeDTO> findUnmoderatedGrades() {
-        return gradeRepository.findByIsModeratedAndActive(false, true)
+        return gradeRepository.findUnmoderatedGrades()
                 .stream()
                 .map(gradeMapper::toDto)
                 .collect(Collectors.toList());
@@ -315,37 +240,27 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
 
     @Override
     public List<GradeDTO> findModeratedGrades() {
-        return gradeRepository.findByIsModeratedAndActive(true, true)
+        return gradeRepository.findModeratedGrades()
                 .stream()
                 .map(gradeMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public boolean existsByStudentIdAndAssessmentId(Long studentId, Long assessmentId) {
-        return gradeRepository.existsByStudentIdAndAssessmentIdAndActive(studentId, assessmentId, true);
-    }
-
-    @Override
-    public boolean existsByStudentIdAndAssignmentId(Long studentId, Long assignmentId) {
-        return gradeRepository.existsByStudentIdAndAssignmentIdAndActive(studentId, assignmentId, true);
-    }
-
-    @Override
     public GradeDTO createGradeForAssessment(Long studentId, Long assessmentId, Double score, Long gradedById) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assessment not found with id: " + assessmentId));
-        
-        // For assessment grades, the course ID should be provided separately or derived from submission
-        // Since Assessment doesn't have direct course relationship, we'll need to get it from submission
-        Long courseId = assessment.getSubmission().getAssignment().getCourse().getId();
-        
+
+        // Get course from assessment through submission relationship
+        Course course = assessment.getSubmission().getAssignment().getCourse();
+
         GradeDTO gradeDTO = new GradeDTO(
-                null, studentId, courseId, assessmentId, null, GradeType.ASSESSMENT,
-                score, 100.0, 1.0, null, gradedById, LocalDateTime.now(),
-                false, false, null, null, null, null, true, null, null
+                null, studentId, course.getId(), null, assessmentId, null,
+                GradeType.ASSESSMENT, score, 100.0, 1.0, null, gradedById,
+                LocalDateTime.now(), false, false, null, null, null, null,
+                true, null, null
         );
-        
+
         return create(gradeDTO);
     }
 
@@ -353,15 +268,14 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
     public GradeDTO createGradeForAssignment(Long studentId, Long assignmentId, Double score, Long gradedById) {
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found with id: " + assignmentId));
-        
-        Long courseId = assignment.getCourse().getId();
-        
+
         GradeDTO gradeDTO = new GradeDTO(
-                null, studentId, courseId, null, assignmentId, GradeType.ASSIGNMENT,
-                score, 100.0, 1.0, null, gradedById, LocalDateTime.now(),
-                false, false, null, null, null, null, true, null, null
+                null, studentId, assignment.getCourse().getId(), null, null, assignmentId,
+                GradeType.ASSIGNMENT, score, 100.0, 1.0, null, gradedById,
+                LocalDateTime.now(), false, false, null, null, null, null,
+                true, null, null
         );
-        
+
         return create(gradeDTO);
     }
 
@@ -394,5 +308,159 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
         gradeRepository.save(grade);
         
         log.info("Reactivated grade with id: {}", gradeId);
+    }
+
+    @Override
+    public boolean existsByStudentIdAndAssessmentId(Long studentId, Long assessmentId) {
+        return gradeRepository.existsByStudentIdAndAssessmentIdAndActive(studentId, assessmentId, true);
+    }
+
+    @Override
+    public boolean existsByStudentIdAndAssignmentId(Long studentId, Long assignmentId) {
+        return gradeRepository.existsByStudentIdAndAssignmentIdAndActive(studentId, assignmentId, true);
+    }
+
+    @Override
+    public List<GradeDTO> findByGradeCategoryId(Long gradeCategoryId) {
+        return gradeRepository.findByGradeCategoryIdAndActive(gradeCategoryId, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GradeDTO> findByStudentIdAndGradeCategoryId(Long studentId, Long gradeCategoryId) {
+        return gradeRepository.findByStudentIdAndGradeCategoryIdAndActive(studentId, gradeCategoryId, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Double calculateAverageScoreByGradeCategory(Long gradeCategoryId) {
+        return gradeRepository.findAverageScoreByGradeCategory(gradeCategoryId)
+                .orElse(0.0);
+    }
+
+    @Override
+    public Long countPassingGradesByGradeCategory(Long gradeCategoryId, Double passingGrade) {
+        return gradeRepository.countPassingGradesByGradeCategory(gradeCategoryId, passingGrade);
+    }
+
+    @Override
+    public boolean existsByStudentIdAndGradeCategoryId(Long studentId, Long gradeCategoryId) {
+        return gradeRepository.existsByStudentIdAndGradeCategoryIdAndActive(studentId, gradeCategoryId, true);
+    }
+
+    @Override
+    public GradeDTO createGradeForCategory(Long studentId, Long gradeCategoryId, Double score, Long gradedById, String feedback) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
+        
+        GradeCategory gradeCategory = gradeCategoryRepository.findById(gradeCategoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Grade category not found with id: " + gradeCategoryId));
+        
+        User gradedBy = userRepository.findById(gradedById)
+                .orElseThrow(() -> new ResourceNotFoundException("Graded by user not found with id: " + gradedById));
+
+        // Use the grade category's weight and max grade
+        Double weight = gradeCategory.getWeight();
+        Double maxScore = gradeCategory.getMaxGrade() != null ? gradeCategory.getMaxGrade() : 100.0;
+
+        GradeDTO gradeDTO = new GradeDTO(
+                null, studentId, gradeCategory.getCourse().getId(), gradeCategoryId, null, null,
+                GradeType.ASSESSMENT, score, maxScore, weight, feedback, gradedById,
+                LocalDateTime.now(), false, false, null, null, null, null,
+                true, null, null
+        );
+
+        Grade grade = gradeMapper.toEntityWithReferences(gradeDTO, student, gradeCategory.getCourse(), 
+                gradeCategory, null, null, gradedBy, null);
+        beforeCreate(grade);
+        Grade savedGrade = gradeRepository.save(grade);
+        
+        log.info("Created grade for category with id: {} for student: {}", gradeCategoryId, studentId);
+        return gradeMapper.toDto(savedGrade);
+    }
+
+    @Override
+    public List<GradeDTO> findByStudentIdAndGradeType(Long studentId, GradeType gradeType) {
+        return gradeRepository.findByStudentIdAndGradeTypeAndActive(studentId, gradeType, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GradeDTO> findByCourseIdAndGradeType(Long courseId, GradeType gradeType) {
+        return gradeRepository.findByCourseIdAndGradeTypeAndActive(courseId, gradeType, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GradeDTO> findByStudentIdAndTerm(Long studentId, Term term) {
+        return gradeRepository.findByStudentIdAndTermAndActive(studentId, term, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GradeDTO> findByAcademicYear(Integer year) {
+        return gradeRepository.findByStudentIdAndAcademicYearAndActive(null, year, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GradeDTO> findByStudentIdAndAcademicYear(Long studentId, Integer year) {
+        return gradeRepository.findByStudentIdAndAcademicYearAndActive(studentId, year, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GradeDTO> findByClassId(Long classId) {
+        return gradeRepository.findByClassIdAndActive(classId, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<GradeDTO> findByStudentIdAndClassId(Long studentId, Long classId) {
+        return gradeRepository.findByStudentIdAndClassIdAndActive(studentId, classId, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<GradeDTO> findByCourseId(Long courseId, Pageable pageable) {
+        return gradeRepository.findByCourseIdAndActive(courseId, true)
+                .stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toList(),
+                        list -> {
+                            int start = (int) pageable.getOffset();
+                            int end = Math.min((start + pageable.getPageSize()), list.size());
+                            return new org.springframework.data.domain.PageImpl<>(
+                                    list.subList(start, end), pageable, list.size());
+                        }));
+    }
+
+    @Override
+    public Long countPassingGradesByStudent(Long studentId, Double passingGrade) {
+        return gradeRepository.countPassingGradesByStudent(studentId, passingGrade);
+    }
+
+    @Override
+    public Long countPassingGradesByCourse(Long courseId, Double passingGrade) {
+        return gradeRepository.countPassingGradesByCourse(courseId, passingGrade);
     }
 } 
