@@ -235,7 +235,12 @@ export const departmentHeadMenuItems: MenuItem[] = [
 
 // School Admin menu items
 export const schoolAdminMenuItems: MenuItem[] = [
-  ...commonMenuItems,
+  { 
+    icon: LayoutGrid, 
+    label: 'Dashboard', 
+    path: '/app/dashboard',
+    description: 'Overview of your activities'
+  },
   {
     icon: Users,
     label: 'Staff Management',
@@ -305,6 +310,12 @@ export const schoolAdminMenuItems: MenuItem[] = [
     label: 'Settings',
     path: '/app/settings',
     description: 'School configuration'
+  },
+  {
+    icon: HelpCircle,
+    label: 'Help',
+    path: '/app/school-admin-help',
+    description: 'School admin support and documentation'
   }
 ];
 

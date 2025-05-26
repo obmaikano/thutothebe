@@ -33,6 +33,9 @@ const StudentMessages = lazy(() => import('../pages/protected/StudentMessagesPag
 const StudentSchedule = lazy(() => import('../pages/protected/StudentSchedule'));
 const StudentHelp = lazy(() => import('../pages/protected/StudentHelp'));
 
+// School Admin role pages
+const SchoolAdminHelp = lazy(() => import('../pages/protected/SchoolAdminHelp'));
+
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
 
 // App routes - nested under /app path
@@ -149,6 +152,11 @@ export const appRoutes = [
   {
     path: 'help',
     element: StudentHelp
+  },
+  // School Admin role routes
+  {
+    path: 'school-admin-help',
+    element: SchoolAdminHelp
   },
   // Default redirect
   {
