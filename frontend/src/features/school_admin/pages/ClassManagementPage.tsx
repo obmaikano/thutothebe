@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { fetchClasses, clearClassesError } from '../../classes/classesSlice';
+import { fetchClassesWithTeachers, assignTeacherToClass, removeTeacherFromClass, clearClassesError } from '../../classes/classesSlice';
 import { fetchTeachers } from '../../teachers/teachersSlice';
 import { fetchStudents } from '../../students/studentsSlice';
 import { openModal } from '../../common/modalSlice';
@@ -14,17 +14,28 @@ const ClassManagementPage: React.FC = () => {
   const { teachers } = useAppSelector(state => state.teachers);
   const { students } = useAppSelector(state => state.students);
   const [searchTerm, setSearchTerm] = useState('');
-  const [gradeFilter, setGradeFilter] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
+  const [lastTeacherAssignmentTime, setLastTeacherAssignmentTime] = useState<number>(0);
 
   useEffect(() => {
-    dispatch(fetchClasses());
+    dispatch(fetchClassesWithTeachers());
     dispatch(fetchTeachers());
     dispatch(fetchStudents());
     return () => {
       dispatch(clearClassesError());
     };
   }, [dispatch]);
+
+  // Refetch classes when teacher assignments are made
+  useEffect(() => {
+    if (status === 'succeeded' && lastTeacherAssignmentTime > 0) {
+      const timeoutId = setTimeout(() => {
+        dispatch(fetchClassesWithTeachers());
+      }, 500); // Small delay to ensure backend has processed the assignment
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [dispatch, status, lastTeacherAssignmentTime]);
 
   const handleCreateClass = () => {
     dispatch(openModal({
@@ -62,6 +73,24 @@ const ClassManagementPage: React.FC = () => {
     }));
   };
 
+  const handleAssignTeacher = async (classItem: Class, teacherId: number) => {
+    try {
+      await dispatch(assignTeacherToClass({ classId: classItem.id, teacherId })).unwrap();
+      setLastTeacherAssignmentTime(Date.now());
+    } catch (error) {
+      console.error('Failed to assign teacher:', error);
+    }
+  };
+
+  const handleRemoveTeacher = async (classItem: Class, teacherId: number) => {
+    try {
+      await dispatch(removeTeacherFromClass({ classId: classItem.id, teacherId })).unwrap();
+      setLastTeacherAssignmentTime(Date.now());
+    } catch (error) {
+      console.error('Failed to remove teacher:', error);
+    }
+  };
+
   const handleManageTimetable = (classItem: Class) => {
     window.location.href = `/app/timetable/${classItem.id}`;
   };
@@ -83,15 +112,12 @@ const ClassManagementPage: React.FC = () => {
       classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (classItem.description && classItem.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesGrade = 
-      gradeFilter === '' || classItem.grade.toString() === gradeFilter;
-
     const matchesActive = 
       activeFilter === '' ||
       (activeFilter === 'active' && classItem.active) ||
       (activeFilter === 'inactive' && !classItem.active);
 
-    return matchesSearch && matchesGrade && matchesActive;
+    return matchesSearch && matchesActive;
   });
 
   const getTeacherNames = (teacherIds: number[] | undefined) => {
@@ -111,22 +137,6 @@ const ClassManagementPage: React.FC = () => {
   const getStudentCountByClass = (classId: number) => {
     return students.filter(s => s.classId === classId).length;
   };
-
-  const getGradeBadgeColor = (grade: number) => {
-    switch (grade) {
-      case 1: return 'bg-blue-100 text-blue-800';
-      case 2: return 'bg-green-100 text-green-800';
-      case 3: return 'bg-yellow-100 text-yellow-800';
-      case 4: return 'bg-orange-100 text-orange-800';
-      case 5: return 'bg-red-100 text-red-800';
-      case 6: return 'bg-purple-100 text-purple-800';
-      case 7: return 'bg-pink-100 text-pink-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  // Get unique values for filters
-  const grades = [...new Set(classes.map(c => c.grade))].sort();
 
   if (status === 'loading') {
     return (
@@ -196,20 +206,7 @@ const ClassManagementPage: React.FC = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <select 
-            value={gradeFilter}
-            onChange={(e) => setGradeFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Grades</option>
-            {grades.map((grade) => (
-              <option key={grade} value={grade.toString()}>
-                Grade {grade}
-              </option>
-            ))}
-          </select>
-          
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <select 
             value={activeFilter}
             onChange={(e) => setActiveFilter(e.target.value)}
@@ -225,7 +222,6 @@ const ClassManagementPage: React.FC = () => {
           <button
             onClick={() => {
               setSearchTerm('');
-              setGradeFilter('');
               setActiveFilter('');
             }}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -291,117 +287,162 @@ const ClassManagementPage: React.FC = () => {
         </div>
       )}
 
-      {/* Classes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredClasses.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-500">
-            <BookOpen size={48} className="text-gray-300 mb-4" />
-            <p className="text-lg font-medium">No classes found</p>
-            <p className="text-sm">Try adjusting your search criteria or create a new class.</p>
-          </div>
-        ) : (
-          filteredClasses.map((classItem: Class) => (
-            <div key={classItem.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
-                  <p className="text-sm text-gray-600">{classItem.description || 'No description'}</p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getGradeBadgeColor(classItem.grade)}`}>
-                    Grade {classItem.grade}
-                  </span>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    classItem.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {classItem.active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Teachers:</span>
-                  <span className="text-sm font-medium text-gray-900 text-right max-w-32 truncate" title={getTeacherNames(classItem.teacherIds)}>
-                    {getTeacherNames(classItem.teacherIds)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Students:</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {getStudentCountByClass(classItem.id)}
-                    {classItem.capacity && ` / ${classItem.capacity}`}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Capacity:</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {classItem.capacity || 'Not set'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Enrollment:</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {classItem.currentEnrollment || getStudentCountByClass(classItem.id)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-                <button
-                  onClick={() => handleViewDetails(classItem)}
-                  className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
-                >
-                  <Eye size={12} />
-                  View Details
-                </button>
-                <button
-                  onClick={() => handleAssignStudents(classItem)}
-                  className="flex items-center gap-1 px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors"
-                >
-                  <Users size={12} />
-                  Assign Students
-                </button>
-                <button
-                  onClick={() => handleManageTimetable(classItem)}
-                  className="flex items-center gap-1 px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors"
-                >
-                  <Calendar size={12} />
-                  Timetable
-                </button>
-                <button
-                  onClick={() => handleTakeAttendance(classItem)}
-                  className="flex items-center gap-1 px-3 py-1 text-xs bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 transition-colors"
-                >
-                  <Clock size={12} />
-                  Attendance
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleEdit(classItem)}
-                    className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
-                    title="Edit Class"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(classItem)}
-                    className="text-red-600 hover:text-red-900 p-1 rounded"
-                    title="Delete Class"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                <div className="text-xs text-gray-500">
-                  ID: {classItem.id}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
+      {/* Classes Table */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Class
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Teachers
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Students
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Capacity
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredClasses.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <BookOpen size={48} className="text-gray-300 mb-4" />
+                      <p className="text-lg font-medium">No classes found</p>
+                      <p className="text-sm">Try adjusting your search criteria or create a new class.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredClasses.map((classItem: Class) => (
+                  <tr key={classItem.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <BookOpen className="h-6 w-6 text-blue-600" />
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {classItem.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {classItem.description || 'No description'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {Date.now() - lastTeacherAssignmentTime < 2000 && lastTeacherAssignmentTime > 0 ? (
+                          <div className="flex items-center">
+                            <div className="loading loading-spinner loading-sm mr-2"></div>
+                            Updating...
+                          </div>
+                        ) : (
+                          getTeacherNames(classItem.teacherIds)
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {classItem.teacherIds?.length || 0} assigned
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {getStudentCountByClass(classItem.id)}
+                        {classItem.capacity && ` / ${classItem.capacity}`}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {classItem.currentEnrollment || getStudentCountByClass(classItem.id)} enrolled
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {classItem.capacity || 'Not set'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        classItem.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {classItem.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleViewDetails(classItem)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleAssignStudents(classItem)}
+                          className="text-green-600 hover:text-green-900 p-1 rounded"
+                          title="Assign Students"
+                        >
+                          <Users size={16} />
+                        </button>
+                        <button
+                          onClick={() => dispatch(openModal({
+                            title: 'Assign Teacher to Class',
+                            bodyType: MODAL_BODY_TYPES.COURSE_ASSIGN_TEACHER,
+                            extraObject: { classItem, teachers, onAssign: handleAssignTeacher, onRemove: handleRemoveTeacher }
+                          }))}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                          title="Assign Teacher"
+                        >
+                          <Users size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleManageTimetable(classItem)}
+                          className="text-purple-600 hover:text-purple-900 p-1 rounded"
+                          title="Manage Timetable"
+                        >
+                          <Calendar size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleTakeAttendance(classItem)}
+                          className="text-orange-600 hover:text-orange-900 p-1 rounded"
+                          title="Take Attendance"
+                        >
+                          <Clock size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(classItem)}
+                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
+                          title="Edit Class"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(classItem)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded"
+                          title="Delete Class"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Summary */}

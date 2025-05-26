@@ -2,6 +2,8 @@ package com.ohma.thutothebe.mapper.impl;
 
 import com.ohma.thutothebe.dto.ClassDTO;
 import com.ohma.thutothebe.entity.Class;
+import com.ohma.thutothebe.entity.Teacher;
+import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.mapper.ClassMapper;
 import com.ohma.thutothebe.repository.SchoolRepository;
 import com.ohma.thutothebe.repository.UserRepository;
@@ -9,6 +11,8 @@ import com.ohma.thutothebe.repository.TeacherRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -28,21 +32,30 @@ public class ClassMapperImpl implements ClassMapper {
         if (entity == null) {
             return null;
         }
+        
+        Set<Long> teacherIds = new HashSet<>();
+        if (entity.getTeachers() != null && !entity.getTeachers().isEmpty()) {
+            teacherIds = entity.getTeachers().stream()
+                .filter(teacher -> teacher != null && teacher.getId() != null)
+                .map(Teacher::getId)
+                .collect(Collectors.toSet());
+        }
+        
+        Set<Long> studentIds = new HashSet<>();
+        if (entity.getStudents() != null && !entity.getStudents().isEmpty()) {
+            studentIds = entity.getStudents().stream()
+                .filter(student -> student != null && student.getId() != null)
+                .map(User::getId)
+                .collect(Collectors.toSet());
+        }
+        
         return new ClassDTO(
             entity.getId(),
             entity.getName(),
             entity.getDescription(),
             entity.getSchool() != null ? entity.getSchool().getId() : null,
-            entity.getTeachers() != null ? 
-                entity.getTeachers().stream()
-                    .map(teacher -> teacher.getId())
-                    .collect(Collectors.toSet()) : 
-                null,
-            entity.getStudents() != null ? 
-                entity.getStudents().stream()
-                    .map(student -> student.getId())
-                    .collect(Collectors.toSet()) : 
-                null,
+            teacherIds,
+            studentIds,
             entity.isActive()
         );
     }
@@ -57,17 +70,31 @@ public class ClassMapperImpl implements ClassMapper {
         entity.setName(dto.name());
         entity.setDescription(dto.description());
         entity.setActive(dto.active());
-        entity.setSchool(schoolRepository.findById(dto.schoolId()).orElse(null));
-        entity.setTeachers(dto.teacherIds() != null ?
-                dto.teacherIds().stream()
-                .map(teacher -> teacherRepository.findById(teacher).orElse(null))
-                .collect(Collectors.toSet()) :
-                null);
-        entity.setStudents(dto.studentIds() != null ?
-                dto.studentIds().stream()
-                .map(student -> userRepository.findById(student).orElse(null))
-                .collect(Collectors.toSet()) :
-                null);
+        
+        if (dto.schoolId() != null) {
+            entity.setSchool(schoolRepository.findById(dto.schoolId()).orElse(null));
+        }
+        
+        Set<Teacher> teachers = new HashSet<>();
+        if (dto.teacherIds() != null && !dto.teacherIds().isEmpty()) {
+            teachers = dto.teacherIds().stream()
+                .filter(teacherId -> teacherId != null)
+                .map(teacherId -> teacherRepository.findById(teacherId).orElse(null))
+                .filter(teacher -> teacher != null)
+                .collect(Collectors.toSet());
+        }
+        entity.setTeachers(teachers);
+        
+        Set<User> students = new HashSet<>();
+        if (dto.studentIds() != null && !dto.studentIds().isEmpty()) {
+            students = dto.studentIds().stream()
+                .filter(studentId -> studentId != null)
+                .map(studentId -> userRepository.findById(studentId).orElse(null))
+                .filter(student -> student != null)
+                .collect(Collectors.toSet());
+        }
+        entity.setStudents(students);
+        
         return entity;
     }
 } 

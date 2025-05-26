@@ -98,6 +98,20 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
         }
     }
 
+    @GetMapping("/class/{classId}")
+    @Operation(summary = "Get teachers by class ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<List<TeacherDTO>>> getTeachersByClassId(@PathVariable Long classId) {
+        try {
+            List<TeacherDTO> teachers = teacherService.getTeachersByClassId(classId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers for class retrieved successfully", teachers, null));
+        } catch (Exception e) {
+            log.error("Error retrieving teachers for class: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @PostMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate a teacher")
     @PreAuthorize("hasRole('ADMIN')")

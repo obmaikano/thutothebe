@@ -32,5 +32,7 @@ public interface TeacherService extends BaseService<TeacherDTO, Long> {
     
     List<TeacherDTO> getTeachersByCourseId(Long courseId);
     
+    List<TeacherDTO> getTeachersByClassId(Long classId);
+    
     TeacherDTO linkToUser(Long teacherId, Long userId);
 } 

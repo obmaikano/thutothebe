@@ -207,4 +207,12 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
         
         return teacherMapper.toDto(savedTeacher);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TeacherDTO> getTeachersByClassId(Long classId) {
+        return teacherRepository.findByClassId(classId).stream()
+            .map(teacherMapper::toDto)
+            .collect(Collectors.toList());
+    }
 } 

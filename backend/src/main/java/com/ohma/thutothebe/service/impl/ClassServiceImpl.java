@@ -67,7 +67,7 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     @Override
     @Transactional(readOnly = true)
     public List<ClassDTO> getClassesBySchoolId(Long schoolId) {
-        return classRepository.findBySchoolId(schoolId).stream()
+        return classRepository.findBySchoolIdWithTeachers(schoolId).stream()
             .map(classMapper::toDto)
             .collect(Collectors.toList());
     }
@@ -75,7 +75,8 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     @Override
     @Transactional(readOnly = true)
     public List<ClassDTO> getActiveClasses() {
-        return classRepository.findByActive(true).stream()
+        return classRepository.findAllWithTeachersAndStudents().stream()
+            .filter(Class::isActive)
             .map(classMapper::toDto)
             .collect(Collectors.toList());
     }
@@ -83,7 +84,8 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     @Override
     @Transactional(readOnly = true)
     public List<ClassDTO> getActiveClassesBySchoolId(Long schoolId) {
-        return classRepository.findBySchoolIdAndActive(schoolId, true).stream()
+        return classRepository.findBySchoolIdWithTeachers(schoolId).stream()
+            .filter(Class::isActive)
             .map(classMapper::toDto)
             .collect(Collectors.toList());
     }
@@ -265,6 +267,22 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     @Transactional(readOnly = true)
     public ClassDTO getClassWithStudents(Long id) {
         Class classEntity = classRepository.findByIdWithStudents(id)
+            .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + id));
+        return classMapper.toDto(classEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassDTO> getAll() {
+        return classRepository.findAllWithTeachersAndStudents().stream()
+            .map(classMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ClassDTO getById(Long id) {
+        Class classEntity = classRepository.findByIdWithTeachers(id)
             .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + id));
         return classMapper.toDto(classEntity);
     }

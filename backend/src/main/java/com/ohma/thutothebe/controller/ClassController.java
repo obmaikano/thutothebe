@@ -2,16 +2,23 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.ClassDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.Class;
+import com.ohma.thutothebe.repository.ClassRepository;
 import com.ohma.thutothebe.service.ClassService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -20,10 +27,13 @@ import java.util.List;
 public class ClassController extends BaseController<ClassDTO, Long> {
 
     private final ClassService classService;
+    private final ClassRepository classRepository;
 
-    public ClassController(ClassService classService) {
+    @Autowired
+    public ClassController(ClassService classService, ClassRepository classRepository) {
         super(classService);
         this.classService = classService;
+        this.classRepository = classRepository;
     }
 
     @GetMapping("/school/{schoolId}")
@@ -95,6 +105,20 @@ public class ClassController extends BaseController<ClassDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Classes retrieved successfully", classes, null));
         } catch (Exception e) {
             log.error("Error retrieving classes: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/{id}/with-teachers")
+    @Operation(summary = "Get class by ID with teachers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<ClassDTO>> getClassWithTeachers(@PathVariable Long id) {
+        try {
+            ClassDTO classDTO = classService.getById(id);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Class with teachers retrieved successfully", classDTO, null));
+        } catch (Exception e) {
+            log.error("Error retrieving class with teachers: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
@@ -229,6 +253,56 @@ public class ClassController extends BaseController<ClassDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active classes retrieved successfully", activeClasses, null));
         } catch (Exception e) {
             log.error("Error retrieving active classes for teacher: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/with-teachers")
+    @Operation(summary = "Get all classes with teachers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getClassesWithTeachers() {
+        try {
+            List<ClassDTO> classes = classService.getAll();
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Classes with teachers retrieved successfully", classes, null));
+        } catch (Exception e) {
+            log.error("Error retrieving classes with teachers: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/{id}/debug-teachers")
+    @Operation(summary = "Debug: Get teacher assignments for a class")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<OhmaApiResponse<Object>> debugTeacherAssignments(@PathVariable Long id) {
+        try {
+            Class classEntity = classRepository.findByIdWithTeachers(id)
+                .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + id));
+            
+            Map<String, Object> debugInfo = new HashMap<>();
+            debugInfo.put("classId", classEntity.getId());
+            debugInfo.put("className", classEntity.getName());
+            debugInfo.put("teachersCount", classEntity.getTeachers() != null ? classEntity.getTeachers().size() : 0);
+            
+            if (classEntity.getTeachers() != null) {
+                List<Map<String, Object>> teacherDetails = classEntity.getTeachers().stream()
+                    .map(teacher -> {
+                        Map<String, Object> teacherInfo = new HashMap<>();
+                        teacherInfo.put("id", teacher.getId());
+                        teacherInfo.put("firstName", teacher.getFirstName());
+                        teacherInfo.put("lastName", teacher.getLastName());
+                        teacherInfo.put("email", teacher.getEmail());
+                        teacherInfo.put("staffId", teacher.getStaffId());
+                        return teacherInfo;
+                    })
+                    .collect(Collectors.toList());
+                debugInfo.put("teachers", teacherDetails);
+            }
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Debug info retrieved successfully", debugInfo, null));
+        } catch (Exception e) {
+            log.error("Error retrieving debug info: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

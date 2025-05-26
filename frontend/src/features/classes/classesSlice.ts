@@ -44,7 +44,7 @@ export const fetchClassesBySchoolId = createAsyncThunk(
   'classes/fetchClassesBySchoolId',
   async (schoolId: number, { rejectWithValue }) => {
     try {
-      const response = await classApi.getBySchoolId(schoolId);
+      const response = await classApi.getBySchool(schoolId);
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch classes');
@@ -199,6 +199,18 @@ export const removeTeacherFromClass = createAsyncThunk(
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to remove teacher from class');
+    }
+  }
+);
+
+export const fetchClassesWithTeachers = createAsyncThunk(
+  'classes/fetchClassesWithTeachers',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getAllWithTeachers();
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch classes with teachers');
     }
   }
 );
@@ -432,8 +444,8 @@ const classesSlice = createSlice({
       })
       .addCase(assignTeacherToClass.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // The API returns void, so we don't update the class object here
-        // The UI should refetch the class data if needed
+        // Since the API returns void, we need to refetch the classes to get updated data
+        // The UI should dispatch fetchClasses after this action completes
       })
       .addCase(assignTeacherToClass.rejected, (state, action) => {
         state.status = 'failed';
@@ -447,12 +459,26 @@ const classesSlice = createSlice({
       })
       .addCase(removeTeacherFromClass.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // The API returns void, so we don't update the class object here
-        // The UI should refetch the class data if needed
+        // Since the API returns void, we need to refetch the classes to get updated data
+        // The UI should dispatch fetchClasses after this action completes
       })
       .addCase(removeTeacherFromClass.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to remove teacher from class';
+      })
+
+      // Fetch classes with teachers
+      .addCase(fetchClassesWithTeachers.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchClassesWithTeachers.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchClassesWithTeachers.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch classes with teachers';
       });
   }
 });

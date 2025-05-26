@@ -4,7 +4,6 @@ import { AxiosResponse } from 'axios';
 export interface Class {
   id: number;
   name: string;
-  grade: number;
   schoolId: number;
   active: boolean;
   description?: string;
@@ -191,6 +190,23 @@ const classApi = {
    */
   getActiveByTeacher: async (teacherId: number): Promise<AxiosResponse<ClassResponse>> => {
     return api.get(`/classes/teacher/${teacherId}/active`);
+  },
+
+  /**
+   * Get all classes with teachers
+   * @returns Response with a list of classes including teacher assignments
+   */
+  getAllWithTeachers: async (): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get('/classes/with-teachers');
+  },
+
+  /**
+   * Get class by ID with teachers
+   * @param id Class ID
+   * @returns Response with class details including teacher assignments
+   */
+  getByIdWithTeachers: async (id: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/${id}/with-teachers`);
   },
 };
 
