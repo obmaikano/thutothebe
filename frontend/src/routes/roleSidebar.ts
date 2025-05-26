@@ -238,13 +238,13 @@ export const schoolAdminMenuItems: MenuItem[] = [
   { 
     icon: LayoutGrid, 
     label: 'Dashboard', 
-    path: '/app/dashboard',
+    path: '/app/school-admin-dashboard',
     description: 'Overview of your activities'
   },
   {
     icon: Users,
     label: 'Staff Management',
-    path: '/app/staff',
+    path: '/app/staff-management',
     description: 'Manage school staff'
   },
   {
@@ -252,6 +252,12 @@ export const schoolAdminMenuItems: MenuItem[] = [
     label: 'Student Records',
     path: '/app/student-records',
     description: 'Manage student information'
+  },
+  {
+    icon: BookOpen,
+    label: 'Class Management',
+    path: '/app/class-management',
+    description: 'Manage classes and assignments'
   },
   {
     icon: Building,

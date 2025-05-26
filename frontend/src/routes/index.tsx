@@ -29,11 +29,18 @@ const StudentDashboard = lazy(() => import('../pages/protected/StudentDashboard'
 const StudentCourses = lazy(() => import('../pages/protected/StudentCourses'));
 const StudentAssignments = lazy(() => import('../pages/protected/StudentAssignments'));
 const StudentGrades = lazy(() => import('../pages/protected/StudentGrades'));
-const StudentMessages = lazy(() => import('../pages/protected/StudentMessagesPage'));
+const StudentMessages = lazy(() => import('../pages/protected/StudentMessages'));
 const StudentSchedule = lazy(() => import('../pages/protected/StudentSchedule'));
 const StudentHelp = lazy(() => import('../pages/protected/StudentHelp'));
 
 // School Admin role pages
+const SchoolAdminDashboard = lazy(() => import('../pages/protected/SchoolAdminDashboard'));
+const StaffManagement = lazy(() => import('../pages/protected/StaffManagement'));
+const StaffDetail = lazy(() => import('../pages/protected/StaffDetail'));
+const StudentRecords = lazy(() => import('../pages/protected/StudentRecords'));
+const ClassManagement = lazy(() => import('../pages/protected/ClassManagement'));
+const SchoolReports = lazy(() => import('../pages/protected/SchoolReports'));
+const SchoolSettings = lazy(() => import('../pages/protected/SchoolSettings'));
 const SchoolAdminHelp = lazy(() => import('../pages/protected/SchoolAdminHelp'));
 
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
@@ -154,6 +161,34 @@ export const appRoutes = [
     element: StudentHelp
   },
   // School Admin role routes
+  {
+    path: 'school-admin-dashboard',
+    element: SchoolAdminDashboard
+  },
+  {
+    path: 'staff-management',
+    element: StaffManagement
+  },
+  {
+    path: 'staff/:id',
+    element: StaffDetail
+  },
+  {
+    path: 'student-records',
+    element: StudentRecords
+  },
+  {
+    path: 'class-management',
+    element: ClassManagement
+  },
+  {
+    path: 'reports',
+    element: SchoolReports
+  },
+  {
+    path: 'settings',
+    element: SchoolSettings
+  },
   {
     path: 'school-admin-help',
     element: SchoolAdminHelp

@@ -50,6 +50,12 @@ const EditParentModal = lazy(() => import('../../parents/modals/EditParentModal'
 const DeleteParentModal = lazy(() => import('../../parents/modals/DeleteParentModal'));
 const LinkChildModal = lazy(() => import('../../parents/modals/LinkChildModal'));
 
+// Teacher management modals
+const CreateTeacherModal = lazy(() => import('../../teachers/modals/CreateTeacherModal'));
+const EditTeacherModal = lazy(() => import('../../teachers/modals/EditTeacherModal'));
+const DeleteTeacherModal = lazy(() => import('../../teachers/modals/DeleteTeacherModal'));
+const TeacherViewDetailsModal = lazy(() => import('../../teachers/modals/TeacherViewDetailsModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -297,6 +303,35 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <LinkChildModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Teacher Management Modals
+    case MODAL_BODY_TYPES.TEACHER_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateTeacherModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.TEACHER_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditTeacherModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.TEACHER_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteTeacherModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.TEACHER_VIEW_DETAILS:
+      return (
+        <Suspense fallback={fallback}>
+          <TeacherViewDetailsModal extraObject={contentProps} />
         </Suspense>
       );
       
