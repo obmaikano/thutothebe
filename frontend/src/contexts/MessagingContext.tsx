@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import webSocketService, { TypingIndicator, UnreadCountUpdate } from '../services/websocketService';
 import { RealTimeMessage, Message, Conversation } from '../api/services/messageApi';
@@ -208,7 +208,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     });
   }, []);
 
-  const value: MessagingContextType = {
+  const value: MessagingContextType = useMemo(() => ({
     isConnected,
     conversations,
     unreadCounts,
@@ -226,7 +226,22 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     
     onMessageReceived,
     offMessageReceived
-  };
+  }), [
+    isConnected,
+    conversations,
+    unreadCounts,
+    typingUsers,
+    totalUnreadCount,
+    addConversation,
+    updateConversation,
+    removeConversation,
+    markConversationAsRead,
+    sendTypingIndicator,
+    subscribeToConversation,
+    subscribeToGroup,
+    onMessageReceived,
+    offMessageReceived
+  ]);
 
   return (
     <MessagingContext.Provider value={value}>

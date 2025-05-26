@@ -52,6 +52,17 @@ const StudentMessagesPage = () => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const messageInputRef = useRef<HTMLTextAreaElement>(null);
+    const selectedConversationRef = useRef<Conversation | null>(null);
+    const userIdRef = useRef<number | null>(null);
+
+    // Update refs when values change
+    useEffect(() => {
+        selectedConversationRef.current = selectedConversation;
+    }, [selectedConversation]);
+
+    useEffect(() => {
+        userIdRef.current = user?.id || null;
+    }, [user?.id]);
 
     useEffect(() => {
         dispatch(setPageTitle({ title: "Messages" }));
@@ -68,13 +79,16 @@ const StudentMessagesPage = () => {
     const handleRealTimeMessage = useCallback((realTimeMessage: RealTimeMessage) => {
         console.log('Received real-time message:', realTimeMessage);
         
+        const currentConversation = selectedConversationRef.current;
+        const currentUserId = userIdRef.current;
+        
         switch (realTimeMessage.eventType) {
             case 'SENT':
                 // Add new message to the conversation if it's the current one
-                if (selectedConversation && 
-                    ((realTimeMessage.senderId === selectedConversation.participantId && realTimeMessage.recipientId === user?.id) ||
-                     (realTimeMessage.senderId === user?.id && realTimeMessage.recipientId === selectedConversation.participantId) ||
-                     (realTimeMessage.groupId === selectedConversation.groupId))) {
+                if (currentConversation && 
+                    ((realTimeMessage.senderId === currentConversation.participantId && realTimeMessage.recipientId === currentUserId) ||
+                     (realTimeMessage.senderId === currentUserId && realTimeMessage.recipientId === currentConversation.participantId) ||
+                     (realTimeMessage.groupId === currentConversation.groupId))) {
                     
                     const newMsg: Message = {
                         id: realTimeMessage.id,
@@ -106,8 +120,8 @@ const StudentMessagesPage = () => {
                     });
                     
                     // Mark as delivered if we're the recipient
-                    if (realTimeMessage.recipientId === user?.id && !realTimeMessage.isDelivered) {
-                        messageApi.markMessageAsDelivered(realTimeMessage.id, user.id);
+                    if (realTimeMessage.recipientId === currentUserId && !realTimeMessage.isDelivered && currentUserId) {
+                        messageApi.markMessageAsDelivered(realTimeMessage.id, currentUserId);
                     }
                 }
                 break;
@@ -128,7 +142,7 @@ const StudentMessagesPage = () => {
                 ));
                 break;
         }
-    }, [selectedConversation, user?.id]);
+    }, []); // Empty dependency array since we're using refs
 
     // Register message handler
     useEffect(() => {
@@ -136,7 +150,7 @@ const StudentMessagesPage = () => {
         return () => {
             messaging.offMessageReceived(handleRealTimeMessage);
         };
-    }, [messaging]);
+    }, [handleRealTimeMessage, messaging]);
 
     useEffect(() => {
         const fetchInitialData = async () => {
