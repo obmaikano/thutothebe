@@ -4,6 +4,7 @@ import com.ohma.thutothebe.dto.CurriculumAssessmentDTO;
 import com.ohma.thutothebe.entity.CurriculumAssessment;
 
 import java.util.List;
+import java.util.Map;
 
 public interface CurriculumAssessmentService extends BaseService<CurriculumAssessmentDTO, Long> {
 
@@ -47,6 +48,14 @@ public interface CurriculumAssessmentService extends BaseService<CurriculumAsses
     List<CurriculumAssessmentDTO> getMandatoryAssessments(Long curriculumId);
     
     List<CurriculumAssessmentDTO> getOptionalAssessments(Long curriculumId);
+    
+    Map<String, Object> getAssessmentStatistics(Long curriculumId);
+    
+    Double calculateTotalWeight(Long curriculumId);
+    
+    List<CurriculumAssessmentDTO> getAssessmentsWithLowAlignment(Long curriculumId, Double threshold);
+    
+    Map<String, Object> getAssessmentCoverage(Long curriculumId);
     
     Double getTotalWeightPercentage(Long curriculumId);
     

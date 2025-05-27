@@ -16,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/analytics/system-usage")
+@RequestMapping("/analytics/system-usage")
 @Tag(name = "System Usage", description = "APIs for managing system usage statistics")
 public class SystemUsageController extends BaseController<SystemUsageDTO, Long> {
 

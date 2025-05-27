@@ -121,7 +121,6 @@ public class CurriculumAnalyticsMapper implements BaseDtoMapper<CurriculumAnalyt
         return entity;
     }
 
-    @Override
     public void updateEntity(CurriculumAnalytics entity, CurriculumAnalyticsDTO dto) {
         if (entity == null || dto == null) {
             return;

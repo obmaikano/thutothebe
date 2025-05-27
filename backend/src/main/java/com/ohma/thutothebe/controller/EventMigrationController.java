@@ -17,7 +17,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/event-migration")
+@RequestMapping("/event-migration")
 @Tag(name = "Event Migration", description = "APIs for migrating Event entities to CalendarEvent entities")
 public class EventMigrationController {
 

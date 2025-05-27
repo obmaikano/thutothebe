@@ -4,6 +4,7 @@ import com.ohma.thutothebe.dto.CurriculumAnalyticsDTO;
 import com.ohma.thutothebe.entity.CurriculumAnalytics;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -112,4 +113,27 @@ public interface CurriculumAnalyticsService extends BaseService<CurriculumAnalyt
     List<CurriculumAnalyticsDTO> getHistoricalAnalytics(Long curriculumId, CurriculumAnalytics.AnalyticsType type, LocalDate startDate, LocalDate endDate);
     
     Map<String, Object> getAnalyticsTrends(Long curriculumId, String metric, LocalDate startDate, LocalDate endDate);
+    
+    // Analytics Generation
+    CurriculumAnalyticsDTO generateAnalytics(Long curriculumId, Long generatedById);
+    
+    CurriculumAnalyticsDTO getLatestAnalytics(Long curriculumId);
+    
+    List<CurriculumAnalyticsDTO> getAnalyticsByLevel(Long curriculumId, CurriculumAnalytics.AggregationLevel aggregationLevel);
+    
+    Map<String, Object> getDashboardMetrics(Long curriculumId);
+    
+    Map<String, Object> getRealTimeMetrics(Long curriculumId);
+    
+    Map<String, Object> getTrendAnalysis(Long curriculumId, int days);
+    
+    Map<String, Object> getPredictiveAnalytics(Long curriculumId);
+    
+    Map<String, Object> compareAnalytics(Long curriculumId1, Long curriculumId2);
+    
+    Map<String, Object> getBenchmarkAnalysis(Long curriculumId);
+    
+    String exportAnalytics(Long curriculumId, String format);
+    
+    List<CurriculumAnalyticsDTO> getAnalyticsHistory(Long curriculumId, LocalDateTime startDate, LocalDateTime endDate);
 } 

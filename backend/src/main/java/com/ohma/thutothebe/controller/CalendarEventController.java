@@ -24,7 +24,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/calendar-events")
+@RequestMapping("/calendar-events")
 @Tag(name = "Calendar Event Management", description = "APIs for managing school calendar events")
 public class CalendarEventController extends BaseController<CalendarEventDTO, Long> {
 

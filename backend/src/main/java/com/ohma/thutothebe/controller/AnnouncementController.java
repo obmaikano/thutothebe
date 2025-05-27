@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/announcements")
+@RequestMapping("/announcements")
 @Tag(name = "Announcement Management", description = "APIs for managing announcements with role-based access control")
 @Slf4j
 public class AnnouncementController extends BaseController<AnnouncementDTO, Long> {
