@@ -29,17 +29,20 @@ public class CurriculumAdvancedController {
     private final CurriculumResourceService curriculumResourceService;
     private final CurriculumAnalyticsService curriculumAnalyticsService;
     private final CurriculumIntegrationService curriculumIntegrationService;
+    private final CurriculumAssessmentService curriculumAssessmentService;
 
     @Autowired
     public CurriculumAdvancedController(
             CurriculumVersionService curriculumVersionService,
             CurriculumResourceService curriculumResourceService,
             CurriculumAnalyticsService curriculumAnalyticsService,
-            CurriculumIntegrationService curriculumIntegrationService) {
+            CurriculumIntegrationService curriculumIntegrationService,
+            CurriculumAssessmentService curriculumAssessmentService) {
         this.curriculumVersionService = curriculumVersionService;
         this.curriculumResourceService = curriculumResourceService;
         this.curriculumAnalyticsService = curriculumAnalyticsService;
         this.curriculumIntegrationService = curriculumIntegrationService;
+        this.curriculumAssessmentService = curriculumAssessmentService;
     }
 
     // ==================== VERSION CONTROL ====================

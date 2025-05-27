@@ -93,7 +93,6 @@ public class Curriculum extends BaseEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    @Version
     @Column(name = "curriculum_version")
     private Integer curriculumVersion = 1;
 
