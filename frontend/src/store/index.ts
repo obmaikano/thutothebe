@@ -13,6 +13,8 @@ import assignmentsReducer from '../features/assignments/assignmentsSlice';
 import gradesReducer from '../features/grades/gradesSlice';
 import studentsReducer from '../features/students/studentsSlice';
 import parentsReducer from '../features/parents/parentsSlice';
+import classesReducer from '../features/classes/classesSlice';
+import schedulesReducer from '../features/school_admin/schedulesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -29,6 +31,8 @@ export const store = configureStore({
     grades: gradesReducer,
     students: studentsReducer,
     parents: parentsReducer,
+    classes: classesReducer,
+    schedules: schedulesReducer,
   },
 });
 

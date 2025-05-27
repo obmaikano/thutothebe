@@ -43,6 +43,16 @@ const SchoolReports = lazy(() => import('../pages/protected/SchoolReports'));
 const SchoolSettings = lazy(() => import('../pages/protected/SchoolSettings'));
 const SchoolAdminHelp = lazy(() => import('../pages/protected/SchoolAdminHelp'));
 
+// Additional School Admin pages
+const TimetableManagement = lazy(() => import('../pages/protected/TimetableManagement'));
+const AssessmentConfiguration = lazy(() => import('../pages/protected/AssessmentConfiguration'));
+const SubjectAllocation = lazy(() => import('../pages/protected/SubjectAllocation'));
+const Facilities = lazy(() => import('../pages/protected/Facilities'));
+const SchoolCalendar = lazy(() => import('../pages/protected/SchoolCalendar'));
+const Attendance = lazy(() => import('../pages/protected/Attendance'));
+const Documents = lazy(() => import('../pages/protected/Documents'));
+const Monitoring = lazy(() => import('../pages/protected/Monitoring'));
+
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
 
 // App routes - nested under /app path
@@ -180,6 +190,38 @@ export const appRoutes = [
   {
     path: 'class-management',
     element: ClassManagement
+  },
+  {
+    path: 'timetable',
+    element: TimetableManagement
+  },
+  {
+    path: 'assessments',
+    element: AssessmentConfiguration
+  },
+  {
+    path: 'subject-allocation',
+    element: SubjectAllocation
+  },
+  {
+    path: 'facilities',
+    element: Facilities
+  },
+  {
+    path: 'school-calendar',
+    element: SchoolCalendar
+  },
+  {
+    path: 'attendance',
+    element: Attendance
+  },
+  {
+    path: 'documents',
+    element: Documents
+  },
+  {
+    path: 'monitoring',
+    element: Monitoring
   },
   {
     path: 'reports',

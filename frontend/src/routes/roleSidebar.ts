@@ -31,7 +31,8 @@ import {
   Activity,
   MapPin,
   Building2,
-  Book
+  Book,
+  Clock
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -258,6 +259,24 @@ export const schoolAdminMenuItems: MenuItem[] = [
     label: 'Class Management',
     path: '/app/class-management',
     description: 'Manage classes and assignments'
+  },
+  {
+    icon: Clock,
+    label: 'Timetable Management',
+    path: '/app/timetable',
+    description: 'Create and manage class schedules'
+  },
+  {
+    icon: FileText,
+    label: 'Assessment Configuration',
+    path: '/app/assessments',
+    description: 'Configure assessments and grading'
+  },
+  {
+    icon: BookOpen,
+    label: 'Subject Allocation',
+    path: '/app/subject-allocation',
+    description: 'Allocate subjects to teachers'
   },
   {
     icon: Building,
