@@ -167,13 +167,13 @@ public class CurriculumAssessmentServiceImpl extends BaseServiceImpl<CurriculumA
         List<CurriculumAssessment> assessments;
         
         if (unitId != null && topicId != null) {
-            assessments = curriculumAssessmentRepository.findByCurriculumIdAndUnitIdAndTopicIdAndIsActive(
+            assessments = curriculumAssessmentRepository.findByCurriculumIdAndCurriculumUnitIdAndCurriculumTopicIdAndIsActive(
                     curriculumId, unitId, topicId, true);
         } else if (unitId != null) {
-            assessments = curriculumAssessmentRepository.findByCurriculumIdAndUnitIdAndIsActive(
+            assessments = curriculumAssessmentRepository.findByCurriculumIdAndCurriculumUnitIdAndIsActive(
                     curriculumId, unitId, true);
         } else if (topicId != null) {
-            assessments = curriculumAssessmentRepository.findByCurriculumIdAndTopicIdAndIsActive(
+            assessments = curriculumAssessmentRepository.findByCurriculumIdAndCurriculumTopicIdAndIsActive(
                     curriculumId, topicId, true);
         } else {
             assessments = curriculumAssessmentRepository.findByCurriculumIdAndIsActiveOrderBySequenceOrder(
@@ -192,7 +192,7 @@ public class CurriculumAssessmentServiceImpl extends BaseServiceImpl<CurriculumA
         log.debug("Retrieving assessments for unit ID: {}", unitId);
         
         List<CurriculumAssessment> assessments = curriculumAssessmentRepository
-                .findByUnitIdAndIsActiveOrderBySequenceOrder(unitId, true);
+                .findByCurriculumUnitIdAndIsActiveOrderBySequenceOrder(unitId, true);
         
         return assessments.stream()
                 .map(curriculumAssessmentMapper::toDto)
@@ -206,7 +206,7 @@ public class CurriculumAssessmentServiceImpl extends BaseServiceImpl<CurriculumA
         log.debug("Retrieving assessments for topic ID: {}", topicId);
         
         List<CurriculumAssessment> assessments = curriculumAssessmentRepository
-                .findByTopicIdAndIsActiveOrderBySequenceOrder(topicId, true);
+                .findByCurriculumTopicIdAndIsActiveOrderBySequenceOrder(topicId, true);
         
         return assessments.stream()
                 .map(curriculumAssessmentMapper::toDto)

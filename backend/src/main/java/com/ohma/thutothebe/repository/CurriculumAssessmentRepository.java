@@ -17,15 +17,15 @@ public interface CurriculumAssessmentRepository extends JpaRepository<Curriculum
 
     @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
     List<CurriculumAssessment> findByCurriculumIdAndCurriculumUnitIdAndCurriculumTopicIdAndIsActive(
-            Long curriculumId, Long unitId, Long topicId, boolean isActive);
+            Long curriculumId, Long curriculumUnitId, Long curriculumTopicId, boolean isActive);
 
     @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
     List<CurriculumAssessment> findByCurriculumIdAndCurriculumUnitIdAndIsActive(
-            Long curriculumId, Long unitId, boolean isActive);
+            Long curriculumId, Long curriculumUnitId, boolean isActive);
 
     @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
     List<CurriculumAssessment> findByCurriculumIdAndCurriculumTopicIdAndIsActive(
-            Long curriculumId, Long topicId, boolean isActive);
+            Long curriculumId, Long curriculumTopicId, boolean isActive);
 
     @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
     List<CurriculumAssessment> findByCurriculumIdAndIsActiveOrderBySequenceOrder(
@@ -33,31 +33,11 @@ public interface CurriculumAssessmentRepository extends JpaRepository<Curriculum
 
     @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
     List<CurriculumAssessment> findByCurriculumUnitIdAndIsActiveOrderBySequenceOrder(
-            Long unitId, boolean isActive);
+            Long curriculumUnitId, boolean isActive);
 
     @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
     List<CurriculumAssessment> findByCurriculumTopicIdAndIsActiveOrderBySequenceOrder(
-            Long topicId, boolean isActive);
-
-    @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
-    List<CurriculumAssessment> findByCurriculumIdAndUnitIdAndTopicIdAndIsActive(
-            Long curriculumId, Long unitId, Long topicId, boolean isActive);
-
-    @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
-    List<CurriculumAssessment> findByCurriculumIdAndUnitIdAndIsActive(
-            Long curriculumId, Long unitId, boolean isActive);
-
-    @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
-    List<CurriculumAssessment> findByCurriculumIdAndTopicIdAndIsActive(
-            Long curriculumId, Long topicId, boolean isActive);
-
-    @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
-    List<CurriculumAssessment> findByUnitIdAndIsActiveOrderBySequenceOrder(
-            Long unitId, boolean isActive);
-
-    @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
-    List<CurriculumAssessment> findByTopicIdAndIsActiveOrderBySequenceOrder(
-            Long topicId, boolean isActive);
+            Long curriculumTopicId, boolean isActive);
 
     @EntityGraph(attributePaths = {"curriculum", "assessment", "curriculumUnit", "curriculumTopic", "linkedBy"})
     List<CurriculumAssessment> findByAssessmentPurposeAndIsActive(
@@ -80,7 +60,7 @@ public interface CurriculumAssessmentRepository extends JpaRepository<Curriculum
     @Query("SELECT SUM(ca.weightPercentage) FROM CurriculumAssessment ca WHERE ca.curriculum.id = :curriculumId AND ca.isActive = true")
     Double getTotalWeightByCurriculumId(@Param("curriculumId") Long curriculumId);
 
-    boolean existsByCurriculumIdAndCurriculumUnitIdAndIsActive(Long curriculumId, Long unitId, boolean isActive);
+    boolean existsByCurriculumIdAndCurriculumUnitIdAndIsActive(Long curriculumId, Long curriculumUnitId, boolean isActive);
 
     boolean existsByCurriculumIdAndAssessmentPurposeAndIsActive(
             Long curriculumId, CurriculumAssessment.AssessmentPurpose purpose, boolean isActive);
