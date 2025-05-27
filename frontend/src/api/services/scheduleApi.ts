@@ -125,37 +125,93 @@ const scheduleApi = {
   /**
    * Get schedules by school ID
    * @param schoolId School ID
+   * @param userRole User role for access control
+   * @param userId User ID for access control
+   * @param userRegionId User region ID (optional)
+   * @param userSchoolId User school ID (optional)
    * @returns Response with school schedules
    */
-  getBySchool: async (schoolId: number): Promise<AxiosResponse<ScheduleResponse>> => {
-    return api.get(`/schedules/school/${schoolId}`);
+  getBySchool: async (
+    schoolId: number, 
+    userRole: string, 
+    userId: number, 
+    userRegionId?: number, 
+    userSchoolId?: number
+  ): Promise<AxiosResponse<ScheduleResponse>> => {
+    const params: any = { userRole, userId };
+    if (userRegionId) params.userRegionId = userRegionId;
+    if (userSchoolId) params.userSchoolId = userSchoolId;
+    
+    return api.get(`/schedules/school/${schoolId}`, { params });
   },
 
   /**
    * Get schedules by class ID
    * @param classId Class ID
+   * @param userRole User role for access control
+   * @param userId User ID for access control
+   * @param userRegionId User region ID (optional)
+   * @param userSchoolId User school ID (optional)
    * @returns Response with class schedules
    */
-  getByClass: async (classId: number): Promise<AxiosResponse<ScheduleResponse>> => {
-    return api.get(`/schedules/class/${classId}`);
+  getByClass: async (
+    classId: number, 
+    userRole: string, 
+    userId: number, 
+    userRegionId?: number, 
+    userSchoolId?: number
+  ): Promise<AxiosResponse<ScheduleResponse>> => {
+    const params: any = { userRole, userId };
+    if (userRegionId) params.userRegionId = userRegionId;
+    if (userSchoolId) params.userSchoolId = userSchoolId;
+    
+    return api.get(`/schedules/class/${classId}`, { params });
   },
 
   /**
    * Get schedules by teacher ID
    * @param teacherId Teacher ID
+   * @param userRole User role for access control
+   * @param userId User ID for access control
+   * @param userRegionId User region ID (optional)
+   * @param userSchoolId User school ID (optional)
    * @returns Response with teacher schedules
    */
-  getByTeacher: async (teacherId: number): Promise<AxiosResponse<ScheduleResponse>> => {
-    return api.get(`/schedules/teacher/${teacherId}`);
+  getByTeacher: async (
+    teacherId: number, 
+    userRole: string, 
+    userId: number, 
+    userRegionId?: number, 
+    userSchoolId?: number
+  ): Promise<AxiosResponse<ScheduleResponse>> => {
+    const params: any = { userRole, userId };
+    if (userRegionId) params.userRegionId = userRegionId;
+    if (userSchoolId) params.userSchoolId = userSchoolId;
+    
+    return api.get(`/schedules/teacher/${teacherId}`, { params });
   },
 
   /**
    * Get schedules by day of week
    * @param dayOfWeek Day of week
+   * @param userRole User role for access control
+   * @param userId User ID for access control
+   * @param userRegionId User region ID (optional)
+   * @param userSchoolId User school ID (optional)
    * @returns Response with day schedules
    */
-  getByDayOfWeek: async (dayOfWeek: string): Promise<AxiosResponse<ScheduleResponse>> => {
-    return api.get(`/schedules/day/${dayOfWeek}`);
+  getByDayOfWeek: async (
+    dayOfWeek: string, 
+    userRole: string, 
+    userId: number, 
+    userRegionId?: number, 
+    userSchoolId?: number
+  ): Promise<AxiosResponse<ScheduleResponse>> => {
+    const params: any = { userRole, userId };
+    if (userRegionId) params.userRegionId = userRegionId;
+    if (userSchoolId) params.userSchoolId = userSchoolId;
+    
+    return api.get(`/schedules/day/${dayOfWeek}`, { params });
   },
 
   /**

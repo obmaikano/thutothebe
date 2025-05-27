@@ -144,8 +144,14 @@ export const TimetableManagementPage: React.FC = () => {
           dispatch(fetchSubjects())
         ]);
         
-        if (user?.schoolId) {
-          dispatch(fetchSchedulesBySchool(user.schoolId));
+        if (user?.schoolId && user?.id && user?.role) {
+          dispatch(fetchSchedulesBySchool({
+            schoolId: user.schoolId,
+            userRole: user.role,
+            userId: user.id,
+            userRegionId: user.regionId,
+            userSchoolId: user.schoolId
+          }));
         }
       } catch (error) {
         console.error('Failed to load timetable data:', error);
@@ -156,7 +162,7 @@ export const TimetableManagementPage: React.FC = () => {
     return () => {
       dispatch(clearSchedulesError());
     };
-  }, [dispatch, user?.schoolId]);
+  }, [dispatch, user?.schoolId, user?.id, user?.role, user?.regionId]);
 
   const handleCreateSchedule = (time?: string, day?: string) => {
     dispatch(openModal({

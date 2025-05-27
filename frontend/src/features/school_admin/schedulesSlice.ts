@@ -44,9 +44,21 @@ export const fetchScheduleById = createAsyncThunk(
 
 export const fetchSchedulesBySchool = createAsyncThunk(
   'schedules/fetchSchedulesBySchool',
-  async (schoolId: number, { rejectWithValue }) => {
+  async (params: { 
+    schoolId: number; 
+    userRole: string; 
+    userId: number; 
+    userRegionId?: number; 
+    userSchoolId?: number; 
+  }, { rejectWithValue }) => {
     try {
-      const response = await scheduleApi.getBySchool(schoolId);
+      const response = await scheduleApi.getBySchool(
+        params.schoolId, 
+        params.userRole, 
+        params.userId, 
+        params.userRegionId, 
+        params.userSchoolId
+      );
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch school schedules');
@@ -56,9 +68,21 @@ export const fetchSchedulesBySchool = createAsyncThunk(
 
 export const fetchSchedulesByClass = createAsyncThunk(
   'schedules/fetchSchedulesByClass',
-  async (classId: number, { rejectWithValue }) => {
+  async (params: { 
+    classId: number; 
+    userRole: string; 
+    userId: number; 
+    userRegionId?: number; 
+    userSchoolId?: number; 
+  }, { rejectWithValue }) => {
     try {
-      const response = await scheduleApi.getByClass(classId);
+      const response = await scheduleApi.getByClass(
+        params.classId, 
+        params.userRole, 
+        params.userId, 
+        params.userRegionId, 
+        params.userSchoolId
+      );
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch class schedules');
@@ -68,9 +92,21 @@ export const fetchSchedulesByClass = createAsyncThunk(
 
 export const fetchSchedulesByTeacher = createAsyncThunk(
   'schedules/fetchSchedulesByTeacher',
-  async (teacherId: number, { rejectWithValue }) => {
+  async (params: { 
+    teacherId: number; 
+    userRole: string; 
+    userId: number; 
+    userRegionId?: number; 
+    userSchoolId?: number; 
+  }, { rejectWithValue }) => {
     try {
-      const response = await scheduleApi.getByTeacher(teacherId);
+      const response = await scheduleApi.getByTeacher(
+        params.teacherId, 
+        params.userRole, 
+        params.userId, 
+        params.userRegionId, 
+        params.userSchoolId
+      );
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch teacher schedules');
