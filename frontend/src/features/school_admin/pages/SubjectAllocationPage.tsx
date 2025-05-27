@@ -12,91 +12,11 @@ import {
   CheckCircle, Clock, AlertTriangle, Eye, User
 } from 'lucide-react';
 
-// Card component
+// Card component for statistics
 const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => (
   <div className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 ${className}`}>
     {children}
   </div>
-);
-
-// Subject allocation card component
-const SubjectAllocationCard: React.FC<{
-  allocation: any;
-  onEdit: (allocation: any) => void;
-  onRemove: (allocation: any) => void;
-  onViewProgress: (allocation: any) => void;
-}> = ({ allocation, onEdit, onRemove, onViewProgress }) => (
-  <Card className="hover:shadow-md transition-shadow">
-    <div className="flex justify-between items-start mb-4">
-      <div className="flex-1">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{allocation.subject}</h3>
-        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-          <div className="flex items-center gap-1">
-            <User size={14} />
-            <span>{allocation.teacher}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Users size={14} />
-            <span>{allocation.class}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Calendar size={14} />
-            <span>{allocation.term}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            allocation.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-            allocation.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-gray-100 text-gray-800'
-          }`}>
-            {allocation.status}
-          </span>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            allocation.progress >= 80 ? 'bg-green-100 text-green-800' :
-            allocation.progress >= 50 ? 'bg-yellow-100 text-yellow-800' :
-            'bg-red-100 text-red-800'
-          }`}>
-            {allocation.progress}% Complete
-          </span>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 ml-4">
-        <button
-          onClick={() => onViewProgress(allocation)}
-          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-        >
-          <Eye size={16} />
-        </button>
-        <button
-          onClick={() => onEdit(allocation)}
-          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-        >
-          <Edit size={16} />
-        </button>
-        <button
-          onClick={() => onRemove(allocation)}
-          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-    </div>
-    <div className="grid grid-cols-3 gap-4 text-sm">
-      <div>
-        <span className="text-gray-500">Lessons:</span>
-        <span className="ml-2 font-medium">{allocation.completedLessons}/{allocation.totalLessons}</span>
-      </div>
-      <div>
-        <span className="text-gray-500">Assessments:</span>
-        <span className="ml-2 font-medium">{allocation.assessments}</span>
-      </div>
-      <div>
-        <span className="text-gray-500">Last Update:</span>
-        <span className="ml-2 font-medium">{allocation.lastUpdate}</span>
-      </div>
-    </div>
-  </Card>
 );
 
 export const SubjectAllocationPage: React.FC = () => {
@@ -157,6 +77,36 @@ export const SubjectAllocationPage: React.FC = () => {
       totalLessons: 20,
       assessments: 1,
       lastUpdate: '2025-04-10'
+    },
+    {
+      id: 4,
+      subject: 'History',
+      teacher: 'Mr. John Molefe',
+      teacherId: 4,
+      class: 'Form 3A',
+      classId: 3,
+      term: 'Term 1 2025',
+      status: 'ACTIVE',
+      progress: 85,
+      completedLessons: 17,
+      totalLessons: 20,
+      assessments: 4,
+      lastUpdate: '2025-04-16'
+    },
+    {
+      id: 5,
+      subject: 'Biology',
+      teacher: 'Dr. Grace Seretse',
+      teacherId: 5,
+      class: 'Form 2A',
+      classId: 4,
+      term: 'Term 1 2025',
+      status: 'COMPLETED',
+      progress: 100,
+      completedLessons: 20,
+      totalLessons: 20,
+      assessments: 5,
+      lastUpdate: '2025-04-18'
     }
   ]);
 
@@ -252,12 +202,36 @@ export const SubjectAllocationPage: React.FC = () => {
     const total = allocations.length;
     const active = allocations.filter(a => a.status === 'ACTIVE').length;
     const pending = allocations.filter(a => a.status === 'PENDING').length;
-    const avgProgress = allocations.reduce((sum, a) => sum + a.progress, 0) / allocations.length;
-
-    return { total, active, pending, avgProgress: Math.round(avgProgress) };
+    const avgProgress = total > 0 ? Math.round(allocations.reduce((sum, a) => sum + a.progress, 0) / total) : 0;
+    
+    return { total, active, pending, avgProgress };
   };
 
   const stats = getStatistics();
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return 'bg-green-100 text-green-800';
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+      case 'COMPLETED': return 'bg-blue-100 text-blue-800';
+      case 'SUSPENDED': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getProgressColor = (progress: number) => {
+    if (progress >= 80) return 'bg-green-500';
+    if (progress >= 60) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -285,55 +259,113 @@ export const SubjectAllocationPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Allocations</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
+      {/* Quick Actions */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            onClick={handleAllocateSubject}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Plus className="text-blue-600" size={20} />
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900">Allocate Subject</h4>
+                <p className="text-sm text-gray-600">Assign a subject to a teacher</p>
+              </div>
             </div>
-            <BookOpen className="text-blue-600" size={24} />
-          </div>
-        </Card>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.active}</p>
+          </button>
+          
+          <button
+            onClick={handleBulkAllocation}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Users className="text-purple-600" size={20} />
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900">Bulk Allocation</h4>
+                <p className="text-sm text-gray-600">Allocate multiple subjects at once</p>
+              </div>
             </div>
-            <CheckCircle className="text-green-600" size={24} />
-          </div>
-        </Card>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.pending}</p>
+          </button>
+          
+          <button
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <BarChart3 className="text-green-600" size={20} />
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900">Progress Reports</h4>
+                <p className="text-sm text-gray-600">View curriculum delivery reports</p>
+              </div>
             </div>
-            <Clock className="text-yellow-600" size={24} />
-          </div>
-        </Card>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Avg Progress</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.avgProgress}%</p>
-            </div>
-            <BarChart3 className="text-purple-600" size={24} />
-          </div>
-        </Card>
+          </button>
+        </div>
       </div>
 
-      {/* Filters */}
-      <Card>
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg mr-3">
+              <BookOpen size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+              <div className="text-sm text-gray-500">Total Allocations</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg mr-3">
+              <CheckCircle size={20} className="text-green-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-900">{stats.active}</div>
+              <div className="text-sm text-gray-500">Active</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-yellow-100 rounded-lg mr-3">
+              <Clock size={20} className="text-yellow-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-900">{stats.pending}</div>
+              <div className="text-sm text-gray-500">Pending</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg mr-3">
+              <BarChart3 size={20} className="text-purple-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-900">{stats.avgProgress}%</div>
+              <div className="text-sm text-gray-500">Avg Progress</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex flex-wrap items-center gap-4">
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Search allocations..."
+              placeholder="Search allocations by subject, teacher, or class..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -390,30 +422,142 @@ export const SubjectAllocationPage: React.FC = () => {
             </select>
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* Allocations Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredAllocations.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-500">
-            <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No subject allocations found for the selected criteria.</p>
+      {/* Allocations Table */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Subject & Teacher
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Class & Term
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Progress
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Lessons
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Assessments
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Last Update
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredAllocations.map((allocation) => (
+                <tr key={allocation.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                        <BookOpen size={16} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{allocation.subject}</div>
+                        <div className="text-sm text-gray-500">{allocation.teacher}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{allocation.class}</div>
+                    <div className="text-sm text-gray-500">{allocation.term}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(allocation.status)}`}>
+                      {allocation.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="text-sm font-medium text-gray-900 mr-2">{allocation.progress}%</div>
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${getProgressColor(allocation.progress)}`}
+                          style={{ width: `${allocation.progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {allocation.completedLessons}/{allocation.totalLessons}
+                    </div>
+                    <div className="text-sm text-gray-500">completed</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{allocation.assessments}</div>
+                    <div className="text-sm text-gray-500">assessments</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      <Calendar size={14} className="text-gray-400" />
+                      <span className="text-sm text-gray-900">{formatDate(allocation.lastUpdate)}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-3">
+                      <button 
+                        onClick={() => handleViewProgress(allocation)}
+                        className="text-blue-600 hover:text-blue-900 transition-colors"
+                        title="View Progress"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleEditAllocation(allocation)}
+                        className="text-blue-600 hover:text-blue-900 transition-colors"
+                        title="Edit Allocation"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleRemoveAllocation(allocation)}
+                        className="text-red-600 hover:text-red-900 transition-colors"
+                        title="Remove Allocation"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {filteredAllocations.length === 0 && (
+          <div className="text-center py-12">
+            <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <div className="text-gray-500 text-lg mb-2">
+              {searchTerm || filterSubject || filterStatus || selectedClass ? 'No allocations found matching your criteria' : 'No subject allocations found'}
+            </div>
+            {!searchTerm && !filterSubject && !filterStatus && !selectedClass && (
+              <button
+                onClick={handleAllocateSubject}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
+              >
+                <Plus size={16} />
+                Create First Allocation
+              </button>
+            )}
           </div>
-        ) : (
-          filteredAllocations.map(allocation => (
-            <SubjectAllocationCard
-              key={allocation.id}
-              allocation={allocation}
-              onEdit={handleEditAllocation}
-              onRemove={handleRemoveAllocation}
-              onViewProgress={handleViewProgress}
-            />
-          ))
         )}
       </div>
 
       {/* Teacher Workload Overview */}
-      <Card>
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Teacher Workload Overview</h3>
         <div className="space-y-4">
           {teachers.slice(0, 5).map(teacher => {
@@ -456,57 +600,7 @@ export const SubjectAllocationPage: React.FC = () => {
             );
           })}
         </div>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={handleAllocateSubject}
-            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Plus className="text-blue-600" size={20} />
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-900">Allocate Subject</h4>
-                <p className="text-sm text-gray-600">Assign a subject to a teacher</p>
-              </div>
-            </div>
-          </button>
-          
-          <button
-            onClick={handleBulkAllocation}
-            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Users className="text-purple-600" size={20} />
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-900">Bulk Allocation</h4>
-                <p className="text-sm text-gray-600">Allocate multiple subjects at once</p>
-              </div>
-            </div>
-          </button>
-          
-          <button
-            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <BarChart3 className="text-green-600" size={20} />
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-900">Progress Reports</h4>
-                <p className="text-sm text-gray-600">View curriculum delivery reports</p>
-              </div>
-            </div>
-          </button>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }; 
