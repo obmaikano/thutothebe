@@ -9,6 +9,7 @@ import regionsReducer from '../features/regions/regionsSlice';
 import usersReducer from '../features/users/usersSlice';
 import teachersReducer from '../features/teachers/teachersSlice';
 import assignmentsReducer from '../features/assignments/assignmentsSlice';
+import assessmentsReducer from '../features/assessments/assessmentsSlice';
 import gradesReducer from '../features/grades/gradesSlice';
 import studentsReducer from '../features/students/studentsSlice';
 import progressReducer from '../features/progress/progressSlice';
@@ -30,6 +31,7 @@ export const store = configureStore({
     users: usersReducer,
     teachers: teachersReducer,
     assignments: assignmentsReducer,
+    assessments: assessmentsReducer,
     grades: gradesReducer,
     students: studentsReducer,
     progress: progressReducer,

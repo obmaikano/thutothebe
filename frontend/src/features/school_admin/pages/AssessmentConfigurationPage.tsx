@@ -12,92 +12,11 @@ import {
   CheckCircle, Clock, AlertTriangle, Eye
 } from 'lucide-react';
 
-// Card component
+// Card component for statistics
 const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => (
   <div className={`bg-white p-6 rounded-xl shadow-sm border border-gray-100 ${className}`}>
     {children}
   </div>
-);
-
-// Assessment card component
-const AssessmentCard: React.FC<{
-  assessment: any;
-  onEdit: (assessment: any) => void;
-  onDelete: (assessment: any) => void;
-  onView: (assessment: any) => void;
-}> = ({ assessment, onEdit, onDelete, onView }) => (
-  <Card className="hover:shadow-md transition-shadow">
-    <div className="flex justify-between items-start mb-4">
-      <div className="flex-1">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{assessment.title}</h3>
-        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-          <div className="flex items-center gap-1">
-            <BookOpen size={14} />
-            <span>{assessment.subject}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Users size={14} />
-            <span>{assessment.class}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Calendar size={14} />
-            <span>{assessment.dueDate}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            assessment.type === 'EXAM' ? 'bg-red-100 text-red-800' :
-            assessment.type === 'QUIZ' ? 'bg-blue-100 text-blue-800' :
-            assessment.type === 'ASSIGNMENT' ? 'bg-green-100 text-green-800' :
-            'bg-gray-100 text-gray-800'
-          }`}>
-            {assessment.type}
-          </span>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            assessment.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-            assessment.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-gray-100 text-gray-800'
-          }`}>
-            {assessment.status}
-          </span>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 ml-4">
-        <button
-          onClick={() => onView(assessment)}
-          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-        >
-          <Eye size={16} />
-        </button>
-        <button
-          onClick={() => onEdit(assessment)}
-          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-        >
-          <Edit size={16} />
-        </button>
-        <button
-          onClick={() => onDelete(assessment)}
-          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-    </div>
-    <div className="grid grid-cols-3 gap-4 text-sm">
-      <div>
-        <span className="text-gray-500">Total Marks:</span>
-        <span className="ml-2 font-medium">{assessment.totalMarks}</span>
-      </div>
-      <div>
-        <span className="text-gray-500">Submissions:</span>
-        <span className="ml-2 font-medium">{assessment.submissions}/{assessment.totalStudents}</span>
-      </div>
-      <div>
-        <span className="text-gray-500">Average:</span>
-        <span className="ml-2 font-medium">{assessment.averageScore || 'N/A'}</span>
-      </div>
-    </div>
-  </Card>
 );
 
 export const AssessmentConfigurationPage: React.FC = () => {
@@ -155,6 +74,34 @@ export const AssessmentConfigurationPage: React.FC = () => {
       totalStudents: 30,
       averageScore: null,
       teacher: 'Dr. Moeti'
+    },
+    {
+      id: 4,
+      title: 'History Project - Independence',
+      subject: 'History',
+      class: 'Form 3A',
+      type: 'PROJECT',
+      status: 'ACTIVE',
+      dueDate: '2025-05-15',
+      totalMarks: 75,
+      submissions: 15,
+      totalStudents: 28,
+      averageScore: 72.8,
+      teacher: 'Mr. Molefe'
+    },
+    {
+      id: 5,
+      title: 'Biology Lab Report',
+      subject: 'Biology',
+      class: 'Form 2A',
+      type: 'ASSIGNMENT',
+      status: 'COMPLETED',
+      dueDate: '2025-04-10',
+      totalMarks: 40,
+      submissions: 24,
+      totalStudents: 24,
+      averageScore: 78.3,
+      teacher: 'Dr. Seretse'
     }
   ]);
 
@@ -235,7 +182,8 @@ export const AssessmentConfigurationPage: React.FC = () => {
     const matchesSearch = 
       assessment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assessment.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assessment.class.toLowerCase().includes(searchTerm.toLowerCase());
+      assessment.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      assessment.teacher.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesType = filterType === '' || assessment.type === filterType;
     const matchesStatus = filterStatus === '' || assessment.status === filterStatus;
@@ -248,12 +196,50 @@ export const AssessmentConfigurationPage: React.FC = () => {
     const total = assessments.length;
     const active = assessments.filter(a => a.status === 'ACTIVE').length;
     const draft = assessments.filter(a => a.status === 'DRAFT').length;
-    const completed = assessments.filter(a => a.submissions === a.totalStudents).length;
+    const completed = assessments.filter(a => a.status === 'COMPLETED').length;
 
     return { total, active, draft, completed };
   };
 
   const stats = getStatistics();
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'EXAM':
+        return 'bg-red-100 text-red-800';
+      case 'QUIZ':
+        return 'bg-blue-100 text-blue-800';
+      case 'ASSIGNMENT':
+        return 'bg-green-100 text-green-800';
+      case 'PROJECT':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return 'bg-green-100 text-green-800';
+      case 'DRAFT':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'COMPLETED':
+        return 'bg-blue-100 text-blue-800';
+      case 'ARCHIVED':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -321,15 +307,15 @@ export const AssessmentConfigurationPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
+      {/* Search and Filters */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex flex-wrap items-center gap-4">
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Search assessments..."
+              placeholder="Search assessments by title, subject, class, or teacher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -385,25 +371,137 @@ export const AssessmentConfigurationPage: React.FC = () => {
             </select>
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* Assessments Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredAssessments.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-500">
-            <FileText size={48} className="mx-auto mb-4 opacity-50" />
-            <p>No assessments found for the selected criteria.</p>
+      {/* Assessments Table */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Assessment
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Subject & Class
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type & Status
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Due Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Progress
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Performance
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredAssessments.map((assessment) => (
+                <tr key={assessment.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                        <FileText size={16} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{assessment.title}</div>
+                        <div className="text-sm text-gray-500">by {assessment.teacher}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{assessment.subject}</div>
+                    <div className="text-sm text-gray-500">{assessment.class}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col gap-1">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(assessment.type)}`}>
+                        {assessment.type}
+                      </span>
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(assessment.status)}`}>
+                        {assessment.status}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      <Calendar size={14} className="text-gray-400" />
+                      <span className="text-sm text-gray-900">{formatDate(assessment.dueDate)}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {assessment.submissions}/{assessment.totalStudents}
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${(assessment.submissions / assessment.totalStudents) * 100}%` }}
+                      ></div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {assessment.averageScore ? `${assessment.averageScore}%` : 'N/A'}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      out of {assessment.totalMarks} marks
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-3">
+                      <button 
+                        onClick={() => handleViewAssessment(assessment)}
+                        className="text-blue-600 hover:text-blue-900 transition-colors"
+                        title="View Details"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleEditAssessment(assessment)}
+                        className="text-blue-600 hover:text-blue-900 transition-colors"
+                        title="Edit Assessment"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteAssessment(assessment)}
+                        className="text-red-600 hover:text-red-900 transition-colors"
+                        title="Delete Assessment"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {filteredAssessments.length === 0 && (
+          <div className="text-center py-12">
+            <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <div className="text-gray-500 text-lg mb-2">
+              {searchTerm || filterType || filterStatus || selectedClass ? 'No assessments found matching your criteria' : 'No assessments found'}
+            </div>
+            {!searchTerm && !filterType && !filterStatus && !selectedClass && (
+              <button
+                onClick={handleCreateAssessment}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
+              >
+                <Plus size={16} />
+                Create First Assessment
+              </button>
+            )}
           </div>
-        ) : (
-          filteredAssessments.map(assessment => (
-            <AssessmentCard
-              key={assessment.id}
-              assessment={assessment}
-              onEdit={handleEditAssessment}
-              onDelete={handleDeleteAssessment}
-              onView={handleViewAssessment}
-            />
-          ))
         )}
       </div>
 

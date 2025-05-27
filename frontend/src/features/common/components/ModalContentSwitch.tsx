@@ -58,6 +58,17 @@ const TeacherViewDetailsModal = lazy(() => import('../../teachers/modals/Teacher
 const AssignCourseModal = lazy(() => import('../../teachers/modals/AssignCourseModal'));
 const AssignClassModal = lazy(() => import('../../teachers/modals/AssignClassModal'));
 
+// Schedule management modals
+const ScheduleAddNewModal = lazy(() => import('../../school_admin/modals/ScheduleAddNewModal'));
+const ScheduleEditModal = lazy(() => import('../../school_admin/modals/ScheduleEditModal'));
+const ScheduleDeleteModal = lazy(() => import('../../school_admin/modals/ScheduleDeleteModal'));
+const ScheduleViewModal = lazy(() => import('../../school_admin/modals/ScheduleViewModal'));
+
+// Assessment management modals
+const GradeCategoryAddNewModal = lazy(() => import('../../school_admin/modals/GradeCategoryAddNewModal'));
+const AssignmentAddNewModal = lazy(() => import('../../school_admin/modals/AssignmentAddNewModal'));
+const SubjectAssignTeacherModal = lazy(() => import('../../school_admin/modals/SubjectAssignTeacherModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -341,6 +352,57 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <AssignCourseModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Schedule Management Modals
+    case MODAL_BODY_TYPES.SCHEDULE_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <ScheduleAddNewModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SCHEDULE_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <ScheduleEditModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SCHEDULE_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <ScheduleDeleteModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SCHEDULE_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <ScheduleViewModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Assessment Management Modals
+    case MODAL_BODY_TYPES.GRADE_CATEGORY_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <GradeCategoryAddNewModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ASSIGNMENT_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <AssignmentAddNewModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SUBJECT_ASSIGN_TEACHER:
+      return (
+        <Suspense fallback={fallback}>
+          <SubjectAssignTeacherModal extraObject={contentProps} />
         </Suspense>
       );
       
