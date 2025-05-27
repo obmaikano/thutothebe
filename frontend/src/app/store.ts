@@ -16,6 +16,7 @@ import rightDrawerReducer from '../features/common/rightDrawerSlice';
 import modalReducer from '../features/common/modalSlice';
 import headerReducer from '../features/common/headerSlice';
 import parentsReducer from '../features/parents/parentsSlice';
+import schedulesReducer from '../features/school_admin/schedulesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -36,6 +37,7 @@ export const store = configureStore({
     modal: modalReducer,
     header: headerReducer,
     parents: parentsReducer,
+    schedules: schedulesReducer,
   },
 });
 
