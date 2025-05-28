@@ -41,7 +41,7 @@ public class SchoolMonitoring extends BaseEntity {
     @Column(name = "admin_logins")
     private Integer adminLogins;
 
-    @Column(name = "attendance_rate", precision = 5, scale = 2)
+    @Column(name = "attendance_rate", precision = 5)
     private Double attendanceRate;
 
     @Column(name = "assignment_submissions")
@@ -50,13 +50,13 @@ public class SchoolMonitoring extends BaseEntity {
     @Column(name = "assignments_graded")
     private Integer assignmentsGraded;
 
-    @Column(name = "average_grading_turnaround_hours", precision = 8, scale = 2)
+    @Column(name = "average_grading_turnaround_hours", precision = 8)
     private Double averageGradingTurnaroundHours;
 
-    @Column(name = "curriculum_completion_rate", precision = 5, scale = 2)
+    @Column(name = "curriculum_completion_rate", precision = 5)
     private Double curriculumCompletionRate;
 
-    @Column(name = "system_uptime_percentage", precision = 5, scale = 2)
+    @Column(name = "system_uptime_percentage", precision = 5)
     private Double systemUptimePercentage;
 
     @Column(name = "peak_usage_hour")
@@ -83,7 +83,7 @@ public class SchoolMonitoring extends BaseEntity {
     @Column(name = "last_activity_timestamp")
     private LocalDateTime lastActivityTimestamp;
 
-    @Column(name = "compliance_score", precision = 5, scale = 2)
+    @Column(name = "compliance_score", precision = 5)
     private Double complianceScore;
 
     @Column(name = "alert_count")

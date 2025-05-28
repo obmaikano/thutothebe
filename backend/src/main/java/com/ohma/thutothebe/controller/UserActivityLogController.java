@@ -22,7 +22,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/activity-logs")
+@RequestMapping("/activity-logs")
 @Tag(name = "User Activity Log Management", description = "APIs for managing user activity logs")
 public class UserActivityLogController extends BaseController<UserActivityLogDTO, Long> {
 

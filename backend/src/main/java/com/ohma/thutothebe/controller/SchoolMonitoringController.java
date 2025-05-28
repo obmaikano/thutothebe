@@ -21,7 +21,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/monitoring/schools")
+@RequestMapping("/monitoring/schools")
 @Tag(name = "School Monitoring Management", description = "APIs for managing school monitoring data")
 public class SchoolMonitoringController extends BaseController<SchoolMonitoringDTO, Long> {
 

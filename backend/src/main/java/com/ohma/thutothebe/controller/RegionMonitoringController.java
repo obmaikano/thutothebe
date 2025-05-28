@@ -21,7 +21,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/monitoring/regions")
+@RequestMapping("/monitoring/regions")
 @Tag(name = "Region Monitoring Management", description = "APIs for managing region monitoring data")
 public class RegionMonitoringController extends BaseController<RegionMonitoringDTO, Long> {
 

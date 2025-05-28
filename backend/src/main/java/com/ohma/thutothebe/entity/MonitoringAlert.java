@@ -46,10 +46,10 @@ public class MonitoringAlert extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "threshold_value", precision = 10, scale = 2)
+    @Column(name = "threshold_value", precision = 10)
     private Double thresholdValue;
 
-    @Column(name = "actual_value", precision = 10, scale = 2)
+    @Column(name = "actual_value", precision = 10)
     private Double actualValue;
 
     @Column(name = "metric_name")

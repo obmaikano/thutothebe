@@ -24,7 +24,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/monitoring/alerts")
+@RequestMapping("/monitoring/alerts")
 @Tag(name = "Monitoring Alert Management", description = "APIs for managing monitoring alerts")
 public class MonitoringAlertController extends BaseController<MonitoringAlertDTO, Long> {
 

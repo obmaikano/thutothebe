@@ -38,7 +38,7 @@ public class RegionMonitoring extends BaseEntity {
     @Column(name = "total_logins")
     private Integer totalLogins;
 
-    @Column(name = "average_attendance_rate", precision = 5, scale = 2)
+    @Column(name = "average_attendance_rate", precision = 5)
     private Double averageAttendanceRate;
 
     @Column(name = "total_assignment_submissions")
@@ -47,13 +47,13 @@ public class RegionMonitoring extends BaseEntity {
     @Column(name = "total_assignments_graded")
     private Integer totalAssignmentsGraded;
 
-    @Column(name = "average_grading_turnaround_hours", precision = 8, scale = 2)
+    @Column(name = "average_grading_turnaround_hours", precision = 8)
     private Double averageGradingTurnaroundHours;
 
-    @Column(name = "average_curriculum_completion_rate", precision = 5, scale = 2)
+    @Column(name = "average_curriculum_completion_rate", precision = 5)
     private Double averageCurriculumCompletionRate;
 
-    @Column(name = "average_system_uptime_percentage", precision = 5, scale = 2)
+    @Column(name = "average_system_uptime_percentage", precision = 5)
     private Double averageSystemUptimePercentage;
 
     @Column(name = "schools_with_low_usage")
@@ -74,10 +74,10 @@ public class RegionMonitoring extends BaseEntity {
     @Column(name = "low_performing_schools")
     private Integer lowPerformingSchools;
 
-    @Column(name = "average_compliance_score", precision = 5, scale = 2)
+    @Column(name = "average_compliance_score", precision = 5)
     private Double averageComplianceScore;
 
-    @Column(name = "resource_utilization_rate", precision = 5, scale = 2)
+    @Column(name = "resource_utilization_rate", precision = 5)
     private Double resourceUtilizationRate;
 
     @Column(name = "last_updated")
