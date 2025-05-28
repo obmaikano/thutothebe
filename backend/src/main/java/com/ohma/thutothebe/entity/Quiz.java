@@ -1,5 +1,6 @@
 package com.ohma.thutothebe.entity;
 
+import com.ohma.thutothebe.entity.enums.GradingType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +15,7 @@ import java.util.Set;
 @Table(name = "quizzes")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class Quiz extends BaseEntity {
+public class Quiz extends BaseEntity implements Gradable {
 
     @NotBlank
     @Column(unique = true)
@@ -52,16 +53,53 @@ public class Quiz extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private QuizStatus status = QuizStatus.DRAFT;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grading_type", nullable = false)
+    private GradingType gradingType = GradingType.AUTO;
+
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Question> questions = new HashSet<>();
 
+    @Column(name = "auto_grade_immediately", nullable = false)
+    private boolean autoGradeImmediately = true;
+
+    @Column(name = "show_results_immediately", nullable = false)
+    private boolean showResultsImmediately = true;
+
+    @Column(name = "max_attempts")
+    private Integer maxAttempts = 1;
+
     private boolean active = true;
+
+    @Override
+    public GradingType getGradingType() {
+        return this.gradingType;
+    }
+
+    @Override
+    public boolean supportsAutoGrading() {
+        return gradingType == GradingType.AUTO || gradingType == GradingType.HYBRID;
+    }
+
+    @Override
+    public boolean supportsManualGrading() {
+        return gradingType == GradingType.MANUAL || gradingType == GradingType.HYBRID;
+    }
+
+    @Override
+    public Integer getTotalPoints() {
+        return this.totalPoints;
+    }
 
     @PrePersist
     protected void onCreate() {
         super.onCreate();
         if (status == null) {
             status = QuizStatus.DRAFT;
+        }
+        // Quizzes are typically auto-graded by default
+        if (gradingType == null) {
+            gradingType = GradingType.AUTO;
         }
     }
 } 
