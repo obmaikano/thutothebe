@@ -2,6 +2,7 @@ package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.MessageDTO;
 import com.ohma.thutothebe.entity.Message;
+import com.ohma.thutothebe.entity.MessageType;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.MessageMapper;
@@ -60,7 +61,27 @@ class MessageServiceImplTest {
         message.setRecipient(recipient);
         message.setActive(true);
 
-        messageDTO = new MessageDTO(1L, "Test message", 1L, 2L, null, LocalDateTime.now(), true);
+        messageDTO = new MessageDTO(
+            1L,
+            "Test message",
+            1L,
+            "Sender Name",
+            2L,
+            "Recipient Name",
+            null,
+            null,
+            MessageType.TEXT,
+            LocalDateTime.now(),
+            LocalDateTime.now(),
+            true,
+            false,
+            false,
+            null,
+            null,
+            null,
+            false,
+            null
+        );
     }
 
     @Test
@@ -255,25 +276,41 @@ class MessageServiceImplTest {
 
     @Test
     void create_ShouldThrowException_WhenContentIsBlank() {
-        MessageDTO invalidDTO = new MessageDTO(1L, "", 1L, 2L, null, LocalDateTime.now(), true);
+        MessageDTO invalidDTO = new MessageDTO(
+            1L, "", 1L, "Sender Name", 2L, "Recipient Name", null, null,
+            MessageType.TEXT, LocalDateTime.now(), LocalDateTime.now(), true,
+            false, false, null, null, null, false, null
+        );
         assertThrows(IllegalArgumentException.class, () -> messageService.create(invalidDTO));
     }
 
     @Test
     void create_ShouldThrowException_WhenSenderIdIsNull() {
-        MessageDTO invalidDTO = new MessageDTO(1L, "Test message", null, 2L, null, LocalDateTime.now(), true);
+        MessageDTO invalidDTO = new MessageDTO(
+            1L, "Test message", null, "Sender Name", 2L, "Recipient Name", null, null,
+            MessageType.TEXT, LocalDateTime.now(), LocalDateTime.now(), true,
+            false, false, null, null, null, false, null
+        );
         assertThrows(IllegalArgumentException.class, () -> messageService.create(invalidDTO));
     }
 
     @Test
     void create_ShouldThrowException_WhenBothRecipientAndGroupAreNull() {
-        MessageDTO invalidDTO = new MessageDTO(1L, "Test message", 1L, null, null, LocalDateTime.now(), true);
+        MessageDTO invalidDTO = new MessageDTO(
+            1L, "Test message", 1L, "Sender Name", null, null, null, null,
+            MessageType.TEXT, LocalDateTime.now(), LocalDateTime.now(), true,
+            false, false, null, null, null, false, null
+        );
         assertThrows(IllegalArgumentException.class, () -> messageService.create(invalidDTO));
     }
 
     @Test
     void create_ShouldSucceed_WhenOnlyGroupIdIsProvided() {
-        MessageDTO validDTO = new MessageDTO(1L, "Test message", 1L, null, 1L, LocalDateTime.now(), true);
+        MessageDTO validDTO = new MessageDTO(
+            1L, "Test message", 1L, "Sender Name", null, null, 1L, "Group Name",
+            MessageType.TEXT, LocalDateTime.now(), LocalDateTime.now(), true,
+            false, false, null, null, null, false, null
+        );
         when(messageMapper.toEntity(any(MessageDTO.class))).thenReturn(message);
         when(userRepository.findById(1L)).thenReturn(Optional.of(sender));
         when(messageRepository.save(any(Message.class))).thenReturn(message);

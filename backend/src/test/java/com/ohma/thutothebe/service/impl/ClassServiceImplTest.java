@@ -3,11 +3,15 @@ package com.ohma.thutothebe.service.impl;
 import com.ohma.thutothebe.dto.ClassDTO;
 import com.ohma.thutothebe.entity.Class;
 import com.ohma.thutothebe.entity.School;
+import com.ohma.thutothebe.entity.Student;
+import com.ohma.thutothebe.entity.Teacher;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.entity.UserRole;
+import com.ohma.thutothebe.entity.enums.GradeLevel;
 import com.ohma.thutothebe.mapper.ClassMapper;
 import com.ohma.thutothebe.repository.ClassRepository;
 import com.ohma.thutothebe.repository.SchoolRepository;
+import com.ohma.thutothebe.repository.TeacherRepository;
 import com.ohma.thutothebe.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +41,9 @@ class ClassServiceImplTest {
     private SchoolRepository schoolRepository;
 
     @Mock
+    private TeacherRepository teacherRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -48,7 +55,7 @@ class ClassServiceImplTest {
     private Class classEntity;
     private ClassDTO classDTO;
     private School school;
-    private User teacher;
+    private Teacher teacher;
     private User student;
 
     @BeforeEach
@@ -57,10 +64,12 @@ class ClassServiceImplTest {
         school.setId(1L);
         school.setName("Test School");
 
-        teacher = new User();
+        teacher = new Teacher();
         teacher.setId(1L);
-        teacher.setUsername("teacher1");
-        teacher.setRole(UserRole.TEACHER);
+        teacher.setFirstName("John");
+        teacher.setLastName("Doe");
+        teacher.setEmail("john.doe@example.com");
+        teacher.setStaffId("T001");
 
         student = new User();
         student.setId(2L);
@@ -80,6 +89,11 @@ class ClassServiceImplTest {
             1L,
             "Test Class",
             "Test Description",
+            GradeLevel.STANDARD_1,
+            30,
+            25,
+            5,
+            false,
             1L,
             new HashSet<>(Arrays.asList(1L)),
             new HashSet<>(Arrays.asList(2L)),
@@ -172,7 +186,7 @@ class ClassServiceImplTest {
     @Test
     void createClass_ShouldCreateNewClass() {
         when(schoolRepository.findById(1L)).thenReturn(Optional.of(school));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(teacher));
+        when(teacherRepository.findById(1L)).thenReturn(Optional.of(teacher));
         when(userRepository.findById(2L)).thenReturn(Optional.of(student));
         when(classMapper.toEntity(classDTO)).thenReturn(classEntity);
         when(classRepository.save(classEntity)).thenReturn(classEntity);
@@ -183,7 +197,7 @@ class ClassServiceImplTest {
         assertNotNull(result);
         assertEquals(classDTO, result);
         verify(schoolRepository).findById(1L);
-        verify(userRepository).findById(1L);
+        verify(teacherRepository).findById(1L);
         verify(userRepository).findById(2L);
         verify(classMapper).toEntity(classDTO);
         verify(classRepository).save(classEntity);
@@ -204,7 +218,7 @@ class ClassServiceImplTest {
     void updateClass_ShouldUpdateExistingClass() {
         when(classRepository.findById(1L)).thenReturn(Optional.of(classEntity));
         when(schoolRepository.findById(1L)).thenReturn(Optional.of(school));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(teacher));
+        when(teacherRepository.findById(1L)).thenReturn(Optional.of(teacher));
         when(userRepository.findById(2L)).thenReturn(Optional.of(student));
         when(classRepository.save(any(Class.class))).thenReturn(classEntity);
         when(classMapper.toDto(classEntity)).thenReturn(classDTO);
@@ -215,7 +229,7 @@ class ClassServiceImplTest {
         assertEquals(classDTO, result);
         verify(classRepository).findById(1L);
         verify(schoolRepository).findById(1L);
-        verify(userRepository).findById(1L);
+        verify(teacherRepository).findById(1L);
         verify(userRepository).findById(2L);
         verify(classRepository).save(any(Class.class));
         verify(classMapper).toDto(classEntity);
@@ -277,28 +291,28 @@ class ClassServiceImplTest {
     @Test
     void addTeacherToClass_ShouldAddTeacher() {
         when(classRepository.findById(1L)).thenReturn(Optional.of(classEntity));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(teacher));
+        when(teacherRepository.findById(1L)).thenReturn(Optional.of(teacher));
         when(classRepository.save(classEntity)).thenReturn(classEntity);
 
         classService.addTeacherToClass(1L, 1L);
 
         assertTrue(classEntity.getTeachers().contains(teacher));
         verify(classRepository).findById(1L);
-        verify(userRepository).findById(1L);
+        verify(teacherRepository).findById(1L);
         verify(classRepository).save(classEntity);
     }
 
     @Test
     void removeTeacherFromClass_ShouldRemoveTeacher() {
         when(classRepository.findById(1L)).thenReturn(Optional.of(classEntity));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(teacher));
+        when(teacherRepository.findById(1L)).thenReturn(Optional.of(teacher));
         when(classRepository.save(classEntity)).thenReturn(classEntity);
 
         classService.removeTeacherFromClass(1L, 1L);
 
         assertFalse(classEntity.getTeachers().contains(teacher));
         verify(classRepository).findById(1L);
-        verify(userRepository).findById(1L);
+        verify(teacherRepository).findById(1L);
         verify(classRepository).save(classEntity);
     }
 
