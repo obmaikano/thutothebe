@@ -120,6 +120,6 @@ public interface DocumentService extends BaseService<DocumentDTO, Long> {
     List<Object[]> getDocumentUsageStatistics(Long schoolId, LocalDateTime startDate, LocalDateTime endDate);
     List<Object[]> getDocumentCategoryStatistics(Long schoolId);
     List<Object[]> getDocumentTypeStatistics(Long schoolId);
-    List<Object[]> getMostAccessedDocuments(Long schoolId, int limit);
+    List<Object[]> getMostAccessedDocuments(Long schoolId, Pageable pageable);
     List<Object[]> getMostDownloadedDocuments(Long schoolId, int limit);
 } 

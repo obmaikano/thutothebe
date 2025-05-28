@@ -58,10 +58,10 @@ public interface DocumentAccessLogService extends BaseService<DocumentAccessLogD
     List<Object[]> getAccessTypeStatsByDateRange(LocalDateTime startDate, LocalDateTime endDate);
     
     // Popular documents and users
-    List<Object[]> getMostAccessedDocuments(int limit);
-    List<Object[]> getMostAccessedDocumentsBySchool(Long schoolId, int limit);
-    List<Object[]> getMostActiveUsers(int limit);
-    List<Object[]> getMostActiveUsersBySchool(Long schoolId, int limit);
+    List<Object[]> getMostAccessedDocuments(Pageable pageable);
+    List<Object[]> getMostAccessedDocumentsBySchool(Long schoolId, Pageable pageable);
+    List<Object[]> getMostActiveUsers(Pageable pageable);
+    List<Object[]> getMostActiveUsersBySchool(Long schoolId, Pageable pageable);
     
     // Time-based analytics
     List<Object[]> getAccessStatsByHour(LocalDateTime date);

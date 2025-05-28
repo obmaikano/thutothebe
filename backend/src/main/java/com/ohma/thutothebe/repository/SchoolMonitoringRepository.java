@@ -45,11 +45,11 @@ public interface SchoolMonitoringRepository extends JpaRepository<SchoolMonitori
     @Query("SELECT sm FROM SchoolMonitoring sm WHERE sm.complianceScore < :threshold AND sm.monitoringDate = :date AND sm.active = true")
     List<SchoolMonitoring> findSchoolsWithLowCompliance(@Param("threshold") Double threshold, @Param("date") LocalDate date);
 
-    @Query("SELECT sm FROM SchoolMonitoring sm WHERE sm.totalAlerts > :threshold AND sm.monitoringDate = :date AND sm.active = true")
+    @Query("SELECT sm FROM SchoolMonitoring sm WHERE sm.alertCount > :threshold AND sm.monitoringDate = :date AND sm.active = true")
     List<SchoolMonitoring> findSchoolsWithHighAlerts(@Param("threshold") Integer threshold, @Param("date") LocalDate date);
 
-    @Query("SELECT sm FROM SchoolMonitoring sm WHERE sm.assignmentSubmissionRate < :threshold AND sm.monitoringDate = :date AND sm.active = true")
-    List<SchoolMonitoring> findSchoolsWithLowSubmissionRate(@Param("threshold") Double threshold, @Param("date") LocalDate date);
+    @Query("SELECT sm FROM SchoolMonitoring sm WHERE sm.assignmentSubmissions < :threshold AND sm.monitoringDate = :date AND sm.active = true")
+    List<SchoolMonitoring> findSchoolsWithLowSubmissionRate(@Param("threshold") Integer threshold, @Param("date") LocalDate date);
 
     @Query("SELECT sm FROM SchoolMonitoring sm WHERE sm.curriculumCompletionRate < :threshold AND sm.monitoringDate = :date AND sm.active = true")
     List<SchoolMonitoring> findSchoolsWithLowCurriculumCompletion(@Param("threshold") Double threshold, @Param("date") LocalDate date);
@@ -60,7 +60,7 @@ public interface SchoolMonitoringRepository extends JpaRepository<SchoolMonitori
     @Query("SELECT AVG(sm.complianceScore) FROM SchoolMonitoring sm WHERE sm.school.region.id = :regionId AND sm.monitoringDate = :date AND sm.active = true")
     Double getAverageComplianceScoreByRegion(@Param("regionId") Long regionId, @Param("date") LocalDate date);
 
-    @Query("SELECT AVG(sm.assignmentSubmissionRate) FROM SchoolMonitoring sm WHERE sm.school.region.id = :regionId AND sm.monitoringDate = :date AND sm.active = true")
+    @Query("SELECT AVG(CAST(sm.assignmentSubmissions AS double)) FROM SchoolMonitoring sm WHERE sm.school.region.id = :regionId AND sm.monitoringDate = :date AND sm.active = true")
     Double getAverageSubmissionRateByRegion(@Param("regionId") Long regionId, @Param("date") LocalDate date);
 
     @Query("SELECT AVG(sm.curriculumCompletionRate) FROM SchoolMonitoring sm WHERE sm.school.region.id = :regionId AND sm.monitoringDate = :date AND sm.active = true")

@@ -1465,29 +1465,12 @@ public class DocumentServiceImpl extends BaseServiceImpl<Document, DocumentDTO, 
     }
 
     @Override
-    public List<Object[]> getMostAccessedDocuments(Long schoolId, int limit) {
-        // This would typically use a custom repository query with ORDER BY viewCount DESC
-        // For now, return documents sorted by view count
-        List<Object[]> statistics = new ArrayList<>();
-        
-        List<Document> documents = documentRepository.findBySchoolId(schoolId, Pageable.unpaged())
-                .getContent()
-                .stream()
-                .sorted((d1, d2) -> Long.compare(d2.getViewCount(), d1.getViewCount()))
-                .limit(limit)
-                .collect(Collectors.toList());
-        
-        for (Document doc : documents) {
-            statistics.add(new Object[]{
-                doc.getId(),
-                doc.getTitle(),
-                doc.getViewCount(),
-                doc.getDownloadCount()
-            });
+    public List<Object[]> getMostAccessedDocuments(Long schoolId, Pageable pageable) {
+        if (schoolId != null) {
+            return documentAccessLogService.getMostAccessedDocumentsBySchool(schoolId, pageable);
+        } else {
+            return documentAccessLogService.getMostAccessedDocuments(pageable);
         }
-        
-        log.info("Generated most accessed documents for school {} (limit: {})", schoolId, limit);
-        return statistics;
     }
 
     @Override

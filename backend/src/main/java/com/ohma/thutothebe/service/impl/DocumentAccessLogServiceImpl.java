@@ -278,23 +278,23 @@ public class DocumentAccessLogServiceImpl extends BaseServiceImpl<DocumentAccess
     }
 
     @Override
-    public List<Object[]> getMostAccessedDocuments(int limit) {
-        return documentAccessLogRepository.getMostAccessedDocuments(limit);
+    public List<Object[]> getMostAccessedDocuments(Pageable pageable) {
+        return documentAccessLogRepository.getMostAccessedDocuments(pageable);
     }
 
     @Override
-    public List<Object[]> getMostAccessedDocumentsBySchool(Long schoolId, int limit) {
-        return documentAccessLogRepository.getMostAccessedDocumentsBySchoolId(schoolId, limit);
+    public List<Object[]> getMostAccessedDocumentsBySchool(Long schoolId, Pageable pageable) {
+        return documentAccessLogRepository.getMostAccessedDocumentsBySchoolId(schoolId, pageable);
     }
 
     @Override
-    public List<Object[]> getMostActiveUsers(int limit) {
-        return documentAccessLogRepository.getMostActiveUsers(limit);
+    public List<Object[]> getMostActiveUsers(Pageable pageable) {
+        return documentAccessLogRepository.getMostActiveUsers(pageable);
     }
 
     @Override
-    public List<Object[]> getMostActiveUsersBySchool(Long schoolId, int limit) {
-        return documentAccessLogRepository.getMostActiveUsersBySchoolId(schoolId, limit);
+    public List<Object[]> getMostActiveUsersBySchool(Long schoolId, Pageable pageable) {
+        return documentAccessLogRepository.getMostActiveUsersBySchoolId(schoolId, pageable);
     }
 
     @Override

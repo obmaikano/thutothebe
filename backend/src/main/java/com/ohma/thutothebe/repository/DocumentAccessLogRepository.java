@@ -98,22 +98,22 @@ public interface DocumentAccessLogRepository extends JpaRepository<DocumentAcces
     @Query("SELECT d.id, d.title, COUNT(dal) as accessCount FROM DocumentAccessLog dal " +
            "JOIN dal.document d WHERE dal.success = true " +
            "GROUP BY d.id, d.title ORDER BY accessCount DESC")
-    List<Object[]> getMostAccessedDocuments(@Param("limit") int limit);
+    List<Object[]> getMostAccessedDocuments(Pageable pageable);
     
     @Query("SELECT d.id, d.title, COUNT(dal) as accessCount FROM DocumentAccessLog dal " +
            "JOIN dal.document d WHERE dal.success = true AND d.school.id = :schoolId " +
            "GROUP BY d.id, d.title ORDER BY accessCount DESC")
-    List<Object[]> getMostAccessedDocumentsBySchoolId(@Param("schoolId") Long schoolId, @Param("limit") int limit);
+    List<Object[]> getMostAccessedDocumentsBySchoolId(@Param("schoolId") Long schoolId, Pageable pageable);
     
     @Query("SELECT u.id, u.firstName, u.lastName, COUNT(dal) as accessCount FROM DocumentAccessLog dal " +
            "JOIN dal.user u WHERE dal.success = true " +
            "GROUP BY u.id, u.firstName, u.lastName ORDER BY accessCount DESC")
-    List<Object[]> getMostActiveUsers(@Param("limit") int limit);
+    List<Object[]> getMostActiveUsers(Pageable pageable);
     
     @Query("SELECT u.id, u.firstName, u.lastName, COUNT(dal) as accessCount FROM DocumentAccessLog dal " +
            "JOIN dal.user u WHERE dal.success = true AND u.school.id = :schoolId " +
            "GROUP BY u.id, u.firstName, u.lastName ORDER BY accessCount DESC")
-    List<Object[]> getMostActiveUsersBySchoolId(@Param("schoolId") Long schoolId, @Param("limit") int limit);
+    List<Object[]> getMostActiveUsersBySchoolId(@Param("schoolId") Long schoolId, Pageable pageable);
     
     @EntityGraph(attributePaths = {"document", "user"})
     @Query("SELECT dal FROM DocumentAccessLog dal WHERE dal.user.id = :userId AND dal.success = :success AND dal.accessedAt > :since ORDER BY dal.accessedAt DESC")
