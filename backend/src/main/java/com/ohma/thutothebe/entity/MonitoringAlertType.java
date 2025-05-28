@@ -1,0 +1,14 @@
+package com.ohma.thutothebe.entity;
+
+public enum MonitoringAlertType {
+    LOW_USAGE,
+    DELAYED_GRADING,
+    IRREGULAR_ATTENDANCE,
+    LOW_COMPLIANCE,
+    SYSTEM_DOWNTIME,
+    HIGH_ALERT_COUNT,
+    LOW_CURRICULUM_COMPLETION,
+    POOR_PERFORMANCE,
+    RESOURCE_UNDERUTILIZATION,
+    THRESHOLD_BREACH
+} 
