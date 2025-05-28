@@ -10,8 +10,10 @@ import java.time.LocalDateTime;
 public record AttendanceSummaryDTO(
     Long id,
     
-    @NotNull(message = "Student ID is required")
-    Long studentId,
+    @NotNull(message = "Student entity ID is required")
+    Long studentEntityId,
+    
+    Long studentUserId, // Optional - for students with user accounts
     
     String studentName,
     
@@ -63,8 +65,8 @@ public record AttendanceSummaryDTO(
     LocalDateTime modifiedAt
 ) {
     public AttendanceSummaryDTO {
-        if (studentId == null) {
-            throw new IllegalArgumentException("Student ID cannot be null");
+        if (studentEntityId == null) {
+            throw new IllegalArgumentException("Student entity ID cannot be null");
         }
         if (classId == null) {
             throw new IllegalArgumentException("Class ID cannot be null");
@@ -78,6 +80,11 @@ public record AttendanceSummaryDTO(
         if (academicYear < 2000 || academicYear > 2100) {
             throw new IllegalArgumentException("Academic year must be between 2000 and 2100");
         }
+    }
+    
+    // Convenience method to get the student ID for backward compatibility
+    public Long studentId() {
+        return studentUserId != null ? studentUserId : studentEntityId;
     }
     
     // Helper methods

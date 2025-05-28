@@ -77,8 +77,8 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
         entity.setActive(dto.active());
 
         // Update relationships if needed
-        if (dto.studentId() != null && (entity.getStudent() == null || !entity.getStudent().getId().equals(dto.studentId()))) {
-            userRepository.findById(dto.studentId()).ifPresent(entity::setStudent);
+        if (dto.studentId() != null && (entity.getStudentUser() == null || !entity.getStudentUser().getId().equals(dto.studentId()))) {
+            userRepository.findById(dto.studentId()).ifPresent(entity::setStudentUser);
         }
 
         if (dto.classId() != null && (entity.getClassEntity() == null || !entity.getClassEntity().getId().equals(dto.classId()))) {
@@ -271,7 +271,7 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
         List<AttendanceRecord> records = attendanceRecordRepository.findByStudentIdAndAcademicYearAndTerm(studentId, academicYear, term);
         
         AttendanceSummary summary = new AttendanceSummary();
-        summary.setStudent(student);
+        summary.setStudentUser(student);
         summary.setClassEntity(classEntity);
         summary.setAcademicYear(academicYear);
         summary.setTerm(term);
@@ -296,7 +296,7 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
 
         // Get class from course relationship or attendance records
         List<AttendanceRecord> records = attendanceRecordRepository.findByCourseIdAndActive(courseId).stream()
-                .filter(record -> record.getStudent().getId().equals(studentId) && 
+                .filter(record -> record.getStudentUser().getId().equals(studentId) && 
                                 record.getAcademicYear().equals(academicYear) && 
                                 record.getTerm() == term)
                 .collect(Collectors.toList());
@@ -308,7 +308,7 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
         com.ohma.thutothebe.entity.Class classEntity = records.get(0).getClassEntity();
         
         AttendanceSummary summary = new AttendanceSummary();
-        summary.setStudent(student);
+        summary.setStudentUser(student);
         summary.setClassEntity(classEntity);
         summary.setCourse(course);
         summary.setAcademicYear(academicYear);
@@ -331,12 +331,19 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
 
         List<AttendanceSummary> summaries = new ArrayList<>();
         
-        for (User student : classEntity.getStudents()) {
-            List<AttendanceRecord> records = attendanceRecordRepository.findByStudentIdAndAcademicYearAndTerm(student.getId(), academicYear, term);
+        for (Student student : classEntity.getStudents()) {
+            // Create summaries for all students (both with and without user accounts)
+            // Get attendance records for this student entity
+            List<AttendanceRecord> records = attendanceRecordRepository.findAll().stream()
+                    .filter(record -> record.getStudentEntity().getId().equals(student.getId()) &&
+                                    record.getAcademicYear().equals(academicYear) &&
+                                    record.getTerm() == term)
+                    .collect(Collectors.toList());
             
             if (!records.isEmpty()) {
                 AttendanceSummary summary = new AttendanceSummary();
-                summary.setStudent(student);
+                summary.setStudentEntity(student);
+                summary.setStudentUser(student.getUser()); // This will be null for students without user accounts
                 summary.setClassEntity(classEntity);
                 summary.setAcademicYear(academicYear);
                 summary.setTerm(term);
@@ -349,7 +356,9 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
         }
         
         List<AttendanceSummary> savedSummaries = attendanceSummaryRepository.saveAll(summaries);
-        log.info("Generated {} attendance summaries for class {} for {} {}", savedSummaries.size(), classId, academicYear, term);
+        log.info("Generated {} attendance summaries for class {} for {} {} (including {} students without user accounts)", 
+                savedSummaries.size(), classId, academicYear, term,
+                savedSummaries.stream().mapToLong(s -> s.getStudentUser() == null ? 1 : 0).sum());
         
         return savedSummaries.stream()
                 .map(attendanceSummaryMapper::toDto)
@@ -368,17 +377,17 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
                 .collect(Collectors.toList());
         
         Map<Long, List<AttendanceRecord>> recordsByStudent = allRecords.stream()
-                .collect(Collectors.groupingBy(record -> record.getStudent().getId()));
+                .collect(Collectors.groupingBy(record -> record.getStudentUser().getId()));
 
         List<AttendanceSummary> summaries = new ArrayList<>();
         
         for (Map.Entry<Long, List<AttendanceRecord>> entry : recordsByStudent.entrySet()) {
             List<AttendanceRecord> studentRecords = entry.getValue();
-            User student = studentRecords.get(0).getStudent();
+            User student = studentRecords.get(0).getStudentUser();
             com.ohma.thutothebe.entity.Class classEntity = studentRecords.get(0).getClassEntity();
             
             AttendanceSummary summary = new AttendanceSummary();
-            summary.setStudent(student);
+            summary.setStudentUser(student);
             summary.setClassEntity(classEntity);
             summary.setCourse(course);
             summary.setAcademicYear(academicYear);
@@ -449,13 +458,13 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
         List<AttendanceRecord> records;
         if (summary.getCourse() != null) {
             records = attendanceRecordRepository.findByCourseIdAndActive(summary.getCourse().getId()).stream()
-                    .filter(record -> record.getStudent().getId().equals(summary.getStudent().getId()) &&
+                    .filter(record -> record.getStudentUser().getId().equals(summary.getStudentUser().getId()) &&
                                     record.getAcademicYear().equals(summary.getAcademicYear()) &&
                                     record.getTerm() == summary.getTerm())
                     .collect(Collectors.toList());
         } else {
             records = attendanceRecordRepository.findByStudentIdAndAcademicYearAndTerm(
-                    summary.getStudent().getId(), summary.getAcademicYear(), summary.getTerm());
+                    summary.getStudentUser().getId(), summary.getAcademicYear(), summary.getTerm());
         }
 
         calculateSummaryStatistics(summary, records);
@@ -731,8 +740,8 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
         return lowAttendanceSummaries.stream()
                 .map(summary -> {
                     Map<String, Object> alert = new HashMap<>();
-                    alert.put("studentId", summary.getStudent().getId());
-                    alert.put("studentName", summary.getStudent().getFirstName() + " " + summary.getStudent().getLastName());
+                    alert.put("studentId", summary.getStudentUser().getId());
+                    alert.put("studentName", summary.getStudentUser().getFirstName() + " " + summary.getStudentUser().getLastName());
                     alert.put("classId", summary.getClassEntity().getId());
                     alert.put("className", summary.getClassEntity().getName());
                     alert.put("attendancePercentage", summary.getAttendancePercentage());

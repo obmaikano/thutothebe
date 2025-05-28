@@ -5,11 +5,13 @@ import com.ohma.thutothebe.entity.AttendanceRecord;
 import com.ohma.thutothebe.entity.Class;
 import com.ohma.thutothebe.entity.Course;
 import com.ohma.thutothebe.entity.Subject;
+import com.ohma.thutothebe.entity.Student;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.mapper.AttendanceRecordMapper;
 import com.ohma.thutothebe.repository.ClassRepository;
 import com.ohma.thutothebe.repository.CourseRepository;
 import com.ohma.thutothebe.repository.SubjectRepository;
+import com.ohma.thutothebe.repository.StudentRepository;
 import com.ohma.thutothebe.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -19,6 +21,9 @@ public class AttendanceRecordMapperImpl implements AttendanceRecordMapper {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private StudentRepository studentRepository;
 
     @Autowired
     private ClassRepository classRepository;
@@ -35,10 +40,19 @@ public class AttendanceRecordMapperImpl implements AttendanceRecordMapper {
             return null;
         }
 
+        // Get student name from either studentUser or studentEntity
+        String studentName = null;
+        if (entity.getStudentUser() != null) {
+            studentName = entity.getStudentUser().getFirstName() + " " + entity.getStudentUser().getLastName();
+        } else if (entity.getStudentEntity() != null) {
+            studentName = entity.getStudentEntity().getFirstName() + " " + entity.getStudentEntity().getLastName();
+        }
+
         return new AttendanceRecordDTO(
             entity.getId(),
-            entity.getStudent() != null ? entity.getStudent().getId() : null,
-            entity.getStudent() != null ? entity.getStudent().getFirstName() + " " + entity.getStudent().getLastName() : null,
+            entity.getStudentEntity() != null ? entity.getStudentEntity().getId() : null,
+            entity.getStudentUser() != null ? entity.getStudentUser().getId() : null,
+            studentName,
             entity.getClassEntity() != null ? entity.getClassEntity().getId() : null,
             entity.getClassEntity() != null ? entity.getClassEntity().getName() : null,
             entity.getCourse() != null ? entity.getCourse().getId() : null,
@@ -96,9 +110,14 @@ public class AttendanceRecordMapperImpl implements AttendanceRecordMapper {
         entity.setActive(dto.active());
 
         // Set relationships
-        if (dto.studentId() != null) {
-            User student = userRepository.findById(dto.studentId()).orElse(null);
-            entity.setStudent(student);
+        if (dto.studentEntityId() != null) {
+            Student student = studentRepository.findById(dto.studentEntityId()).orElse(null);
+            entity.setStudentEntity(student);
+        }
+
+        if (dto.studentUserId() != null) {
+            User studentUser = userRepository.findById(dto.studentUserId()).orElse(null);
+            entity.setStudentUser(studentUser);
         }
 
         if (dto.classId() != null) {

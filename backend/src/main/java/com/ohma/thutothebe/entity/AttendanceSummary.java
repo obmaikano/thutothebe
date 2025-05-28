@@ -11,15 +11,19 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "attendance_summaries",
        uniqueConstraints = {
-           @UniqueConstraint(columnNames = {"student_id", "class_id", "course_id", "academic_year", "term", "summary_type"})
+           @UniqueConstraint(columnNames = {"student_entity_id", "class_id", "course_id", "academic_year", "term", "summary_type"})
        })
 @EqualsAndHashCode(callSuper = true)
 public class AttendanceSummary extends BaseEntity {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
-    private User student;
+    @JoinColumn(name = "student_entity_id", nullable = false)
+    private Student studentEntity;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_user_id", nullable = true)
+    private User studentUser;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)

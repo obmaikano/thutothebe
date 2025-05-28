@@ -73,8 +73,8 @@ public class AttendanceRecordServiceImpl extends BaseServiceImpl<AttendanceRecor
         entity.setActive(dto.active());
 
         // Update relationships if needed
-        if (dto.studentId() != null && (entity.getStudent() == null || !entity.getStudent().getId().equals(dto.studentId()))) {
-            userRepository.findById(dto.studentId()).ifPresent(entity::setStudent);
+        if (dto.studentId() != null && (entity.getStudentUser() == null || !entity.getStudentUser().getId().equals(dto.studentId()))) {
+            userRepository.findById(dto.studentId()).ifPresent(entity::setStudentUser);
         }
 
         if (dto.classId() != null && (entity.getClassEntity() == null || !entity.getClassEntity().getId().equals(dto.classId()))) {
@@ -268,7 +268,7 @@ public class AttendanceRecordServiceImpl extends BaseServiceImpl<AttendanceRecor
             }
             
             AttendanceRecord record = new AttendanceRecord();
-            record.setStudent(userRepository.findById(studentAttendance.studentId()).orElse(null));
+            record.setStudentUser(userRepository.findById(studentAttendance.studentId()).orElse(null));
             record.setClassEntity(classRepository.findById(bulkAttendanceDTO.classId()).orElse(null));
             record.setCourse(bulkAttendanceDTO.courseId() != null ? 
                 courseRepository.findById(bulkAttendanceDTO.courseId()).orElse(null) : null);
@@ -614,11 +614,13 @@ public class AttendanceRecordServiceImpl extends BaseServiceImpl<AttendanceRecor
         
         List<AttendanceRecord> records = new ArrayList<>();
         
-        for (User student : classEntity.getStudents()) {
-            // Check if attendance already exists
-            if (!hasExistingAttendance(student.getId(), date, type, null, periodNumber)) {
+        for (Student student : classEntity.getStudents()) {
+            // Create attendance records for all students (both with and without user accounts)
+            // Check if attendance already exists for this student
+            if (!hasExistingAttendanceForStudent(student.getId(), date, type, null, periodNumber)) {
                 AttendanceRecord record = new AttendanceRecord();
-                record.setStudent(student);
+                record.setStudentEntity(student);
+                record.setStudentUser(student.getUser()); // This will be null for students without user accounts
                 record.setClassEntity(classEntity);
                 record.setMarkedBy(markedBy);
                 record.setAttendanceDate(date);
@@ -634,7 +636,9 @@ public class AttendanceRecordServiceImpl extends BaseServiceImpl<AttendanceRecor
         }
         
         List<AttendanceRecord> savedRecords = attendanceRecordRepository.saveAll(records);
-        log.info("Quick marked {} students as present for class {} on {}", savedRecords.size(), classId, date);
+        log.info("Quick marked {} students as present for class {} on {} (including {} students without user accounts)", 
+                savedRecords.size(), classId, date, 
+                savedRecords.stream().mapToLong(r -> r.getStudentUser() == null ? 1 : 0).sum());
         
         return savedRecords.stream()
                 .map(attendanceRecordMapper::toDto)
@@ -651,11 +655,13 @@ public class AttendanceRecordServiceImpl extends BaseServiceImpl<AttendanceRecor
         
         List<AttendanceRecord> records = new ArrayList<>();
         
-        for (User student : classEntity.getStudents()) {
-            // Check if attendance already exists
-            if (!hasExistingAttendance(student.getId(), date, type, null, periodNumber)) {
+        for (Student student : classEntity.getStudents()) {
+            // Create attendance records for all students (both with and without user accounts)
+            // Check if attendance already exists for this student
+            if (!hasExistingAttendanceForStudent(student.getId(), date, type, null, periodNumber)) {
                 AttendanceRecord record = new AttendanceRecord();
-                record.setStudent(student);
+                record.setStudentEntity(student);
+                record.setStudentUser(student.getUser()); // This will be null for students without user accounts
                 record.setClassEntity(classEntity);
                 record.setMarkedBy(markedBy);
                 record.setAttendanceDate(date);
@@ -671,11 +677,25 @@ public class AttendanceRecordServiceImpl extends BaseServiceImpl<AttendanceRecor
         }
         
         List<AttendanceRecord> savedRecords = attendanceRecordRepository.saveAll(records);
-        log.info("Quick marked {} students as {} for class {} on {}", savedRecords.size(), absentType, classId, date);
+        log.info("Quick marked {} students as {} for class {} on {} (including {} students without user accounts)", 
+                savedRecords.size(), absentType, classId, date,
+                savedRecords.stream().mapToLong(r -> r.getStudentUser() == null ? 1 : 0).sum());
         
         return savedRecords.stream()
                 .map(attendanceRecordMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    // Helper method to check if attendance exists for a student entity
+    private boolean hasExistingAttendanceForStudent(Long studentId, LocalDate date, AttendanceType type, Long courseId, Integer periodNumber) {
+        // This would need a new repository method to check by student entity ID
+        // For now, we'll use a simple approach
+        return attendanceRecordRepository.findAll().stream()
+                .anyMatch(record -> record.getStudentEntity().getId().equals(studentId) &&
+                                  record.getAttendanceDate().equals(date) &&
+                                  record.getAttendanceType().equals(type) &&
+                                  (courseId == null || (record.getCourse() != null && record.getCourse().getId().equals(courseId))) &&
+                                  (periodNumber == null || periodNumber.equals(record.getPeriodNumber())));
     }
 
     // Attendance summary generation - placeholder implementations

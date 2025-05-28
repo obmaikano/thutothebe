@@ -279,8 +279,8 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         // Get student IDs from the class_students join table
         List<Long> studentIds = classRepository.findStudentIdsByClassId(classId);
         
-        // Find Student entities that have User entities with these IDs
-        return studentRepository.findByUser_IdIn(studentIds).stream()
+        // Find Student entities with these IDs
+        return studentRepository.findAllById(studentIds).stream()
             .map(studentMapper::toDto)
             .collect(Collectors.toList());
     }
@@ -319,11 +319,11 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         debug.append("Students found by join table: ").append(joinTableStudents.size()).append("\n");
         joinTableStudents.forEach(s -> debug.append("  - ").append(s.firstName()).append(" ").append(s.lastName()).append(" (ID: ").append(s.id()).append(", UserID: ").append(s.userId()).append(")\n"));
         
-        // Check for orphaned User IDs (in join table but no corresponding Student entity)
-        List<Long> orphanedUserIds = joinTableStudentIds.stream()
-            .filter(userId -> studentRepository.findByUser_Id(userId).isEmpty())
+        // Check for orphaned Student IDs (in join table but no corresponding Student entity)
+        List<Long> orphanedStudentIds = joinTableStudentIds.stream()
+            .filter(studentId -> !studentRepository.existsById(studentId))
             .collect(Collectors.toList());
-        debug.append("Orphaned User IDs (in join table but no Student entity): ").append(orphanedUserIds).append("\n");
+        debug.append("Orphaned Student IDs (in join table but no Student entity): ").append(orphanedStudentIds).append("\n");
         
         return debug.toString();
     }
@@ -338,17 +338,15 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         // Get student IDs from join table
         List<Long> joinTableStudentIds = classRepository.findStudentIdsByClassId(classId);
         
-        // Remove orphaned User IDs from the join table (Users that don't have corresponding Student entities)
-        List<Long> orphanedUserIds = joinTableStudentIds.stream()
-            .filter(userId -> studentRepository.findByUser_Id(userId).isEmpty())
+        // Remove orphaned Student IDs from the join table (Students that don't exist)
+        List<Long> orphanedStudentIds = joinTableStudentIds.stream()
+            .filter(studentId -> !studentRepository.existsById(studentId))
             .collect(Collectors.toList());
         
-        if (!orphanedUserIds.isEmpty()) {
-            // Remove orphaned students from the class by finding students with these user IDs
-            orphanedUserIds.forEach(userId -> {
-                // Find students that might be in the class collection but shouldn't be
-                classEntity.getStudents().removeIf(student -> 
-                    student.getUser() != null && student.getUser().getId().equals(userId));
+        if (!orphanedStudentIds.isEmpty()) {
+            // Remove orphaned students from the class by finding students with these IDs
+            orphanedStudentIds.forEach(studentId -> {
+                classEntity.getStudents().removeIf(student -> student.getId().equals(studentId));
             });
             classRepository.save(classEntity);
         }

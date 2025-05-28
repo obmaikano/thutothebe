@@ -5,6 +5,7 @@ import com.ohma.thutothebe.entity.Class;
 import com.ohma.thutothebe.entity.School;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.entity.Teacher;
+import com.ohma.thutothebe.entity.Student;
 import com.ohma.thutothebe.mapper.ClassMapper;
 import com.ohma.thutothebe.repository.ClassRepository;
 import com.ohma.thutothebe.repository.SchoolRepository;
@@ -146,7 +147,7 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
         // Add students
         if (classDTO.studentIds() != null) {
             classDTO.studentIds().forEach(studentId -> {
-                User student = userRepository.findById(studentId)
+                Student student = studentRepository.findById(studentId)
                     .orElseThrow(() -> new EntityNotFoundException("Student not found with id: " + studentId));
                 classEntity.getStudents().add(student);
             });
@@ -222,7 +223,7 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     public void addStudentToClass(Long classId, Long studentId) {
         Class classEntity = classRepository.findById(classId)
             .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + classId));
-        User student = userRepository.findById(studentId)
+        Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new EntityNotFoundException("Student not found with id: " + studentId));
         
         // Check if student is already in the join table
@@ -235,14 +236,11 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
         classRepository.save(classEntity);
         
         // Also update the Student entity's classId for consistency
-        // Find the Student entity that corresponds to this User
-        studentRepository.findByUser_Id(studentId).ifPresent(studentEntity -> {
-            if (studentEntity.getStudentClass() != null && !studentEntity.getStudentClass().getId().equals(classId)) {
-                throw new IllegalArgumentException("Student is already enrolled in another class (ID: " + studentEntity.getStudentClass().getId() + ")");
-            }
-            studentEntity.setStudentClass(classEntity);
-            studentRepository.save(studentEntity);
-        });
+        if (student.getStudentClass() != null && !student.getStudentClass().getId().equals(classId)) {
+            throw new IllegalArgumentException("Student is already enrolled in another class (ID: " + student.getStudentClass().getId() + ")");
+        }
+        student.setStudentClass(classEntity);
+        studentRepository.save(student);
     }
 
     @Override
@@ -250,7 +248,7 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     public void removeStudentFromClass(Long classId, Long studentId) {
         Class classEntity = classRepository.findById(classId)
             .orElseThrow(() -> new EntityNotFoundException("Class not found with id: " + classId));
-        User student = userRepository.findById(studentId)
+        Student student = studentRepository.findById(studentId)
             .orElseThrow(() -> new EntityNotFoundException("Student not found with id: " + studentId));
         
         // Remove from the join table (class_students)
@@ -258,11 +256,8 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
         classRepository.save(classEntity);
         
         // Also update the Student entity's classId for consistency
-        // Find the Student entity that corresponds to this User
-        studentRepository.findByUser_Id(studentId).ifPresent(studentEntity -> {
-            studentEntity.setStudentClass(null);
-            studentRepository.save(studentEntity);
-        });
+        student.setStudentClass(null);
+        studentRepository.save(student);
     }
 
     @Override

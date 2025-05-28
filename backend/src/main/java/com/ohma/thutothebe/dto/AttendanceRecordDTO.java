@@ -13,8 +13,10 @@ import java.time.LocalTime;
 public record AttendanceRecordDTO(
     Long id,
     
-    @NotNull(message = "Student ID is required")
-    Long studentId,
+    @NotNull(message = "Student entity ID is required")
+    Long studentEntityId,
+    
+    Long studentUserId, // Optional - for students with user accounts
     
     String studentName,
     
@@ -82,8 +84,8 @@ public record AttendanceRecordDTO(
     LocalDateTime modifiedAtBase
 ) {
     public AttendanceRecordDTO {
-        if (studentId == null) {
-            throw new IllegalArgumentException("Student ID cannot be null");
+        if (studentEntityId == null) {
+            throw new IllegalArgumentException("Student entity ID cannot be null");
         }
         if (classId == null) {
             throw new IllegalArgumentException("Class ID cannot be null");
@@ -112,5 +114,10 @@ public record AttendanceRecordDTO(
         if (attendanceDate != null && attendanceDate.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Attendance date cannot be in the future");
         }
+    }
+    
+    // Convenience method to get the student ID for backward compatibility
+    public Long studentId() {
+        return studentUserId != null ? studentUserId : studentEntityId;
     }
 } 

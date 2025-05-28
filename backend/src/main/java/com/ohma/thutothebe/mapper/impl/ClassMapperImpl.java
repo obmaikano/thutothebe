@@ -3,10 +3,10 @@ package com.ohma.thutothebe.mapper.impl;
 import com.ohma.thutothebe.dto.ClassDTO;
 import com.ohma.thutothebe.entity.Class;
 import com.ohma.thutothebe.entity.Teacher;
-import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.entity.Student;
 import com.ohma.thutothebe.mapper.ClassMapper;
 import com.ohma.thutothebe.repository.SchoolRepository;
-import com.ohma.thutothebe.repository.UserRepository;
+import com.ohma.thutothebe.repository.StudentRepository;
 import com.ohma.thutothebe.repository.TeacherRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -22,7 +22,7 @@ public class ClassMapperImpl implements ClassMapper {
     private SchoolRepository schoolRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private StudentRepository studentRepository;
 
     @Autowired
     private TeacherRepository teacherRepository;
@@ -45,7 +45,7 @@ public class ClassMapperImpl implements ClassMapper {
         if (entity.getStudents() != null && !entity.getStudents().isEmpty()) {
             studentIds = entity.getStudents().stream()
                 .filter(student -> student != null && student.getId() != null)
-                .map(User::getId)
+                .map(Student::getId)
                 .collect(Collectors.toSet());
         }
         
@@ -92,11 +92,11 @@ public class ClassMapperImpl implements ClassMapper {
         }
         entity.setTeachers(teachers);
         
-        Set<User> students = new HashSet<>();
+        Set<Student> students = new HashSet<>();
         if (dto.studentIds() != null && !dto.studentIds().isEmpty()) {
             students = dto.studentIds().stream()
                 .filter(studentId -> studentId != null)
-                .map(studentId -> userRepository.findById(studentId).orElse(null))
+                .map(studentId -> studentRepository.findById(studentId).orElse(null))
                 .filter(student -> student != null)
                 .collect(Collectors.toSet());
         }
