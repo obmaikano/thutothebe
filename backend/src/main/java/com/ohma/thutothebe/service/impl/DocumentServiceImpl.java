@@ -26,7 +26,11 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -478,38 +482,195 @@ public class DocumentServiceImpl extends BaseServiceImpl<Document, DocumentDTO, 
 
     @Override
     public DocumentDTO approveDocument(Long documentId, Long approverId, String approvalNotes) {
-        // Implementation for document approval workflow
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has approval permission
+        if (!documentPermissionService.hasApprovalPermission(documentId, approverId)) {
+            throw new SecurityException("User does not have approval permission for this document");
+        }
+        
+        // Check if document requires approval and is in pending status
+        if (!document.isRequiresApproval() || document.getApprovalStatus() != DocumentApprovalStatus.PENDING) {
+            throw new IllegalStateException("Document is not in a state that can be approved");
+        }
+        
+        User approver = userRepository.findById(approverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Approver not found with id: " + approverId));
+        
+        document.setApprovalStatus(DocumentApprovalStatus.APPROVED);
+        document.setApprovedBy(approver);
+        document.setApprovedAt(LocalDateTime.now());
+        document.setApprovalNotes(approvalNotes);
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the approval action
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, approverId, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Document approved: {} by user: {} with notes: {}", documentId, approverId, approvalNotes);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO rejectDocument(Long documentId, Long approverId, String approvalNotes) {
-        // Implementation for document rejection workflow
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has approval permission
+        if (!documentPermissionService.hasApprovalPermission(documentId, approverId)) {
+            throw new SecurityException("User does not have approval permission for this document");
+        }
+        
+        // Check if document requires approval and is in pending status
+        if (!document.isRequiresApproval() || document.getApprovalStatus() != DocumentApprovalStatus.PENDING) {
+            throw new IllegalStateException("Document is not in a state that can be rejected");
+        }
+        
+        User approver = userRepository.findById(approverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Approver not found with id: " + approverId));
+        
+        document.setApprovalStatus(DocumentApprovalStatus.REJECTED);
+        document.setApprovedBy(approver);
+        document.setApprovedAt(LocalDateTime.now());
+        document.setApprovalNotes(approvalNotes);
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the rejection action
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, approverId, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Document rejected: {} by user: {} with notes: {}", documentId, approverId, approvalNotes);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO requestRevision(Long documentId, Long reviewerId, String revisionNotes) {
-        // Implementation for requesting document revision
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, reviewerId)) {
+            throw new SecurityException("User does not have permission to request revision for this document");
+        }
+        
+        User reviewer = userRepository.findById(reviewerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reviewer not found with id: " + reviewerId));
+        
+        // Reset approval status to pending and add revision notes
+        document.setApprovalStatus(DocumentApprovalStatus.PENDING);
+        document.setApprovedBy(null);
+        document.setApprovedAt(null);
+        document.setApprovalNotes("REVISION REQUESTED: " + revisionNotes);
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the revision request
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, reviewerId, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Revision requested for document: {} by user: {} with notes: {}", documentId, reviewerId, revisionNotes);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO submitForApproval(Long documentId, Long submitterId) {
-        // Implementation for submitting document for approval
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, submitterId)) {
+            throw new SecurityException("User does not have permission to submit this document for approval");
+        }
+        
+        // Check if document requires approval
+        if (!document.isRequiresApproval()) {
+            throw new IllegalStateException("Document does not require approval");
+        }
+        
+        // Check if document is not already approved
+        if (document.getApprovalStatus() == DocumentApprovalStatus.APPROVED) {
+            throw new IllegalStateException("Document is already approved");
+        }
+        
+        document.setApprovalStatus(DocumentApprovalStatus.PENDING);
+        document.setApprovedBy(null);
+        document.setApprovedAt(null);
+        document.setApprovalNotes("Submitted for approval");
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the submission
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, submitterId, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Document submitted for approval: {} by user: {}", documentId, submitterId);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO archiveDocument(Long documentId, Long archivedById) {
-        // Implementation for archiving documents
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has archive permission
+        if (!documentPermissionService.hasArchivePermission(documentId, archivedById)) {
+            throw new SecurityException("User does not have permission to archive this document");
+        }
+        
+        User archiver = userRepository.findById(archivedById)
+                .orElseThrow(() -> new ResourceNotFoundException("Archiver not found with id: " + archivedById));
+        
+        document.setArchived(true);
+        document.setArchivedBy(archiver);
+        document.setArchivedAt(LocalDateTime.now());
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the archival
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, archivedById, DocumentAccessType.ARCHIVE, null, null, null
+        );
+        
+        log.info("Document archived: {} by user: {}", documentId, archivedById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO restoreDocument(Long documentId, Long restoredById) {
-        // Implementation for restoring archived documents
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has archive permission (same permission needed to restore)
+        if (!documentPermissionService.hasArchivePermission(documentId, restoredById)) {
+            throw new SecurityException("User does not have permission to restore this document");
+        }
+        
+        // Check if document is archived
+        if (!document.isArchived()) {
+            throw new IllegalStateException("Document is not archived");
+        }
+        
+        document.setArchived(false);
+        document.setArchivedBy(null);
+        document.setArchivedAt(null);
+        document.setActive(true);
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the restoration
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, restoredById, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Document restored: {} by user: {}", documentId, restoredById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
@@ -549,156 +710,809 @@ public class DocumentServiceImpl extends BaseServiceImpl<Document, DocumentDTO, 
     
     @Override
     public DocumentDTO shareDocument(Long documentId, Long sharedById, List<Long> userIds, String shareNote) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has share permission
+        if (!documentPermissionService.hasPermission(documentId, UserRole.TEACHER, DocumentPermissionType.SHARE) &&
+            !documentPermissionService.hasSpecificUserPermission(documentId, sharedById, DocumentPermissionType.SHARE)) {
+            throw new SecurityException("User does not have permission to share this document");
+        }
+        
+        // Grant read permissions to specified users
+        for (Long userId : userIds) {
+            try {
+                documentPermissionService.grantSpecificUserPermission(
+                    documentId, userId, DocumentPermissionType.READ, sharedById
+                );
+                log.info("Document {} shared with user {} by user {}: {}", 
+                        documentId, userId, sharedById, shareNote);
+            } catch (IllegalArgumentException e) {
+                // Permission already exists, continue
+                log.debug("Permission already exists for user {} on document {}", userId, documentId);
+            }
+        }
+        
+        // Log the sharing action
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, sharedById, DocumentAccessType.SHARE, null, null, null
+        );
+        
+        return documentMapper.toDto(document);
     }
 
     @Override
     public DocumentDTO shareDocumentWithRole(Long documentId, Long sharedById, String userRole, String shareNote) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has share permission
+        if (!documentPermissionService.hasPermission(documentId, UserRole.TEACHER, DocumentPermissionType.SHARE) &&
+            !documentPermissionService.hasSpecificUserPermission(documentId, sharedById, DocumentPermissionType.SHARE)) {
+            throw new SecurityException("User does not have permission to share this document");
+        }
+        
+        UserRole role;
+        try {
+            role = UserRole.valueOf(userRole.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid user role: " + userRole);
+        }
+        
+        // Grant read permission to the specified role
+        try {
+            documentPermissionService.grantPermission(documentId, role, DocumentPermissionType.READ, sharedById);
+            log.info("Document {} shared with role {} by user {}: {}", 
+                    documentId, role, sharedById, shareNote);
+        } catch (IllegalArgumentException e) {
+            // Permission already exists
+            log.debug("Permission already exists for role {} on document {}", role, documentId);
+        }
+        
+        // Log the sharing action
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, sharedById, DocumentAccessType.SHARE, null, null, null
+        );
+        
+        return documentMapper.toDto(document);
     }
 
     @Override
     public List<DocumentDTO> uploadBulkDocuments(List<MultipartFile> files, List<DocumentDTO> documentDTOs, Long uploadedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        if (files.size() != documentDTOs.size()) {
+            throw new IllegalArgumentException("Number of files must match number of document DTOs");
+        }
+        
+        List<DocumentDTO> uploadedDocuments = new ArrayList<>();
+        
+        for (int i = 0; i < files.size(); i++) {
+            try {
+                DocumentDTO uploadedDocument = uploadDocument(files.get(i), documentDTOs.get(i), uploadedById);
+                uploadedDocuments.add(uploadedDocument);
+                log.info("Bulk upload: Document {} uploaded successfully", uploadedDocument.title());
+            } catch (Exception e) {
+                log.error("Bulk upload: Failed to upload document {}: {}", 
+                         documentDTOs.get(i).title(), e.getMessage());
+                // Continue with other files rather than failing the entire batch
+            }
+        }
+        
+        log.info("Bulk upload completed: {}/{} documents uploaded successfully", 
+                uploadedDocuments.size(), files.size());
+        
+        return uploadedDocuments;
     }
 
     @Override
     public void deleteBulkDocuments(List<Long> documentIds, Long userId) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        List<Long> successfulDeletes = new ArrayList<>();
+        List<Long> failedDeletes = new ArrayList<>();
+        
+        for (Long documentId : documentIds) {
+            try {
+                deleteDocument(documentId, userId);
+                successfulDeletes.add(documentId);
+                log.info("Bulk delete: Document {} deleted successfully", documentId);
+            } catch (Exception e) {
+                failedDeletes.add(documentId);
+                log.error("Bulk delete: Failed to delete document {}: {}", documentId, e.getMessage());
+            }
+        }
+        
+        log.info("Bulk delete completed: {}/{} documents deleted successfully", 
+                successfulDeletes.size(), documentIds.size());
+        
+        if (!failedDeletes.isEmpty()) {
+            log.warn("Failed to delete documents: {}", failedDeletes);
+        }
     }
 
     @Override
     public void approveBulkDocuments(List<Long> documentIds, Long approverId, String approvalNotes) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        List<Long> successfulApprovals = new ArrayList<>();
+        List<Long> failedApprovals = new ArrayList<>();
+        
+        for (Long documentId : documentIds) {
+            try {
+                approveDocument(documentId, approverId, approvalNotes);
+                successfulApprovals.add(documentId);
+                log.info("Bulk approval: Document {} approved successfully", documentId);
+            } catch (Exception e) {
+                failedApprovals.add(documentId);
+                log.error("Bulk approval: Failed to approve document {}: {}", documentId, e.getMessage());
+            }
+        }
+        
+        log.info("Bulk approval completed: {}/{} documents approved successfully", 
+                successfulApprovals.size(), documentIds.size());
+        
+        if (!failedApprovals.isEmpty()) {
+            log.warn("Failed to approve documents: {}", failedApprovals);
+        }
     }
 
     @Override
     public void archiveBulkDocuments(List<Long> documentIds, Long archivedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        List<Long> successfulArchives = new ArrayList<>();
+        List<Long> failedArchives = new ArrayList<>();
+        
+        for (Long documentId : documentIds) {
+            try {
+                archiveDocument(documentId, archivedById);
+                successfulArchives.add(documentId);
+                log.info("Bulk archive: Document {} archived successfully", documentId);
+            } catch (Exception e) {
+                failedArchives.add(documentId);
+                log.error("Bulk archive: Failed to archive document {}: {}", documentId, e.getMessage());
+            }
+        }
+        
+        log.info("Bulk archive completed: {}/{} documents archived successfully", 
+                successfulArchives.size(), documentIds.size());
+        
+        if (!failedArchives.isEmpty()) {
+            log.warn("Failed to archive documents: {}", failedArchives);
+        }
     }
 
     @Override
     public boolean validateDocumentChecksum(Long documentId) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        try {
+            // Read the file from storage
+            Path filePath = Paths.get(document.getFilePath());
+            if (!Files.exists(filePath)) {
+                log.error("File not found for document {}: {}", documentId, document.getFilePath());
+                return false;
+            }
+            
+            byte[] fileContent = Files.readAllBytes(filePath);
+            String currentChecksum = calculateChecksum(fileContent);
+            
+            boolean isValid = currentChecksum.equals(document.getChecksum());
+            
+            if (!isValid) {
+                log.warn("Checksum validation failed for document {}: expected {}, got {}", 
+                        documentId, document.getChecksum(), currentChecksum);
+            } else {
+                log.debug("Checksum validation successful for document {}", documentId);
+            }
+            
+            return isValid;
+            
+        } catch (IOException e) {
+            log.error("Error reading file for checksum validation of document {}: {}", documentId, e.getMessage());
+            return false;
+        }
     }
 
     @Override
     public DocumentDTO updateDocumentChecksum(Long documentId) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        try {
+            // Read the file from storage
+            Path filePath = Paths.get(document.getFilePath());
+            if (!Files.exists(filePath)) {
+                throw new IllegalStateException("File not found for document: " + document.getFilePath());
+            }
+            
+            byte[] fileContent = Files.readAllBytes(filePath);
+            String newChecksum = calculateChecksum(fileContent);
+            
+            document.setChecksum(newChecksum);
+            Document savedDocument = documentRepository.save(document);
+            
+            log.info("Checksum updated for document {}: {}", documentId, newChecksum);
+            return documentMapper.toDto(savedDocument);
+            
+        } catch (IOException e) {
+            log.error("Error updating checksum for document {}: {}", documentId, e.getMessage());
+            throw new RuntimeException("Failed to update document checksum", e);
+        }
     }
 
     @Override
     public List<DocumentDTO> findDuplicateDocuments(String checksum) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        if (checksum == null || checksum.trim().isEmpty()) {
+            throw new IllegalArgumentException("Checksum cannot be null or empty");
+        }
+        
+        List<Document> duplicates = documentRepository.findByChecksum(checksum);
+        
+        log.info("Found {} documents with checksum: {}", duplicates.size(), checksum);
+        
+        return duplicates.stream()
+                .map(documentMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     public DocumentDTO updateDocumentMetadata(Long documentId, DocumentDTO documentDTO, Long updatedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, updatedById)) {
+            throw new SecurityException("User does not have permission to update this document");
+        }
+        
+        // Update only metadata fields (not file-related fields)
+        document.setTitle(documentDTO.title());
+        document.setDescription(documentDTO.description());
+        document.setDocumentCategory(documentDTO.documentCategory());
+        document.setAccessLevel(documentDTO.accessLevel());
+        document.setExpiryDate(documentDTO.expiryDate());
+        document.setPublic(documentDTO.isPublic());
+        
+        // Update related entities if provided
+        if (documentDTO.schoolId() != null) {
+            School school = schoolRepository.findById(documentDTO.schoolId())
+                    .orElseThrow(() -> new ResourceNotFoundException("School not found with id: " + documentDTO.schoolId()));
+            document.setSchool(school);
+        }
+        
+        if (documentDTO.regionId() != null) {
+            Region region = regionRepository.findById(documentDTO.regionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Region not found with id: " + documentDTO.regionId()));
+            document.setRegion(region);
+        }
+        
+        if (documentDTO.classId() != null) {
+            com.ohma.thutothebe.entity.Class classEntity = classRepository.findById(documentDTO.classId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + documentDTO.classId()));
+            document.setClassEntity(classEntity);
+        }
+        
+        if (documentDTO.courseId() != null) {
+            Course course = courseRepository.findById(documentDTO.courseId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + documentDTO.courseId()));
+            document.setCourse(course);
+        }
+        
+        if (documentDTO.subjectId() != null) {
+            Subject subject = subjectRepository.findById(documentDTO.subjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + documentDTO.subjectId()));
+            document.setSubject(subject);
+        }
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the metadata update
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, updatedById, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Document metadata updated: {} by user: {}", documentId, updatedById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO addDocumentTags(Long documentId, String tags, Long updatedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, updatedById)) {
+            throw new SecurityException("User does not have permission to update this document");
+        }
+        
+        String currentTags = document.getTags();
+        String newTags;
+        
+        if (currentTags == null || currentTags.trim().isEmpty()) {
+            newTags = tags;
+        } else {
+            // Add new tags, avoiding duplicates
+            Set<String> tagSet = new HashSet<>(Arrays.asList(currentTags.split(",")));
+            tagSet.addAll(Arrays.asList(tags.split(",")));
+            newTags = String.join(",", tagSet);
+        }
+        
+        document.setTags(newTags);
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the tag addition
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, updatedById, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Tags added to document {}: {} by user: {}", documentId, tags, updatedById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO removeDocumentTags(Long documentId, String tags, Long updatedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, updatedById)) {
+            throw new SecurityException("User does not have permission to update this document");
+        }
+        
+        String currentTags = document.getTags();
+        if (currentTags == null || currentTags.trim().isEmpty()) {
+            log.info("No tags to remove from document {}", documentId);
+            return documentMapper.toDto(document);
+        }
+        
+        // Remove specified tags
+        Set<String> currentTagSet = new HashSet<>(Arrays.asList(currentTags.split(",")));
+        Set<String> tagsToRemove = new HashSet<>(Arrays.asList(tags.split(",")));
+        currentTagSet.removeAll(tagsToRemove);
+        
+        String newTags = currentTagSet.isEmpty() ? null : String.join(",", currentTagSet);
+        document.setTags(newTags);
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the tag removal
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, updatedById, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Tags removed from document {}: {} by user: {}", documentId, tags, updatedById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public void logDocumentAccess(Long documentId, Long userId, String accessType, String ipAddress, String userAgent, String sessionId) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        try {
+            DocumentAccessType accessTypeEnum = DocumentAccessType.valueOf(accessType.toUpperCase());
+            documentAccessLogService.logSuccessfulAccess(documentId, userId, accessTypeEnum, ipAddress, userAgent, sessionId);
+            log.debug("Document access logged: {} for document {} by user {}", accessType, documentId, userId);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid access type: {}", accessType);
+            throw new IllegalArgumentException("Invalid access type: " + accessType);
+        }
     }
 
     @Override
     public void incrementViewCount(Long documentId, Long userId) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has read permission
+        if (!documentPermissionService.hasReadPermission(documentId, userId)) {
+            throw new SecurityException("User does not have permission to view this document");
+        }
+        
+        document.setViewCount(document.getViewCount() + 1);
+        document.setLastAccessedAt(LocalDateTime.now());
+        documentRepository.save(document);
+        
+        // Log the view access
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, userId, DocumentAccessType.VIEW, null, null, null
+        );
+        
+        log.debug("View count incremented for document {} by user {}", documentId, userId);
     }
 
     @Override
     public void incrementDownloadCount(Long documentId, Long userId) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has download permission
+        if (!documentPermissionService.hasDownloadPermission(documentId, userId)) {
+            throw new SecurityException("User does not have permission to download this document");
+        }
+        
+        document.setDownloadCount(document.getDownloadCount() + 1);
+        document.setLastAccessedAt(LocalDateTime.now());
+        documentRepository.save(document);
+        
+        // Log the download access
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, userId, DocumentAccessType.DOWNLOAD, null, null, null
+        );
+        
+        log.debug("Download count incremented for document {} by user {}", documentId, userId);
     }
 
     @Override
     public DocumentDTO setDocumentExpiry(Long documentId, LocalDateTime expiryDate, Long updatedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, updatedById)) {
+            throw new SecurityException("User does not have permission to update this document");
+        }
+        
+        // Validate expiry date is in the future
+        if (expiryDate.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Expiry date must be in the future");
+        }
+        
+        document.setExpiryDate(expiryDate);
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the expiry update
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, updatedById, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Expiry date set for document {}: {} by user: {}", documentId, expiryDate, updatedById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO removeDocumentExpiry(Long documentId, Long updatedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, updatedById)) {
+            throw new SecurityException("User does not have permission to update this document");
+        }
+        
+        document.setExpiryDate(null);
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the expiry removal
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, updatedById, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Expiry date removed for document {} by user: {}", documentId, updatedById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public void processExpiredDocuments() {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        List<Document> expiredDocuments = documentRepository.findExpiredDocuments(LocalDateTime.now());
+        
+        for (Document document : expiredDocuments) {
+            // Archive expired documents automatically
+            document.setArchived(true);
+            document.setArchivedAt(LocalDateTime.now());
+            // Set system as archiver (could be a system user ID)
+            documentRepository.save(document);
+            
+            log.info("Expired document automatically archived: {} (expired: {})", 
+                    document.getId(), document.getExpiryDate());
+        }
+        
+        log.info("Processed {} expired documents", expiredDocuments.size());
     }
 
     @Override
     public List<DocumentDTO> getDocumentsRequiringCompliance(DocumentCategory category) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        // Find documents in specific categories that require compliance review
+        List<DocumentCategory> complianceCategories = Arrays.asList(
+            DocumentCategory.POLICY, 
+            DocumentCategory.PROCEDURE, 
+            DocumentCategory.COMPLIANCE,
+            DocumentCategory.ADMINISTRATIVE
+        );
+        
+        if (category != null && !complianceCategories.contains(category)) {
+            return new ArrayList<>();
+        }
+        
+        DocumentCategory targetCategory = category != null ? category : DocumentCategory.POLICY;
+        
+        // Find documents that are either pending approval or haven't been reviewed in 6 months
+        LocalDateTime sixMonthsAgo = LocalDateTime.now().minusMonths(6);
+        
+        return documentRepository.findByDocumentCategory(targetCategory, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .filter(doc -> doc.getApprovalStatus() == DocumentApprovalStatus.PENDING ||
+                              (doc.getApprovedAt() != null && doc.getApprovedAt().isBefore(sixMonthsAgo)))
+                .map(documentMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<DocumentDTO> getDocumentsPendingReview() {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        return documentRepository.findByApprovalStatus(DocumentApprovalStatus.PENDING, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .map(documentMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<DocumentDTO> getDocumentsModifiedSince(LocalDateTime since) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        return documentRepository.findAll()
+                .stream()
+                .filter(doc -> doc.getModifiedAt().isAfter(since) && doc.isActive())
+                .map(documentMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<DocumentDTO> getDocumentTemplates() {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        // Find documents marked as templates (could be a specific category or tag)
+        return documentRepository.findByDocumentCategory(DocumentCategory.REFERENCE_MATERIAL, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .filter(doc -> doc.getTags() != null && doc.getTags().contains("template"))
+                .map(documentMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     public DocumentDTO createDocumentFromTemplate(Long templateId, DocumentDTO documentDTO, Long createdById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document template = documentRepository.findActiveDocumentById(templateId)
+                .orElseThrow(() -> new ResourceNotFoundException("Template not found with id: " + templateId));
+        
+        // Check if user has read permission on template
+        if (!documentPermissionService.hasReadPermission(templateId, createdById)) {
+            throw new SecurityException("User does not have permission to use this template");
+        }
+        
+        // Verify it's actually a template
+        if (!template.getTags().contains("template")) {
+            throw new IllegalArgumentException("Document is not marked as a template");
+        }
+        
+        User creator = userRepository.findById(createdById)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + createdById));
+        
+        // Create new document based on template
+        Document newDocument = new Document();
+        newDocument.setTitle(documentDTO.title());
+        newDocument.setDescription(documentDTO.description());
+        newDocument.setDocumentCategory(template.getDocumentCategory());
+        newDocument.setDocumentType(template.getDocumentType());
+        newDocument.setAccessLevel(documentDTO.accessLevel());
+        newDocument.setUploadedBy(creator);
+        newDocument.setUploadedAt(LocalDateTime.now());
+        newDocument.setVersionNumber(1);
+        newDocument.setApprovalStatus(DocumentApprovalStatus.PENDING);
+        newDocument.setRequiresApproval(template.isRequiresApproval());
+        newDocument.setActive(true);
+        
+        // Set related entities from DTO
+        setRelatedEntities(newDocument, documentDTO);
+        
+        // Copy template tags but remove "template" tag
+        String templateTags = template.getTags();
+        if (templateTags != null) {
+            String newTags = templateTags.replace("template", "").replace(",,", ",");
+            if (newTags.startsWith(",")) newTags = newTags.substring(1);
+            if (newTags.endsWith(",")) newTags = newTags.substring(0, newTags.length() - 1);
+            newDocument.setTags(newTags);
+        }
+        
+        Document savedDocument = documentRepository.save(newDocument);
+        
+        log.info("Document created from template {}: {} by user: {}", templateId, savedDocument.getId(), createdById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO linkDocumentToAssignment(Long documentId, Long assignmentId, Long linkedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, linkedById)) {
+            throw new SecurityException("User does not have permission to link this document");
+        }
+        
+        // Add assignment link to tags (simple implementation)
+        String currentTags = document.getTags();
+        String assignmentTag = "assignment:" + assignmentId;
+        
+        if (currentTags == null || currentTags.trim().isEmpty()) {
+            document.setTags(assignmentTag);
+        } else if (!currentTags.contains(assignmentTag)) {
+            document.setTags(currentTags + "," + assignmentTag);
+        }
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the linking action
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, linkedById, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Document {} linked to assignment {} by user: {}", documentId, assignmentId, linkedById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO linkDocumentToAnnouncement(Long documentId, Long announcementId, Long linkedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, linkedById)) {
+            throw new SecurityException("User does not have permission to link this document");
+        }
+        
+        // Add announcement link to tags (simple implementation)
+        String currentTags = document.getTags();
+        String announcementTag = "announcement:" + announcementId;
+        
+        if (currentTags == null || currentTags.trim().isEmpty()) {
+            document.setTags(announcementTag);
+        } else if (!currentTags.contains(announcementTag)) {
+            document.setTags(currentTags + "," + announcementTag);
+        }
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the linking action
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, linkedById, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Document {} linked to announcement {} by user: {}", documentId, announcementId, linkedById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public DocumentDTO linkDocumentToSchedule(Long documentId, Long scheduleId, Long linkedById) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        Document document = documentRepository.findActiveDocumentById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Check if user has edit permission
+        if (!documentPermissionService.hasEditPermission(documentId, linkedById)) {
+            throw new SecurityException("User does not have permission to link this document");
+        }
+        
+        // Add schedule link to tags (simple implementation)
+        String currentTags = document.getTags();
+        String scheduleTag = "schedule:" + scheduleId;
+        
+        if (currentTags == null || currentTags.trim().isEmpty()) {
+            document.setTags(scheduleTag);
+        } else if (!currentTags.contains(scheduleTag)) {
+            document.setTags(currentTags + "," + scheduleTag);
+        }
+        
+        Document savedDocument = documentRepository.save(document);
+        
+        // Log the linking action
+        documentAccessLogService.logSuccessfulAccess(
+            documentId, linkedById, DocumentAccessType.EDIT, null, null, null
+        );
+        
+        log.info("Document {} linked to schedule {} by user: {}", documentId, scheduleId, linkedById);
+        return documentMapper.toDto(savedDocument);
     }
 
     @Override
     public List<Object[]> getDocumentUsageStatistics(Long schoolId, LocalDateTime startDate, LocalDateTime endDate) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        // This would typically use a custom repository query to get usage statistics
+        // For now, return basic statistics using existing methods
+        List<Object[]> statistics = new ArrayList<>();
+        
+        Long totalDocuments = documentRepository.countBySchoolId(schoolId);
+        Long totalFileSize = documentRepository.getTotalFileSizeBySchoolId(schoolId);
+        
+        // Add basic statistics
+        statistics.add(new Object[]{"total_documents", totalDocuments});
+        statistics.add(new Object[]{"total_file_size", totalFileSize});
+        statistics.add(new Object[]{"period_start", startDate});
+        statistics.add(new Object[]{"period_end", endDate});
+        
+        log.info("Generated usage statistics for school {} from {} to {}", schoolId, startDate, endDate);
+        return statistics;
     }
 
     @Override
     public List<Object[]> getDocumentCategoryStatistics(Long schoolId) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        // This would typically use a custom repository query
+        // For now, return basic category distribution
+        List<Object[]> statistics = new ArrayList<>();
+        
+        for (DocumentCategory category : DocumentCategory.values()) {
+            Long count = documentRepository.findByDocumentCategory(category, Pageable.unpaged())
+                    .getContent()
+                    .stream()
+                    .filter(doc -> doc.getSchool() != null && doc.getSchool().getId().equals(schoolId))
+                    .count();
+            
+            if (count > 0) {
+                statistics.add(new Object[]{category.name(), count});
+            }
+        }
+        
+        log.info("Generated category statistics for school {}", schoolId);
+        return statistics;
     }
 
     @Override
     public List<Object[]> getDocumentTypeStatistics(Long schoolId) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        // This would typically use a custom repository query
+        // For now, return basic type distribution
+        List<Object[]> statistics = new ArrayList<>();
+        
+        for (DocumentType type : DocumentType.values()) {
+            Long count = documentRepository.findByDocumentType(type, Pageable.unpaged())
+                    .getContent()
+                    .stream()
+                    .filter(doc -> doc.getSchool() != null && doc.getSchool().getId().equals(schoolId))
+                    .count();
+            
+            if (count > 0) {
+                statistics.add(new Object[]{type.name(), count});
+            }
+        }
+        
+        log.info("Generated type statistics for school {}", schoolId);
+        return statistics;
     }
 
     @Override
     public List<Object[]> getMostAccessedDocuments(Long schoolId, int limit) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        // This would typically use a custom repository query with ORDER BY viewCount DESC
+        // For now, return documents sorted by view count
+        List<Object[]> statistics = new ArrayList<>();
+        
+        List<Document> documents = documentRepository.findBySchoolId(schoolId, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .sorted((d1, d2) -> Long.compare(d2.getViewCount(), d1.getViewCount()))
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        for (Document doc : documents) {
+            statistics.add(new Object[]{
+                doc.getId(),
+                doc.getTitle(),
+                doc.getViewCount(),
+                doc.getDownloadCount()
+            });
+        }
+        
+        log.info("Generated most accessed documents for school {} (limit: {})", schoolId, limit);
+        return statistics;
     }
 
     @Override
     public List<Object[]> getMostDownloadedDocuments(Long schoolId, int limit) {
-        throw new UnsupportedOperationException("Method not yet implemented");
+        // This would typically use a custom repository query with ORDER BY downloadCount DESC
+        // For now, return documents sorted by download count
+        List<Object[]> statistics = new ArrayList<>();
+        
+        List<Document> documents = documentRepository.findBySchoolId(schoolId, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .sorted((d1, d2) -> Long.compare(d2.getDownloadCount(), d1.getDownloadCount()))
+                .limit(limit)
+                .collect(Collectors.toList());
+        
+        for (Document doc : documents) {
+            statistics.add(new Object[]{
+                doc.getId(),
+                doc.getTitle(),
+                doc.getDownloadCount(),
+                doc.getViewCount()
+            });
+        }
+        
+        log.info("Generated most downloaded documents for school {} (limit: {})", schoolId, limit);
+        return statistics;
     }
 } 

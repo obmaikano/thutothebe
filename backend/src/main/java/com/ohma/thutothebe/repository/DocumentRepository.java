@@ -91,7 +91,7 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     Page<Document> searchDocuments(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     @Query("SELECT d FROM Document d WHERE d.checksum = :checksum AND d.active = true")
-    Optional<Document> findByChecksum(@Param("checksum") String checksum);
+    List<Document> findByChecksum(@Param("checksum") String checksum);
 
     @Query("SELECT COUNT(d) FROM Document d WHERE d.school.id = :schoolId AND d.active = true")
     Long countBySchoolId(@Param("schoolId") Long schoolId);

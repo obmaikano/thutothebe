@@ -89,4 +89,46 @@ public interface DocumentAccessLogRepository extends JpaRepository<DocumentAcces
 
     @Query("SELECT dal.accessType, COUNT(dal) FROM DocumentAccessLog dal WHERE dal.user.id = :userId GROUP BY dal.accessType")
     List<Object[]> getAccessTypeStatsByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(dal) FROM DocumentAccessLog dal WHERE dal.accessType = :accessType AND dal.accessedAt BETWEEN :startDate AND :endDate")
+    Long countByAccessTypeAndAccessedAtBetween(@Param("accessType") DocumentAccessType accessType, 
+                                              @Param("startDate") LocalDateTime startDate, 
+                                              @Param("endDate") LocalDateTime endDate);
+    
+    @Query("SELECT d.id, d.title, COUNT(dal) as accessCount FROM DocumentAccessLog dal " +
+           "JOIN dal.document d WHERE dal.success = true " +
+           "GROUP BY d.id, d.title ORDER BY accessCount DESC")
+    List<Object[]> getMostAccessedDocuments(@Param("limit") int limit);
+    
+    @Query("SELECT d.id, d.title, COUNT(dal) as accessCount FROM DocumentAccessLog dal " +
+           "JOIN dal.document d WHERE dal.success = true AND d.school.id = :schoolId " +
+           "GROUP BY d.id, d.title ORDER BY accessCount DESC")
+    List<Object[]> getMostAccessedDocumentsBySchoolId(@Param("schoolId") Long schoolId, @Param("limit") int limit);
+    
+    @Query("SELECT u.id, u.firstName, u.lastName, COUNT(dal) as accessCount FROM DocumentAccessLog dal " +
+           "JOIN dal.user u WHERE dal.success = true " +
+           "GROUP BY u.id, u.firstName, u.lastName ORDER BY accessCount DESC")
+    List<Object[]> getMostActiveUsers(@Param("limit") int limit);
+    
+    @Query("SELECT u.id, u.firstName, u.lastName, COUNT(dal) as accessCount FROM DocumentAccessLog dal " +
+           "JOIN dal.user u WHERE dal.success = true AND u.school.id = :schoolId " +
+           "GROUP BY u.id, u.firstName, u.lastName ORDER BY accessCount DESC")
+    List<Object[]> getMostActiveUsersBySchoolId(@Param("schoolId") Long schoolId, @Param("limit") int limit);
+    
+    @EntityGraph(attributePaths = {"document", "user"})
+    @Query("SELECT dal FROM DocumentAccessLog dal WHERE dal.user.id = :userId AND dal.success = :success AND dal.accessedAt > :since ORDER BY dal.accessedAt DESC")
+    List<DocumentAccessLog> findByUserIdAndSuccessAndAccessedAtAfter(@Param("userId") Long userId, 
+                                                                    @Param("success") boolean success, 
+                                                                    @Param("since") LocalDateTime since);
+    
+    @EntityGraph(attributePaths = {"document", "user"})
+    @Query("SELECT dal FROM DocumentAccessLog dal WHERE dal.ipAddress = :ipAddress AND dal.success = :success AND dal.accessedAt > :since ORDER BY dal.accessedAt DESC")
+    List<DocumentAccessLog> findByIpAddressAndSuccessAndAccessedAtAfter(@Param("ipAddress") String ipAddress, 
+                                                                        @Param("success") boolean success, 
+                                                                        @Param("since") LocalDateTime since);
+    
+    @EntityGraph(attributePaths = {"document", "user"})
+    @Query("SELECT dal FROM DocumentAccessLog dal WHERE dal.success = :success AND dal.accessedAt > :since ORDER BY dal.accessedAt DESC")
+    List<DocumentAccessLog> findBySuccessAndAccessedAtAfter(@Param("success") boolean success, 
+                                                           @Param("since") LocalDateTime since);
 } 
