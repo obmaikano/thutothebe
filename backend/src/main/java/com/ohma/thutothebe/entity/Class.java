@@ -59,21 +59,33 @@ public class Class extends BaseEntity {
         joinColumns = @JoinColumn(name = "class_id"),
         inverseJoinColumns = @JoinColumn(name = "student_id")
     )
-    private Set<User> students = new HashSet<>();
+    private Set<Student> students = new HashSet<>();
     
     @Column(nullable = false)
     private boolean active = true;
-    
-    @PrePersist
-    @PreUpdate
-    private void calculateCapacityFields() {
-        if (students != null) {
-            this.totalEnrolled = students.size();
-        } else {
-            this.totalEnrolled = 0;
-        }
-        
-        this.spotsLeft = Math.max(0, this.capacity - this.totalEnrolled);
-        this.overCapacity = this.totalEnrolled > this.capacity;
+
+    // Helper methods for managing relationships
+    public void addTeacher(Teacher teacher) {
+        teachers.add(teacher);
+    }
+
+    public void removeTeacher(Teacher teacher) {
+        teachers.remove(teacher);
+    }
+
+    public void addStudent(Student student) {
+        students.add(student);
+        updateEnrollmentCounts();
+    }
+
+    public void removeStudent(Student student) {
+        students.remove(student);
+        updateEnrollmentCounts();
+    }
+
+    private void updateEnrollmentCounts() {
+        this.totalEnrolled = students.size();
+        this.spotsLeft = capacity - totalEnrolled;
+        this.overCapacity = totalEnrolled > capacity;
     }
 } 

@@ -124,6 +124,9 @@ class StudentServiceImplTest {
 
     @Test
     void createStudent_Success() {
+        when(schoolRepository.findById(1L)).thenReturn(Optional.of(school));
+        when(studentRepository.existsByAdmissionNumber("STU-2024-0001")).thenReturn(false);
+        when(studentRepository.existsByEmail("john.doe@example.com")).thenReturn(false);
         when(studentMapper.toEntity(any(StudentDTO.class))).thenReturn(student);
         when(studentRepository.save(any(Student.class))).thenReturn(student);
         when(studentMapper.toDto(any(Student.class))).thenReturn(studentDTO);
@@ -267,7 +270,6 @@ class StudentServiceImplTest {
     void activateStudent_Success() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(studentRepository.save(any(Student.class))).thenReturn(student);
-        when(studentMapper.toDto(any(Student.class))).thenReturn(studentDTO);
 
         studentService.activateStudent(1L);
 
@@ -278,7 +280,6 @@ class StudentServiceImplTest {
     void deactivateStudent_Success() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(studentRepository.save(any(Student.class))).thenReturn(student);
-        when(studentMapper.toDto(any(Student.class))).thenReturn(studentDTO);
 
         studentService.deactivateStudent(1L);
 

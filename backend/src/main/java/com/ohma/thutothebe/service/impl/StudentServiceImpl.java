@@ -344,11 +344,11 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
             .collect(Collectors.toList());
         
         if (!orphanedUserIds.isEmpty()) {
-            // Remove orphaned users from the class
+            // Remove orphaned students from the class by finding students with these user IDs
             orphanedUserIds.forEach(userId -> {
-                userRepository.findById(userId).ifPresent(user -> {
-                    classEntity.getStudents().remove(user);
-                });
+                // Find students that might be in the class collection but shouldn't be
+                classEntity.getStudents().removeIf(student -> 
+                    student.getUser() != null && student.getUser().getId().equals(userId));
             });
             classRepository.save(classEntity);
         }
@@ -356,9 +356,9 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         // Ensure all Student entities with this classId are also in the join table
         List<Student> studentsWithClassId = studentRepository.findByStudentClass_Id(classId);
         studentsWithClassId.forEach(student -> {
-            if (student.getUser() != null && !joinTableStudentIds.contains(student.getUser().getId())) {
-                // Add the user to the join table
-                classEntity.getStudents().add(student.getUser());
+            if (!classEntity.getStudents().contains(student)) {
+                // Add the student to the join table
+                classEntity.getStudents().add(student);
             }
         });
         
