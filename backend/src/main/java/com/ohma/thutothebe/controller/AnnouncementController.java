@@ -277,4 +277,20 @@ public class AnnouncementController extends BaseController<AnnouncementDTO, Long
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
         }
     }
+
+    @GetMapping("/{announcementId}/user/{userId}")
+    @Operation(summary = "Get announcement by ID with user-specific status")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'DIRECTOR', 'REGIONAL_ADMIN', 'REGIONAL_OFFICER', 'SCHOOL_ADMIN', 'SCHOOL_HEAD', 'DEPARTMENT_HEAD', 'SENIOR_TEACHER', 'TEACHER', 'STUDENT', 'PARENT')")
+    public ResponseEntity<OhmaApiResponse<AnnouncementDTO>> getAnnouncementByIdWithUserStatus(
+            @Parameter(description = "Announcement ID") @PathVariable Long announcementId,
+            @Parameter(description = "User ID") @PathVariable Long userId) {
+        try {
+            AnnouncementDTO announcement = announcementService.getAnnouncementByIdWithUserStatus(announcementId, userId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Announcement retrieved successfully", announcement, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error retrieving announcement {} for user {}: {}", announcementId, userId, e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
 } 

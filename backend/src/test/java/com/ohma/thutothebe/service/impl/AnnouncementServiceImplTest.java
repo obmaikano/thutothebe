@@ -238,7 +238,7 @@ class AnnouncementServiceImplTest {
         // Given
         when(announcementRepository.findById(1L)).thenReturn(Optional.of(testAnnouncement));
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(readReceiptRepository.existsByAnnouncementIdAndUserId(1L, 1L)).thenReturn(false);
+        when(readReceiptRepository.findByAnnouncementIdAndUserId(1L, 1L)).thenReturn(Optional.empty());
         
         AnnouncementReadReceipt savedReceipt = new AnnouncementReadReceipt();
         savedReceipt.setId(1L);
@@ -261,16 +261,31 @@ class AnnouncementServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should throw exception when announcement already read")
-    void markAsRead_ShouldThrowException_WhenAlreadyRead() {
+    @DisplayName("Should return existing read receipt when announcement already read")
+    void markAsRead_ShouldReturnExistingReceipt_WhenAlreadyRead() {
         // Given
         when(announcementRepository.findById(1L)).thenReturn(Optional.of(testAnnouncement));
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(readReceiptRepository.existsByAnnouncementIdAndUserId(1L, 1L)).thenReturn(true);
+        
+        AnnouncementReadReceipt existingReceipt = new AnnouncementReadReceipt();
+        existingReceipt.setId(1L);
+        existingReceipt.setAnnouncement(testAnnouncement);
+        existingReceipt.setUser(testUser);
+        existingReceipt.setReadAt(LocalDateTime.now());
+        existingReceipt.setCreatedAt(LocalDateTime.now());
+        
+        when(readReceiptRepository.findByAnnouncementIdAndUserId(1L, 1L))
+            .thenReturn(Optional.of(existingReceipt));
 
-        // When & Then
-        assertThrows(IllegalArgumentException.class, 
-            () -> announcementService.markAsRead(1L, 1L));
+        // When
+        AnnouncementReadReceiptDTO result = announcementService.markAsRead(1L, 1L);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1L, result.id());
+        assertEquals(1L, result.announcementId());
+        assertEquals(1L, result.userId());
+        assertEquals("Test Announcement", result.announcementTitle());
         verify(readReceiptRepository, never()).save(any(AnnouncementReadReceipt.class));
     }
 

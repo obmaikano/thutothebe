@@ -33,7 +33,8 @@ import {
   Building2,
   Book,
   Clock,
-  FileQuestion
+  FileQuestion,
+  Megaphone
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -63,6 +64,12 @@ const commonMenuItems: MenuItem[] = [
 // Student-specific menu items
 export const studentMenuItems: MenuItem[] = [
   ...commonMenuItems,
+  {
+    icon: Megaphone,
+    label: 'Announcements',
+    path: '/app/announcements',
+    description: 'View important announcements and updates'
+  },
   {
     icon: BookOpen,
     label: 'My Courses',
@@ -104,6 +111,26 @@ export const studentMenuItems: MenuItem[] = [
 // Teacher-specific menu items
 export const teacherMenuItems: MenuItem[] = [
   ...commonMenuItems,
+  {
+    icon: Megaphone,
+    label: 'Announcements',
+    path: '/app/announcements',
+    description: 'View and create announcements',
+    children: [
+      {
+        icon: Megaphone,
+        label: 'All Announcements',
+        path: '/app/announcements',
+        description: 'View all announcements'
+      },
+      {
+        icon: Megaphone,
+        label: 'My Announcements',
+        path: '/app/my-announcements',
+        description: 'Manage your announcements'
+      }
+    ]
+  },
   {
     icon: BookOpen,
     label: 'My Classes',
@@ -193,6 +220,12 @@ export const seniorTeacherMenuItems: MenuItem[] = [
 export const parentMenuItems: MenuItem[] = [
   ...commonMenuItems,
   {
+    icon: Megaphone,
+    label: 'Announcements',
+    path: '/app/announcements',
+    description: 'View school announcements and updates'
+  },
+  {
     icon: Users,
     label: 'My Children',
     path: '/app/children',
@@ -254,6 +287,26 @@ export const schoolAdminMenuItems: MenuItem[] = [
     label: 'Dashboard', 
     path: '/app/school-admin-dashboard',
     description: 'Overview of your activities'
+  },
+  {
+    icon: Megaphone,
+    label: 'Announcements',
+    path: '/app/announcements',
+    description: 'Manage school announcements',
+    children: [
+      {
+        icon: Megaphone,
+        label: 'All Announcements',
+        path: '/app/announcements',
+        description: 'View all announcements'
+      },
+      {
+        icon: Megaphone,
+        label: 'My Announcements',
+        path: '/app/my-announcements',
+        description: 'Manage your announcements'
+      }
+    ]
   },
   {
     icon: Users,
@@ -366,6 +419,26 @@ export const schoolAdminMenuItems: MenuItem[] = [
 // School Head menu items
 export const schoolHeadMenuItems: MenuItem[] = [
   ...commonMenuItems,
+  {
+    icon: Megaphone,
+    label: 'Announcements',
+    path: '/app/announcements',
+    description: 'Manage school announcements',
+    children: [
+      {
+        icon: Megaphone,
+        label: 'All Announcements',
+        path: '/app/announcements',
+        description: 'View all announcements'
+      },
+      {
+        icon: Megaphone,
+        label: 'My Announcements',
+        path: '/app/my-announcements',
+        description: 'Manage your announcements'
+      }
+    ]
+  },
   {
     icon: Users,
     label: 'Staff Management',
@@ -528,6 +601,26 @@ export const regionalOfficerMenuItems: MenuItem[] = [
 // Regional Admin menu items
 export const regionalAdminMenuItems: MenuItem[] = [
   ...commonMenuItems,
+  {
+    icon: Megaphone,
+    label: 'Announcements',
+    path: '/app/announcements',
+    description: 'Manage regional announcements',
+    children: [
+      {
+        icon: Megaphone,
+        label: 'All Announcements',
+        path: '/app/announcements',
+        description: 'View all announcements'
+      },
+      {
+        icon: Megaphone,
+        label: 'My Announcements',
+        path: '/app/my-announcements',
+        description: 'Manage your announcements'
+      }
+    ]
+  },
   {
     icon: School,
     label: 'Schools',
@@ -840,6 +933,26 @@ export const ministryExecutiveMenuItems: MenuItem[] = [
 // Super Admin menu items
 export const superAdminMenuItems: MenuItem[] = [
   ...commonMenuItems,
+  {
+    icon: Megaphone,
+    label: 'Announcements',
+    path: '/app/announcements',
+    description: 'Manage system-wide announcements',
+    children: [
+      {
+        icon: Megaphone,
+        label: 'All Announcements',
+        path: '/app/announcements',
+        description: 'View all announcements'
+      },
+      {
+        icon: Megaphone,
+        label: 'My Announcements',
+        path: '/app/my-announcements',
+        description: 'Manage your announcements'
+      }
+    ]
+  },
   {
     icon: Users,
     label: 'User Management',

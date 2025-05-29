@@ -24,6 +24,11 @@ const TeacherAssignments = lazy(() => import('../pages/protected/TeacherAssignme
 const TeacherResources = lazy(() => import('../pages/protected/TeacherResources'));
 const TeacherSubmissions = lazy(() => import('../pages/protected/TeacherSubmissions'));
 
+// Announcement pages
+const Announcements = lazy(() => import('../pages/protected/Announcements'));
+const MyAnnouncements = lazy(() => import('../pages/protected/MyAnnouncements'));
+const AnnouncementDetails = lazy(() => import('../pages/protected/AnnouncementDetails'));
+
 // Quiz Management pages
 const Quizzes = lazy(() => import('../pages/protected/Quizzes'));
 const QuizTakingPage = lazy(() => import('../features/quizzes/pages/QuizTakingPage'));
@@ -145,6 +150,19 @@ export const appRoutes = [
   {
     path: 'teacher-submissions',
     element: TeacherSubmissions
+  },
+  // Announcement routes
+  {
+    path: 'announcements',
+    element: Announcements
+  },
+  {
+    path: 'my-announcements',
+    element: MyAnnouncements
+  },
+  {
+    path: 'announcement-details/:id',
+    element: AnnouncementDetails
   },
   // Quiz Management routes
   {

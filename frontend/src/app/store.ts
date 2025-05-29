@@ -22,6 +22,7 @@ import schedulesReducer from '../features/school_admin/schedulesSlice';
 import quizzesReducer from '../features/quizzes/quizzesSlice';
 import questionsReducer from '../features/quizzes/questionsSlice';
 import quizSubmissionsReducer from '../features/quizzes/quizSubmissionsSlice';
+import announcementsReducer from '../features/announcements/announcementsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -48,6 +49,7 @@ export const store = configureStore({
     quizzes: quizzesReducer,
     questions: questionsReducer,
     quizSubmissions: quizSubmissionsReducer,
+    announcements: announcementsReducer,
   },
 });
 

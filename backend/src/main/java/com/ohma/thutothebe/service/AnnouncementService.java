@@ -68,6 +68,11 @@ public interface AnnouncementService extends BaseService<AnnouncementDTO, Long> 
     Page<AnnouncementDTO> getAnnouncementsByTagForUser(Long userId, String tag, Pageable pageable);
     
     /**
+     * Get a single announcement by ID with user-specific status
+     */
+    AnnouncementDTO getAnnouncementByIdWithUserStatus(Long announcementId, Long userId);
+    
+    /**
      * Get read receipts for an announcement
      */
     List<AnnouncementReadReceiptDTO> getReadReceipts(Long announcementId, Long requesterId);

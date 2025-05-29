@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { PlusCircle, Activity, DollarSign, Users } from 'lucide-react';
+// Dashboard component exports
 import { StudentDashboard } from './components/StudentDashboard';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { AdminDashboard } from './components/AdminDashboard';

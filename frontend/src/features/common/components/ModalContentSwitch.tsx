@@ -60,6 +60,13 @@ const TeacherViewDetailsModal = lazy(() => import('../../teachers/modals/Teacher
 const AssignCourseModal = lazy(() => import('../../teachers/modals/AssignCourseModal'));
 const AssignClassModal = lazy(() => import('../../teachers/modals/AssignClassModal'));
 
+// Announcement management modals
+const CreateAnnouncementModal = lazy(() => import('../../announcements/modals/CreateAnnouncementModal'));
+const EditAnnouncementModal = lazy(() => import('../../announcements/modals/EditAnnouncementModal'));
+const DeleteAnnouncementModal = lazy(() => import('../../announcements/modals/DeleteAnnouncementModal'));
+const AnnouncementDetailsModal = lazy(() => import('../../announcements/modals/AnnouncementDetailsModal'));
+const AnnouncementAnalyticsModal = lazy(() => import('../../announcements/modals/AnnouncementAnalyticsModal'));
+
 // Schedule management modals
 const ScheduleAddNewModal = lazy(() => import('../../school_admin/modals/ScheduleAddNewModal'));
 const ScheduleEditModal = lazy(() => import('../../school_admin/modals/ScheduleEditModal'));
@@ -329,6 +336,42 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <LinkChildModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Announcement Management Modals
+    case MODAL_BODY_TYPES.ANNOUNCEMENT_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateAnnouncementModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ANNOUNCEMENT_VIEW_DETAILS:
+      return (
+        <Suspense fallback={fallback}>
+          <AnnouncementDetailsModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ANNOUNCEMENT_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditAnnouncementModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ANNOUNCEMENT_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteAnnouncementModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ANNOUNCEMENT_ANALYTICS:
+      return (
+        <Suspense fallback={fallback}>
+          <AnnouncementAnalyticsModal extraObject={contentProps} />
         </Suspense>
       );
 

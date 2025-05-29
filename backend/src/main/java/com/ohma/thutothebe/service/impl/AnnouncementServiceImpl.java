@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -181,11 +182,22 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
         Announcement announcement = getAnnouncementById(announcementId);
         User user = getUserById(userId);
 
-        // Check if already read
-        if (readReceiptRepository.existsByAnnouncementIdAndUserId(announcementId, userId)) {
-            throw new IllegalArgumentException("Announcement already marked as read by this user");
+        // Check if already read - if so, return the existing receipt
+        Optional<AnnouncementReadReceipt> existingReceipt = readReceiptRepository.findByAnnouncementIdAndUserId(announcementId, userId);
+        if (existingReceipt.isPresent()) {
+            AnnouncementReadReceipt receipt = existingReceipt.get();
+            return new AnnouncementReadReceiptDTO(
+                receipt.getId(),
+                announcementId,
+                announcement.getTitle(),
+                userId,
+                user.getFirstName() + " " + user.getLastName(),
+                receipt.getReadAt(),
+                receipt.getCreatedAt()
+            );
         }
 
+        // Create new read receipt
         AnnouncementReadReceipt receipt = new AnnouncementReadReceipt();
         receipt.setAnnouncement(announcement);
         receipt.setUser(user);
@@ -272,6 +284,14 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
         
         Page<Announcement> announcements = announcementRepository.findByTag(tag, now, pageable);
         return announcements.map(announcement -> announcementMapper.toDtoWithUserStatus(announcement, userId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AnnouncementDTO getAnnouncementByIdWithUserStatus(Long announcementId, Long userId) {
+        Announcement announcement = getAnnouncementById(announcementId);
+        getUserById(userId); // Validate user exists
+        return announcementMapper.toDtoWithUserStatus(announcement, userId);
     }
 
     @Override
