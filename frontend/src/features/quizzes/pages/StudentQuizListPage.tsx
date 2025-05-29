@@ -7,7 +7,7 @@ import { Search, Filter, Clock, Users, BookOpen, Play, CheckCircle, AlertCircle 
 
 const StudentQuizListPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { quizzes, status, error } = useAppSelector(state => state.quizzes);
+  const { quizzes, status, error } = useAppSelector(state => state.quizzes || { quizzes: [], status: 'idle', error: null });
   const { courses } = useAppSelector(state => state.courses || { courses: [] });
   const { user } = useAppSelector(state => state.auth);
 

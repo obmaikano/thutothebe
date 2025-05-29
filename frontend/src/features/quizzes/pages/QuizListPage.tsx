@@ -7,7 +7,7 @@ import { Plus, Search, Filter, Eye, Edit, Trash2, Play, Pause, Clock, Users, Boo
 
 const QuizListPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { quizzes, status, error } = useAppSelector(state => state.quizzes);
+  const { quizzes, status, error } = useAppSelector(state => state.quizzes || { quizzes: [], status: 'idle', error: null });
   const { courses } = useAppSelector(state => state.courses || { courses: [] });
   const { user } = useAppSelector(state => state.auth);
 
