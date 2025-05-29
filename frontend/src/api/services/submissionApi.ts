@@ -2,42 +2,40 @@ import { api } from '../index';
 import { AxiosResponse } from 'axios';
 
 export interface Submission {
-  id: number;
-  assignmentId: number;
+  id?: number;
   studentId: number;
-  groupId?: number;
-  content?: string;
-  textContent?: string;
-  linkContent?: string;
-  filePaths?: string;
-  originalFileName?: string;
-  fileSize?: number;
-  submittedAt: string;
-  lastModifiedAt?: string;
+  courseId: number;
+  assignmentId: number;
+  content: string;
+  submittedAt?: string;
+  phase?: 'SUBMISSION' | 'ASSESSMENT' | 'GRADING' | 'COMPLETED';
+  status: 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'RETURNED' | 'LATE' | 'MISSING';
+  assessments?: any[];
+  finalScore?: number;
+  feedback?: string;
+  createdAt?: string;
+  updatedAt?: string;
   score?: number;
   maxScore?: number;
   percentage?: number;
-  letterGrade?: string;
-  feedback?: string;
-  rubricScores?: string;
+  grade?: string;
+  comments?: string;
+  filePaths?: string;
   gradedAt?: string;
   gradedBy?: number;
-  status: 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'RETURNED' | 'LATE' | 'MISSING';
-  submissionNumber: number;
-  isLate: boolean;
-  latePenaltyApplied?: number;
-  plagiarismScore?: number;
-  plagiarismReport?: string;
-  autoGraded: boolean;
-  needsReview: boolean;
+  attemptNumber?: number;
+  isLateSubmission?: boolean;
+  needsReview?: boolean;
+  originalFileName?: string;
+  fileSize?: string;
+  autoGraded?: boolean;
+  manuallyGraded?: boolean;
   reviewedAt?: string;
   reviewedBy?: number;
-  comments?: string;
-  attachments?: string;
-  version: number;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  studentComments?: string;
+  rubricScores?: string;
+  timeSpent?: number;
+  plagiarismChecked?: boolean;
 }
 
 export interface SubmissionResponse {
@@ -47,7 +45,7 @@ export interface SubmissionResponse {
   timestamp: string | null;
 }
 
-export type CreateSubmissionRequest = Omit<Submission, 'id' | 'submittedAt' | 'lastModifiedAt' | 'gradedAt' | 'reviewedAt' | 'createdAt' | 'updatedAt'>;
+export type CreateSubmissionRequest = Omit<Submission, 'id' | 'submittedAt' | 'gradedAt' | 'reviewedAt' | 'createdAt' | 'updatedAt'>;
 export type UpdateSubmissionRequest = Partial<CreateSubmissionRequest>;
 
 /**
@@ -100,33 +98,6 @@ const submissionApi = {
   },
 
   /**
-   * Get submissions by course
-   * @param courseId Course ID
-   * @returns Response with submissions for the course
-   */
-  getByCourse: async (courseId: number): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.get(`/submissions/course/${courseId}`);
-  },
-
-  /**
-   * Get submissions by teacher
-   * @param teacherId Teacher ID
-   * @returns Response with submissions for the teacher
-   */
-  getByTeacher: async (teacherId: number): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.get(`/submissions/teacher/${teacherId}`);
-  },
-
-  /**
-   * Get submissions by instructor
-   * @param instructorId Instructor ID
-   * @returns Response with submissions for the instructor
-   */
-  getByInstructor: async (instructorId: number): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.get(`/submissions/instructor/${instructorId}`);
-  },
-
-  /**
    * Get graded submissions by assignment
    * @param assignmentId Assignment ID
    * @returns Response with graded submissions for the assignment
@@ -145,6 +116,15 @@ const submissionApi = {
   },
 
   /**
+   * Get submissions by teacher
+   * @param teacherId Teacher ID
+   * @returns Response with submissions for the teacher
+   */
+  getByTeacher: async (teacherId: number): Promise<AxiosResponse<SubmissionResponse>> => {
+    return api.get(`/submissions/teacher/${teacherId}`);
+  },
+
+  /**
    * Get pending submissions by teacher
    * @param teacherId Teacher ID
    * @returns Response with pending submissions for the teacher
@@ -154,30 +134,12 @@ const submissionApi = {
   },
 
   /**
-   * Get pending submissions by instructor
-   * @param instructorId Instructor ID
-   * @returns Response with pending submissions for the instructor
-   */
-  getPendingByInstructor: async (instructorId: number): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.get(`/submissions/instructor/${instructorId}/pending`);
-  },
-
-  /**
    * Get late submissions by teacher
    * @param teacherId Teacher ID
    * @returns Response with late submissions for the teacher
    */
   getLateByTeacher: async (teacherId: number): Promise<AxiosResponse<SubmissionResponse>> => {
     return api.get(`/submissions/teacher/${teacherId}/late`);
-  },
-
-  /**
-   * Get late submissions by instructor
-   * @param instructorId Instructor ID
-   * @returns Response with late submissions for the instructor
-   */
-  getLateByInstructor: async (instructorId: number): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.get(`/submissions/instructor/${instructorId}/late`);
   },
 
   /**
@@ -196,32 +158,6 @@ const submissionApi = {
    */
   getLateByCourse: async (courseId: number): Promise<AxiosResponse<SubmissionResponse>> => {
     return api.get(`/submissions/course/${courseId}/late`);
-  },
-
-  /**
-   * Get submissions needing review
-   * @returns Response with submissions needing review
-   */
-  getNeedingReview: async (): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.get('/submissions/review/needed');
-  },
-
-  /**
-   * Get submissions needing review by teacher
-   * @param teacherId Teacher ID
-   * @returns Response with submissions needing review for the teacher
-   */
-  getNeedingReviewByTeacher: async (teacherId: number): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.get(`/submissions/teacher/${teacherId}/review/needed`);
-  },
-
-  /**
-   * Get submissions needing review by instructor
-   * @param instructorId Instructor ID
-   * @returns Response with submissions needing review for the instructor
-   */
-  getNeedingReviewByInstructor: async (instructorId: number): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.get(`/submissions/instructor/${instructorId}/review/needed`);
   },
 
   /**
@@ -244,9 +180,9 @@ const submissionApi = {
   },
 
   /**
-   * Submit a draft submission
+   * Submit a submission (change status to submitted)
    * @param id Submission ID
-   * @returns Response with submitted submission details
+   * @returns Response with updated submission details
    */
   submit: async (id: number): Promise<AxiosResponse<SubmissionResponse>> => {
     return api.put(`/submissions/${id}/submit`);
@@ -255,37 +191,12 @@ const submissionApi = {
   /**
    * Grade a submission
    * @param id Submission ID
-   * @param gradeData Grade data including score and feedback
+   * @param score Score to assign
+   * @param feedback Optional feedback
    * @returns Response with graded submission details
    */
-  grade: async (id: number, gradeData: {
-    score?: number;
-    percentage?: number;
-    letterGrade?: string;
-    feedback?: string;
-    rubricScores?: string;
-  }): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.put(`/submissions/${id}/grade`, gradeData);
-  },
-
-  /**
-   * Return a graded submission to student
-   * @param id Submission ID
-   * @returns Response with returned submission details
-   */
-  returnToStudent: async (id: number): Promise<AxiosResponse<SubmissionResponse>> => {
-    return api.put(`/submissions/${id}/return`);
-  },
-
-  /**
-   * Mark submission as reviewed
-   * @param id Submission ID
-   * @param comments Optional review comments
-   * @returns Response with reviewed submission details
-   */
-  markReviewed: async (id: number, comments?: string): Promise<AxiosResponse<SubmissionResponse>> => {
-    const data = comments ? { comments } : {};
-    return api.put(`/submissions/${id}/review`, data);
+  grade: async (id: number, score: number, feedback?: string): Promise<AxiosResponse<SubmissionResponse>> => {
+    return api.post(`/submissions/${id}/grade`, { score, feedback });
   },
 
   /**
@@ -295,37 +206,6 @@ const submissionApi = {
    */
   delete: async (id: number): Promise<AxiosResponse<SubmissionResponse>> => {
     return api.delete(`/submissions/${id}`);
-  },
-
-  /**
-   * Upload file for submission
-   * @param assignmentId Assignment ID
-   * @param studentId Student ID
-   * @param file File to upload
-   * @returns Response with file upload details
-   */
-  uploadFile: async (assignmentId: number, studentId: number, file: File): Promise<AxiosResponse<SubmissionResponse>> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('assignmentId', assignmentId.toString());
-    formData.append('studentId', studentId.toString());
-    
-    return api.post('/submissions/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-  },
-
-  /**
-   * Download submission file
-   * @param id Submission ID
-   * @returns File download response
-   */
-  downloadFile: async (id: number): Promise<AxiosResponse<Blob>> => {
-    return api.get(`/submissions/${id}/download`, {
-      responseType: 'blob',
-    });
   },
 };
 

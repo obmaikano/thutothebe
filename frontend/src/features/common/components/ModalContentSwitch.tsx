@@ -1,4 +1,6 @@
 import React, { lazy, Suspense } from 'react';
+import { useAppDispatch } from '../../../app/hooks';
+import { closeModal } from '../modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 
 // Subject management modals
@@ -69,6 +71,10 @@ const GradeCategoryAddNewModal = lazy(() => import('../../school_admin/modals/Gr
 const AssignmentAddNewModal = lazy(() => import('../../school_admin/modals/AssignmentAddNewModal'));
 const SubjectAssignTeacherModal = lazy(() => import('../../school_admin/modals/SubjectAssignTeacherModal'));
 
+// Assignment and Submission modals
+const AssignmentFormModal = lazy(() => import('../../assignments/modals/AssignmentFormModal'));
+const SubmissionGradeModal = lazy(() => import('../../assignments/modals/SubmissionGradeModal'));
+
 // Quiz Management Modals
 const CreateQuizModal = lazy(() => import('../../quizzes/modals/CreateQuizModal'));
 const EditQuizModal = lazy(() => import('../../quizzes/modals/EditQuizModal'));
@@ -80,6 +86,8 @@ interface ModalContentSwitchProps {
 }
 
 export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content, contentProps }) => {
+  const dispatch = useAppDispatch();
+  
   // Fallback UI for Suspense
   const fallback = <div className="flex justify-center items-center p-4">Loading...</div>;
   
@@ -400,7 +408,162 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
     case MODAL_BODY_TYPES.ASSIGNMENT_ADD_NEW:
       return (
         <Suspense fallback={fallback}>
-          <AssignmentAddNewModal extraObject={contentProps} />
+          <AssignmentFormModal assignment={contentProps} mode="create" />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ASSIGNMENT_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <AssignmentFormModal assignment={contentProps} mode="edit" />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ASSIGNMENT_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Delete Assignment</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to delete this assignment? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => dispatch(closeModal({}))}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // Handle delete logic here
+                  dispatch(closeModal({}));
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ASSIGNMENT_VIEW_DETAILS:
+      return (
+        <Suspense fallback={fallback}>
+          <div className="max-w-2xl">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Assignment Details</h3>
+            {contentProps && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Title</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.title}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Description</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.description}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Due Date</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {contentProps.dueDate ? new Date(contentProps.dueDate).toLocaleDateString() : 'No due date'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.status}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ASSIGNMENT_VIEW_SUBMISSIONS:
+      return (
+        <Suspense fallback={fallback}>
+          <div className="max-w-4xl">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Assignment Submissions</h3>
+            <p className="text-sm text-gray-500">
+              Submissions for: {contentProps?.title || 'Assignment'}
+            </p>
+            {/* This would contain a list of submissions */}
+          </div>
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SUBMISSION_GRADE:
+      return (
+        <Suspense fallback={fallback}>
+          <SubmissionGradeModal submission={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SUBMISSION_VIEW_DETAILS:
+      return (
+        <Suspense fallback={fallback}>
+          <div className="max-w-2xl">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Submission Details</h3>
+            {contentProps && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Student ID</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.studentId}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Assignment ID</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.assignmentId}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.status}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Content</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.content || 'No content'}</p>
+                </div>
+                {contentProps.feedback && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Feedback</label>
+                    <p className="mt-1 text-sm text-gray-900">{contentProps.feedback}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SUBMISSION_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Delete Submission</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to delete this submission? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => dispatch(closeModal({}))}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // Handle delete logic here
+                  dispatch(closeModal({}));
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </Suspense>
       );
 

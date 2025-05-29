@@ -40,6 +40,18 @@ export const fetchSubmissionById = createAsyncThunk(
   }
 );
 
+export const fetchSubmissionByAssignmentAndStudent = createAsyncThunk(
+  'submissions/fetchSubmissionByAssignmentAndStudent',
+  async ({ assignmentId, studentId }: { assignmentId: number; studentId: number }, { rejectWithValue }) => {
+    try {
+      const response = await submissionApi.getByAssignmentAndStudent(assignmentId, studentId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch submission');
+    }
+  }
+);
+
 export const fetchSubmissionsByAssignment = createAsyncThunk(
   'submissions/fetchSubmissionsByAssignment',
   async (assignmentId: number, { rejectWithValue }) => {
@@ -64,14 +76,26 @@ export const fetchSubmissionsByStudent = createAsyncThunk(
   }
 );
 
-export const fetchSubmissionsByCourse = createAsyncThunk(
-  'submissions/fetchSubmissionsByCourse',
-  async (courseId: number, { rejectWithValue }) => {
+export const fetchGradedSubmissionsByAssignment = createAsyncThunk(
+  'submissions/fetchGradedSubmissionsByAssignment',
+  async (assignmentId: number, { rejectWithValue }) => {
     try {
-      const response = await submissionApi.getByCourse(courseId);
+      const response = await submissionApi.getGradedByAssignment(assignmentId);
       return response.data.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch submissions by course');
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch graded submissions by assignment');
+    }
+  }
+);
+
+export const fetchGradedSubmissionsByStudent = createAsyncThunk(
+  'submissions/fetchGradedSubmissionsByStudent',
+  async (studentId: number, { rejectWithValue }) => {
+    try {
+      const response = await submissionApi.getGradedByStudent(studentId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch graded submissions by student');
     }
   }
 );
@@ -88,18 +112,6 @@ export const fetchSubmissionsByTeacher = createAsyncThunk(
   }
 );
 
-export const fetchSubmissionsByInstructor = createAsyncThunk(
-  'submissions/fetchSubmissionsByInstructor',
-  async (instructorId: number, { rejectWithValue }) => {
-    try {
-      const response = await submissionApi.getByInstructor(instructorId);
-      return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch submissions by instructor');
-    }
-  }
-);
-
 export const fetchPendingSubmissionsByTeacher = createAsyncThunk(
   'submissions/fetchPendingSubmissionsByTeacher',
   async (teacherId: number, { rejectWithValue }) => {
@@ -108,18 +120,6 @@ export const fetchPendingSubmissionsByTeacher = createAsyncThunk(
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch pending submissions by teacher');
-    }
-  }
-);
-
-export const fetchPendingSubmissionsByInstructor = createAsyncThunk(
-  'submissions/fetchPendingSubmissionsByInstructor',
-  async (instructorId: number, { rejectWithValue }) => {
-    try {
-      const response = await submissionApi.getPendingByInstructor(instructorId);
-      return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch pending submissions by instructor');
     }
   }
 );
@@ -136,50 +136,26 @@ export const fetchLateSubmissionsByTeacher = createAsyncThunk(
   }
 );
 
-export const fetchLateSubmissionsByInstructor = createAsyncThunk(
-  'submissions/fetchLateSubmissionsByInstructor',
-  async (instructorId: number, { rejectWithValue }) => {
+export const fetchPendingSubmissionsByCourse = createAsyncThunk(
+  'submissions/fetchPendingSubmissionsByCourse',
+  async (courseId: number, { rejectWithValue }) => {
     try {
-      const response = await submissionApi.getLateByInstructor(instructorId);
+      const response = await submissionApi.getPendingByCourse(courseId);
       return response.data.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch late submissions by instructor');
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch pending submissions by course');
     }
   }
 );
 
-export const fetchSubmissionsNeedingReview = createAsyncThunk(
-  'submissions/fetchSubmissionsNeedingReview',
-  async (_, { rejectWithValue }) => {
+export const fetchLateSubmissionsByCourse = createAsyncThunk(
+  'submissions/fetchLateSubmissionsByCourse',
+  async (courseId: number, { rejectWithValue }) => {
     try {
-      const response = await submissionApi.getNeedingReview();
+      const response = await submissionApi.getLateByCourse(courseId);
       return response.data.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch submissions needing review');
-    }
-  }
-);
-
-export const fetchSubmissionsNeedingReviewByTeacher = createAsyncThunk(
-  'submissions/fetchSubmissionsNeedingReviewByTeacher',
-  async (teacherId: number, { rejectWithValue }) => {
-    try {
-      const response = await submissionApi.getNeedingReviewByTeacher(teacherId);
-      return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch submissions needing review by teacher');
-    }
-  }
-);
-
-export const fetchSubmissionsNeedingReviewByInstructor = createAsyncThunk(
-  'submissions/fetchSubmissionsNeedingReviewByInstructor',
-  async (instructorId: number, { rejectWithValue }) => {
-    try {
-      const response = await submissionApi.getNeedingReviewByInstructor(instructorId);
-      return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch submissions needing review by instructor');
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch late submissions by course');
     }
   }
 );
@@ -222,45 +198,12 @@ export const submitSubmission = createAsyncThunk(
 
 export const gradeSubmission = createAsyncThunk(
   'submissions/gradeSubmission',
-  async ({ id, gradeData }: { 
-    id: number; 
-    gradeData: {
-      score?: number;
-      percentage?: number;
-      letterGrade?: string;
-      feedback?: string;
-      rubricScores?: string;
-    }
-  }, { rejectWithValue }) => {
+  async ({ id, score, feedback }: { id: number; score: number; feedback?: string }, { rejectWithValue }) => {
     try {
-      const response = await submissionApi.grade(id, gradeData);
+      const response = await submissionApi.grade(id, score, feedback);
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to grade submission');
-    }
-  }
-);
-
-export const returnSubmissionToStudent = createAsyncThunk(
-  'submissions/returnSubmissionToStudent',
-  async (id: number, { rejectWithValue }) => {
-    try {
-      const response = await submissionApi.returnToStudent(id);
-      return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to return submission to student');
-    }
-  }
-);
-
-export const markSubmissionReviewed = createAsyncThunk(
-  'submissions/markSubmissionReviewed',
-  async ({ id, comments }: { id: number; comments?: string }, { rejectWithValue }) => {
-    try {
-      const response = await submissionApi.markReviewed(id, comments);
-      return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to mark submission as reviewed');
     }
   }
 );
@@ -273,18 +216,6 @@ export const deleteSubmission = createAsyncThunk(
       return { id, ...response.data.data };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to delete submission');
-    }
-  }
-);
-
-export const uploadSubmissionFile = createAsyncThunk(
-  'submissions/uploadSubmissionFile',
-  async ({ assignmentId, studentId, file }: { assignmentId: number; studentId: number; file: File }, { rejectWithValue }) => {
-    try {
-      const response = await submissionApi.uploadFile(assignmentId, studentId, file);
-      return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to upload submission file');
     }
   }
 );
@@ -330,6 +261,20 @@ const submissionsSlice = createSlice({
         state.error = action.payload as string || 'Failed to fetch submission';
       })
 
+      // Fetch submission by assignment and student
+      .addCase(fetchSubmissionByAssignmentAndStudent.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchSubmissionByAssignmentAndStudent.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.currentSubmission = action.payload as Submission;
+      })
+      .addCase(fetchSubmissionByAssignmentAndStudent.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch submission';
+      })
+
       // Fetch submissions by assignment
       .addCase(fetchSubmissionsByAssignment.pending, (state) => {
         state.status = 'loading';
@@ -358,18 +303,32 @@ const submissionsSlice = createSlice({
         state.error = action.payload as string || 'Failed to fetch submissions by student';
       })
 
-      // Fetch submissions by course
-      .addCase(fetchSubmissionsByCourse.pending, (state) => {
+      // Fetch graded submissions by assignment
+      .addCase(fetchGradedSubmissionsByAssignment.pending, (state) => {
         state.status = 'loading';
         state.error = null;
       })
-      .addCase(fetchSubmissionsByCourse.fulfilled, (state, action) => {
+      .addCase(fetchGradedSubmissionsByAssignment.fulfilled, (state, action) => {
         state.status = 'succeeded';
         state.submissions = Array.isArray(action.payload) ? action.payload : [];
       })
-      .addCase(fetchSubmissionsByCourse.rejected, (state, action) => {
+      .addCase(fetchGradedSubmissionsByAssignment.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.payload as string || 'Failed to fetch submissions by course';
+        state.error = action.payload as string || 'Failed to fetch graded submissions by assignment';
+      })
+
+      // Fetch graded submissions by student
+      .addCase(fetchGradedSubmissionsByStudent.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchGradedSubmissionsByStudent.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.submissions = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchGradedSubmissionsByStudent.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch graded submissions by student';
       })
 
       // Fetch submissions by teacher
@@ -386,20 +345,6 @@ const submissionsSlice = createSlice({
         state.error = action.payload as string || 'Failed to fetch submissions by teacher';
       })
 
-      // Fetch submissions by instructor
-      .addCase(fetchSubmissionsByInstructor.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
-      })
-      .addCase(fetchSubmissionsByInstructor.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.submissions = Array.isArray(action.payload) ? action.payload : [];
-      })
-      .addCase(fetchSubmissionsByInstructor.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string || 'Failed to fetch submissions by instructor';
-      })
-
       // Fetch pending submissions by teacher
       .addCase(fetchPendingSubmissionsByTeacher.pending, (state) => {
         state.status = 'loading';
@@ -412,20 +357,6 @@ const submissionsSlice = createSlice({
       .addCase(fetchPendingSubmissionsByTeacher.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to fetch pending submissions by teacher';
-      })
-
-      // Fetch pending submissions by instructor
-      .addCase(fetchPendingSubmissionsByInstructor.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
-      })
-      .addCase(fetchPendingSubmissionsByInstructor.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.submissions = Array.isArray(action.payload) ? action.payload : [];
-      })
-      .addCase(fetchPendingSubmissionsByInstructor.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string || 'Failed to fetch pending submissions by instructor';
       })
 
       // Fetch late submissions by teacher
@@ -442,60 +373,32 @@ const submissionsSlice = createSlice({
         state.error = action.payload as string || 'Failed to fetch late submissions by teacher';
       })
 
-      // Fetch late submissions by instructor
-      .addCase(fetchLateSubmissionsByInstructor.pending, (state) => {
+      // Fetch pending submissions by course
+      .addCase(fetchPendingSubmissionsByCourse.pending, (state) => {
         state.status = 'loading';
         state.error = null;
       })
-      .addCase(fetchLateSubmissionsByInstructor.fulfilled, (state, action) => {
+      .addCase(fetchPendingSubmissionsByCourse.fulfilled, (state, action) => {
         state.status = 'succeeded';
         state.submissions = Array.isArray(action.payload) ? action.payload : [];
       })
-      .addCase(fetchLateSubmissionsByInstructor.rejected, (state, action) => {
+      .addCase(fetchPendingSubmissionsByCourse.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.payload as string || 'Failed to fetch late submissions by instructor';
+        state.error = action.payload as string || 'Failed to fetch pending submissions by course';
       })
 
-      // Fetch submissions needing review
-      .addCase(fetchSubmissionsNeedingReview.pending, (state) => {
+      // Fetch late submissions by course
+      .addCase(fetchLateSubmissionsByCourse.pending, (state) => {
         state.status = 'loading';
         state.error = null;
       })
-      .addCase(fetchSubmissionsNeedingReview.fulfilled, (state, action) => {
+      .addCase(fetchLateSubmissionsByCourse.fulfilled, (state, action) => {
         state.status = 'succeeded';
         state.submissions = Array.isArray(action.payload) ? action.payload : [];
       })
-      .addCase(fetchSubmissionsNeedingReview.rejected, (state, action) => {
+      .addCase(fetchLateSubmissionsByCourse.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.payload as string || 'Failed to fetch submissions needing review';
-      })
-
-      // Fetch submissions needing review by teacher
-      .addCase(fetchSubmissionsNeedingReviewByTeacher.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
-      })
-      .addCase(fetchSubmissionsNeedingReviewByTeacher.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.submissions = Array.isArray(action.payload) ? action.payload : [];
-      })
-      .addCase(fetchSubmissionsNeedingReviewByTeacher.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string || 'Failed to fetch submissions needing review by teacher';
-      })
-
-      // Fetch submissions needing review by instructor
-      .addCase(fetchSubmissionsNeedingReviewByInstructor.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
-      })
-      .addCase(fetchSubmissionsNeedingReviewByInstructor.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.submissions = Array.isArray(action.payload) ? action.payload : [];
-      })
-      .addCase(fetchSubmissionsNeedingReviewByInstructor.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string || 'Failed to fetch submissions needing review by instructor';
+        state.error = action.payload as string || 'Failed to fetch late submissions by course';
       })
 
       // Create submission
@@ -505,8 +408,9 @@ const submissionsSlice = createSlice({
       })
       .addCase(createSubmission.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.submissions.push(action.payload as Submission);
-        state.currentSubmission = action.payload as Submission;
+        if (action.payload) {
+          state.submissions.push(action.payload as Submission);
+        }
       })
       .addCase(createSubmission.rejected, (state, action) => {
         state.status = 'failed';
@@ -521,11 +425,15 @@ const submissionsSlice = createSlice({
       .addCase(updateSubmission.fulfilled, (state, action) => {
         state.status = 'succeeded';
         const updatedSubmission = action.payload as Submission;
-        const index = state.submissions.findIndex(submission => submission.id === updatedSubmission.id);
-        if (index !== -1) {
-          state.submissions[index] = updatedSubmission;
+        if (updatedSubmission?.id) {
+          const index = state.submissions.findIndex(s => s.id === updatedSubmission.id);
+          if (index !== -1) {
+            state.submissions[index] = updatedSubmission;
+          }
+          if (state.currentSubmission?.id === updatedSubmission.id) {
+            state.currentSubmission = updatedSubmission;
+          }
         }
-        state.currentSubmission = updatedSubmission;
       })
       .addCase(updateSubmission.rejected, (state, action) => {
         state.status = 'failed';
@@ -540,11 +448,15 @@ const submissionsSlice = createSlice({
       .addCase(submitSubmission.fulfilled, (state, action) => {
         state.status = 'succeeded';
         const submittedSubmission = action.payload as Submission;
-        const index = state.submissions.findIndex(submission => submission.id === submittedSubmission.id);
-        if (index !== -1) {
-          state.submissions[index] = submittedSubmission;
+        if (submittedSubmission?.id) {
+          const index = state.submissions.findIndex(s => s.id === submittedSubmission.id);
+          if (index !== -1) {
+            state.submissions[index] = submittedSubmission;
+          }
+          if (state.currentSubmission?.id === submittedSubmission.id) {
+            state.currentSubmission = submittedSubmission;
+          }
         }
-        state.currentSubmission = submittedSubmission;
       })
       .addCase(submitSubmission.rejected, (state, action) => {
         state.status = 'failed';
@@ -559,53 +471,19 @@ const submissionsSlice = createSlice({
       .addCase(gradeSubmission.fulfilled, (state, action) => {
         state.status = 'succeeded';
         const gradedSubmission = action.payload as Submission;
-        const index = state.submissions.findIndex(submission => submission.id === gradedSubmission.id);
-        if (index !== -1) {
-          state.submissions[index] = gradedSubmission;
+        if (gradedSubmission?.id) {
+          const index = state.submissions.findIndex(s => s.id === gradedSubmission.id);
+          if (index !== -1) {
+            state.submissions[index] = gradedSubmission;
+          }
+          if (state.currentSubmission?.id === gradedSubmission.id) {
+            state.currentSubmission = gradedSubmission;
+          }
         }
-        state.currentSubmission = gradedSubmission;
       })
       .addCase(gradeSubmission.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to grade submission';
-      })
-
-      // Return submission to student
-      .addCase(returnSubmissionToStudent.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
-      })
-      .addCase(returnSubmissionToStudent.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        const returnedSubmission = action.payload as Submission;
-        const index = state.submissions.findIndex(submission => submission.id === returnedSubmission.id);
-        if (index !== -1) {
-          state.submissions[index] = returnedSubmission;
-        }
-        state.currentSubmission = returnedSubmission;
-      })
-      .addCase(returnSubmissionToStudent.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string || 'Failed to return submission to student';
-      })
-
-      // Mark submission reviewed
-      .addCase(markSubmissionReviewed.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
-      })
-      .addCase(markSubmissionReviewed.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        const reviewedSubmission = action.payload as Submission;
-        const index = state.submissions.findIndex(submission => submission.id === reviewedSubmission.id);
-        if (index !== -1) {
-          state.submissions[index] = reviewedSubmission;
-        }
-        state.currentSubmission = reviewedSubmission;
-      })
-      .addCase(markSubmissionReviewed.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string || 'Failed to mark submission as reviewed';
       })
 
       // Delete submission
@@ -615,39 +493,21 @@ const submissionsSlice = createSlice({
       })
       .addCase(deleteSubmission.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        const { id } = action.payload as { id: number };
-        state.submissions = state.submissions.filter(submission => submission.id !== id);
-        if (state.currentSubmission?.id === id) {
-          state.currentSubmission = null;
+        const deletedId = action.payload?.id;
+        if (deletedId) {
+          state.submissions = state.submissions.filter(s => s.id !== deletedId);
+          if (state.currentSubmission?.id === deletedId) {
+            state.currentSubmission = null;
+          }
         }
       })
       .addCase(deleteSubmission.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to delete submission';
-      })
-
-      // Upload submission file
-      .addCase(uploadSubmissionFile.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
-      })
-      .addCase(uploadSubmissionFile.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        const uploadedSubmission = action.payload as Submission;
-        const index = state.submissions.findIndex(submission => submission.id === uploadedSubmission.id);
-        if (index !== -1) {
-          state.submissions[index] = uploadedSubmission;
-        } else {
-          state.submissions.push(uploadedSubmission);
-        }
-        state.currentSubmission = uploadedSubmission;
-      })
-      .addCase(uploadSubmissionFile.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload as string || 'Failed to upload submission file';
       });
   }
 });
 
 export const { clearCurrentSubmission, clearSubmissionsError } = submissionsSlice.actions;
+
 export default submissionsSlice.reducer; 

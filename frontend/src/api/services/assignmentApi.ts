@@ -2,43 +2,43 @@ import { api } from '../index';
 import { AxiosResponse } from 'axios';
 
 export interface Assignment {
-  id: number;
+  id?: number;
   title: string;
   description: string;
   instructions?: string;
-  code: string;
+  code?: string;
   courseId: number;
-  teacherId: number;
   instructorId: number;
+  categoryId?: number;
   dueDate: string;
-  startDate?: string;
-  maxScore: number;
-  weight: number;
-  allowLateSubmissions: boolean;
+  createdAt?: string;
+  maxScore?: number;
+  weight?: number;
+  allowLateSubmissions?: boolean;
   latePenalty?: number;
   maxAttempts?: number;
-  isGroupAssignment: boolean;
-  maxGroupSize?: number;
-  submissionType: 'FILE' | 'TEXT' | 'LINK' | 'MIXED';
-  allowedFileTypes?: string;
-  maxFileSize?: number;
-  rubricId?: number;
-  gradingType: 'POINTS' | 'PERCENTAGE' | 'LETTER' | 'PASS_FAIL';
-  autoGrade: boolean;
-  publishGrades: boolean;
-  showRubric: boolean;
-  plagiarismCheck: boolean;
-  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
-  visibility: 'VISIBLE' | 'HIDDEN' | 'SCHEDULED';
+  shuffleQuestions?: boolean;
+  timeLimit?: number;
+  rubricId?: string;
+  gradingCriteria?: string;
   estimatedDuration?: number;
+  difficultyLevel?: number;
+  gradingType?: string;
+  requiresSubmissionFile?: boolean;
+  allowMultipleFiles?: boolean;
+  showCorrectAnswers?: boolean;
+  randomizeQuestions?: boolean;
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
   tags?: string;
+  passingScore?: number;
   attachments?: string;
-  submissionCount: number;
-  gradedCount: number;
-  averageScore?: number;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  resources?: string;
+  submissionCount?: number;
+  gradedCount?: number;
+  visibility?: string;
+  active?: boolean;
+  publishedAt?: string;
+  updatedAt?: string;
 }
 
 export interface AssignmentResponse {
@@ -48,7 +48,7 @@ export interface AssignmentResponse {
   timestamp: string | null;
 }
 
-export type CreateAssignmentRequest = Omit<Assignment, 'id' | 'submissionCount' | 'gradedCount' | 'averageScore' | 'createdAt' | 'updatedAt'>;
+export type CreateAssignmentRequest = Omit<Assignment, 'id' | 'submissionCount' | 'gradedCount' | 'createdAt' | 'updatedAt' | 'publishedAt'>;
 export type UpdateAssignmentRequest = Partial<CreateAssignmentRequest>;
 
 /**
@@ -169,33 +169,6 @@ const assignmentApi = {
    */
   delete: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
     return api.delete(`/assignments/${id}`);
-  },
-
-  /**
-   * Publish an assignment
-   * @param id Assignment ID
-   * @returns Response with updated assignment details
-   */
-  publish: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
-    return api.put(`/assignments/${id}/publish`);
-  },
-
-  /**
-   * Close an assignment
-   * @param id Assignment ID
-   * @returns Response with updated assignment details
-   */
-  close: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
-    return api.put(`/assignments/${id}/close`);
-  },
-
-  /**
-   * Archive an assignment
-   * @param id Assignment ID
-   * @returns Response with updated assignment details
-   */
-  archive: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
-    return api.put(`/assignments/${id}/archive`);
   },
 };
 

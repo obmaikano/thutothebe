@@ -10,6 +10,7 @@ import regionsReducer from '../features/regions/regionsSlice';
 import usersReducer from '../features/users/usersSlice';
 import teachersReducer from '../features/teachers/teachersSlice';
 import assignmentsReducer from '../features/assignments/assignmentsSlice';
+import submissionsReducer from '../features/assignments/submissionsSlice';
 import gradesReducer from '../features/grades/gradesSlice';
 import studentsReducer from '../features/students/studentsSlice';
 import parentsReducer from '../features/parents/parentsSlice';
@@ -31,6 +32,7 @@ export const store = configureStore({
     users: usersReducer,
     teachers: teachersReducer,
     assignments: assignmentsReducer,
+    submissions: submissionsReducer,
     grades: gradesReducer,
     students: studentsReducer,
     parents: parentsReducer,
