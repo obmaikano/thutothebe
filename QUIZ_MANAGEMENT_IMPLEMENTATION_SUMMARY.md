@@ -303,6 +303,22 @@ interface Quiz {
 - ✅ **Components**: All pages rendering correctly
 - ✅ **State Management**: Redux integration complete
 
+## Bug Fixes
+
+### Fixed: Undefined Courses State Error
+**Issue**: `TypeError: (intermediate value)(...) is undefined` in quiz pages
+**Root Cause**: Courses state was undefined when components first rendered
+**Solution**: Added null checks and default values:
+- `useAppSelector(state => state.courses || { courses: [] })`
+- `(courses || []).map(...)` for safe array mapping
+- `(quizzes || []).filter(...)` for safe array filtering
+
+**Files Fixed**:
+- `frontend/src/features/quizzes/pages/StudentQuizListPage.tsx`
+- `frontend/src/features/quizzes/pages/QuizListPage.tsx`
+
+**Commit**: `d4d4726` - "fix: Add null checks for courses state in quiz pages to prevent undefined errors"
+
 ## Future Enhancements
 
 ### Planned Features
