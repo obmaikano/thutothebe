@@ -32,7 +32,8 @@ import {
   MapPin,
   Building2,
   Book,
-  Clock
+  Clock,
+  FileQuestion
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -73,6 +74,12 @@ export const studentMenuItems: MenuItem[] = [
     label: 'My Assignments',
     path: '/app/student-assignments',
     description: 'View and submit assignments'
+  },
+  {
+    icon: FileQuestion,
+    label: 'Quizzes',
+    path: '/app/quizzes',
+    description: 'Take quizzes and view results'
   },
   {
     icon: BarChart,
@@ -120,6 +127,12 @@ export const teacherMenuItems: MenuItem[] = [
     label: 'My Assignments',
     path: '/app/teacher-assignments',
     description: 'Create and manage assignments'
+  },
+  {
+    icon: FileQuestion,
+    label: 'Quizzes',
+    path: '/app/quizzes',
+    description: 'Create and manage quizzes'
   },
   {
     icon: Library,
@@ -271,6 +284,12 @@ export const schoolAdminMenuItems: MenuItem[] = [
     label: 'Assessment Configuration',
     path: '/app/assessments',
     description: 'Configure assessments and grading'
+  },
+  {
+    icon: FileQuestion,
+    label: 'Quiz Management',
+    path: '/app/quizzes',
+    description: 'Manage school quizzes and assessments'
   },
   {
     icon: BookOpen,

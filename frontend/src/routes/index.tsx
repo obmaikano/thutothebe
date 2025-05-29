@@ -24,6 +24,9 @@ const TeacherAssignments = lazy(() => import('../pages/protected/TeacherAssignme
 const TeacherResources = lazy(() => import('../pages/protected/TeacherResources'));
 const TeacherSubmissions = lazy(() => import('../pages/protected/TeacherSubmissions'));
 
+// Quiz Management pages
+const Quizzes = lazy(() => import('../pages/protected/Quizzes'));
+
 // Student role pages
 const StudentDashboard = lazy(() => import('../pages/protected/StudentDashboard'));
 const StudentCourses = lazy(() => import('../pages/protected/StudentCourses'));
@@ -140,6 +143,11 @@ export const appRoutes = [
   {
     path: 'teacher-submissions',
     element: TeacherSubmissions
+  },
+  // Quiz Management routes
+  {
+    path: 'quizzes',
+    element: Quizzes
   },
   // Student role routes
   {

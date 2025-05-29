@@ -15,6 +15,9 @@ import studentsReducer from '../features/students/studentsSlice';
 import parentsReducer from '../features/parents/parentsSlice';
 import classesReducer from '../features/classes/classesSlice';
 import schedulesReducer from '../features/school_admin/schedulesSlice';
+import quizzesReducer from '../features/quizzes/quizzesSlice';
+import questionsReducer from '../features/quizzes/questionsSlice';
+import quizSubmissionsReducer from '../features/quizzes/quizSubmissionsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -33,6 +36,9 @@ export const store = configureStore({
     parents: parentsReducer,
     classes: classesReducer,
     schedules: schedulesReducer,
+    quizzes: quizzesReducer,
+    questions: questionsReducer,
+    quizSubmissions: quizSubmissionsReducer,
   },
 });
 
