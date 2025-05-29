@@ -69,6 +69,11 @@ const GradeCategoryAddNewModal = lazy(() => import('../../school_admin/modals/Gr
 const AssignmentAddNewModal = lazy(() => import('../../school_admin/modals/AssignmentAddNewModal'));
 const SubjectAssignTeacherModal = lazy(() => import('../../school_admin/modals/SubjectAssignTeacherModal'));
 
+// Quiz Management Modals
+const CreateQuizModal = lazy(() => import('../../quizzes/modals/CreateQuizModal'));
+const EditQuizModal = lazy(() => import('../../quizzes/modals/EditQuizModal'));
+const DeleteQuizModal = lazy(() => import('../../quizzes/modals/DeleteQuizModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -403,6 +408,28 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <SubjectAssignTeacherModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Quiz Management Modals
+    case MODAL_BODY_TYPES.QUIZ_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateQuizModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.QUIZ_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditQuizModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.QUIZ_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteQuizModal extraObject={contentProps} />
         </Suspense>
       );
       

@@ -84,6 +84,66 @@ public class Submission extends BaseEntity {
     @Column(name = "is_late_submission", nullable = false)
     private boolean isLateSubmission = false;
 
+    // Additional properties expected by tests
+    @Column(name = "score")
+    private Double score;
+
+    @Column(name = "max_score")
+    private Double maxScore;
+
+    @Column(name = "percentage")
+    private Double percentage;
+
+    @Column(name = "grade")
+    private String grade;
+
+    @Column(name = "comments", columnDefinition = "TEXT")
+    private String comments;
+
+    @Column(name = "file_paths", columnDefinition = "TEXT")
+    private String filePaths;
+
+    @Column(name = "graded_at")
+    private LocalDateTime gradedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "graded_by")
+    private User gradedBy;
+
+    @Column(name = "needs_review", nullable = false)
+    private boolean needsReview = false;
+
+    @Column(name = "original_file_name")
+    private String originalFileName;
+
+    @Column(name = "file_size")
+    private String fileSize;
+
+    @Column(name = "auto_graded", nullable = false)
+    private boolean autoGraded = false;
+
+    @Column(name = "manually_graded", nullable = false)
+    private boolean manuallyGraded = false;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    private User reviewedBy;
+
+    @Column(name = "student_comments", columnDefinition = "TEXT")
+    private String studentComments;
+
+    @Column(name = "rubric_scores", columnDefinition = "TEXT")
+    private String rubricScores;
+
+    @Column(name = "time_spent")
+    private Integer timeSpent;
+
+    @Column(name = "plagiarism_checked", nullable = false)
+    private boolean plagiarismChecked = false;
+
     /**
      * Calculates if this submission can be auto-graded
      */

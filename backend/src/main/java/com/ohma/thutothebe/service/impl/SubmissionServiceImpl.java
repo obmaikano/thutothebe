@@ -286,4 +286,142 @@ public class SubmissionServiceImpl extends BaseServiceImpl<Submission, Submissio
             .map(submissionMapper::toDto)
             .toList();
     }
+
+    // Additional methods expected by tests
+    @Override
+    @Transactional
+    public SubmissionDTO gradeSubmissionWithDetails(Long submissionId, Double score, Double maxScore, String grade, String feedback, String rubricScores) {
+        Submission submission = submissionRepository.findById(submissionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
+        
+        submission.setScore(score);
+        submission.setMaxScore(maxScore);
+        submission.setGrade(grade);
+        submission.setFeedback(feedback);
+        submission.setRubricScores(rubricScores);
+        submission.setStatus(SubmissionStatus.GRADED);
+        submission.setGradedAt(LocalDateTime.now());
+        submission.setManuallyGraded(true);
+        
+        if (maxScore != null && score != null) {
+            submission.setPercentage((score / maxScore) * 100);
+        }
+        
+        Submission gradedSubmission = submissionRepository.save(submission);
+        return submissionMapper.toDto(gradedSubmission);
+    }
+
+    @Override
+    @Transactional
+    public SubmissionDTO markSubmissionReviewed(Long submissionId, Long reviewerId) {
+        Submission submission = submissionRepository.findById(submissionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
+        
+        User reviewer = userRepository.findById(reviewerId)
+            .orElseThrow(() -> new ResourceNotFoundException("Reviewer not found"));
+        
+        submission.setNeedsReview(false);
+        submission.setReviewedBy(reviewer);
+        submission.setReviewedAt(LocalDateTime.now());
+        
+        Submission reviewedSubmission = submissionRepository.save(submission);
+        return submissionMapper.toDto(reviewedSubmission);
+    }
+
+    @Override
+    @Transactional
+    public List<SubmissionDTO> gradeMultipleSubmissions(List<Long> submissionIds, Double score, String feedback) {
+        List<Submission> submissions = submissionRepository.findByIdIn(submissionIds);
+        
+        submissions.forEach(submission -> {
+            submission.setScore(score);
+            submission.setFeedback(feedback);
+            submission.setStatus(SubmissionStatus.GRADED);
+            submission.setGradedAt(LocalDateTime.now());
+            submission.setManuallyGraded(true);
+        });
+        
+        List<Submission> gradedSubmissions = submissionRepository.saveAll(submissions);
+        return gradedSubmissions.stream()
+            .map(submissionMapper::toDto)
+            .toList();
+    }
+
+    @Override
+    @Transactional
+    public List<SubmissionDTO> returnMultipleSubmissions(List<Long> submissionIds, String feedback) {
+        List<Submission> submissions = submissionRepository.findByIdIn(submissionIds);
+        
+        submissions.forEach(submission -> {
+            submission.setStatus(SubmissionStatus.RETURNED);
+            submission.setFeedback(feedback);
+        });
+        
+        List<Submission> returnedSubmissions = submissionRepository.saveAll(submissions);
+        return returnedSubmissions.stream()
+            .map(submissionMapper::toDto)
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubmissionDTO> getSubmissionsNeedingReviewByTeacher(Long teacherId) {
+        return submissionRepository.findNeedingReviewByTeacherId(teacherId).stream()
+            .map(submissionMapper::toDto)
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubmissionDTO> getSubmissionsByCourse(Long courseId) {
+        return submissionRepository.findByCourseId(courseId).stream()
+            .map(submissionMapper::toDto)
+            .toList();
+    }
+
+    @Override
+    @Transactional
+    public SubmissionDTO returnSubmissionToStudent(Long submissionId, String feedback) {
+        Submission submission = submissionRepository.findById(submissionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
+        
+        submission.setStatus(SubmissionStatus.RETURNED);
+        submission.setFeedback(feedback);
+        
+        Submission returnedSubmission = submissionRepository.save(submission);
+        return submissionMapper.toDto(returnedSubmission);
+    }
+
+    @Override
+    @Transactional
+    public SubmissionDTO uploadSubmissionFile(Long submissionId, org.springframework.web.multipart.MultipartFile file) {
+        Submission submission = submissionRepository.findById(submissionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
+        
+        // Simple file handling - in real implementation, you'd save to file system or cloud storage
+        String fileName = file.getOriginalFilename();
+        String filePath = "uploads/submissions/" + submissionId + "/" + fileName;
+        
+        submission.setFilePaths(filePath);
+        submission.setOriginalFileName(fileName);
+        submission.setFileSize(String.valueOf(file.getSize()));
+        
+        Submission updatedSubmission = submissionRepository.save(submission);
+        return submissionMapper.toDto(updatedSubmission);
+    }
+
+    @Override
+    @Transactional
+    public SubmissionDTO deleteSubmissionFile(Long submissionId, String fileName) {
+        Submission submission = submissionRepository.findById(submissionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
+        
+        // Simple file deletion - in real implementation, you'd delete from file system or cloud storage
+        submission.setFilePaths(null);
+        submission.setOriginalFileName(null);
+        submission.setFileSize(null);
+        
+        Submission updatedSubmission = submissionRepository.save(submission);
+        return submissionMapper.toDto(updatedSubmission);
+    }
 } 

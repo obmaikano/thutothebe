@@ -124,6 +124,42 @@ export const deleteAssignment = createAsyncThunk(
   }
 );
 
+export const publishAssignment = createAsyncThunk(
+  'assignments/publishAssignment',
+  async (id: number, { rejectWithValue }) => {
+    try {
+      const response = await assignmentApi.publish(id);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to publish assignment');
+    }
+  }
+);
+
+export const closeAssignment = createAsyncThunk(
+  'assignments/closeAssignment',
+  async (id: number, { rejectWithValue }) => {
+    try {
+      const response = await assignmentApi.close(id);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to close assignment');
+    }
+  }
+);
+
+export const archiveAssignment = createAsyncThunk(
+  'assignments/archiveAssignment',
+  async (id: number, { rejectWithValue }) => {
+    try {
+      const response = await assignmentApi.archive(id);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to archive assignment');
+    }
+  }
+);
+
 const assignmentsSlice = createSlice({
   name: 'assignments',
   initialState,
@@ -271,6 +307,63 @@ const assignmentsSlice = createSlice({
       .addCase(deleteAssignment.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to delete assignment';
+      })
+
+      // Publish assignment
+      .addCase(publishAssignment.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(publishAssignment.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        const updatedAssignment = action.payload as Assignment;
+        const index = state.assignments.findIndex(assignment => assignment.id === updatedAssignment.id);
+        if (index !== -1) {
+          state.assignments[index] = updatedAssignment;
+        }
+        state.currentAssignment = updatedAssignment;
+      })
+      .addCase(publishAssignment.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to publish assignment';
+      })
+
+      // Close assignment
+      .addCase(closeAssignment.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(closeAssignment.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        const updatedAssignment = action.payload as Assignment;
+        const index = state.assignments.findIndex(assignment => assignment.id === updatedAssignment.id);
+        if (index !== -1) {
+          state.assignments[index] = updatedAssignment;
+        }
+        state.currentAssignment = updatedAssignment;
+      })
+      .addCase(closeAssignment.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to close assignment';
+      })
+
+      // Archive assignment
+      .addCase(archiveAssignment.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(archiveAssignment.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        const updatedAssignment = action.payload as Assignment;
+        const index = state.assignments.findIndex(assignment => assignment.id === updatedAssignment.id);
+        if (index !== -1) {
+          state.assignments[index] = updatedAssignment;
+        }
+        state.currentAssignment = updatedAssignment;
+      })
+      .addCase(archiveAssignment.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to archive assignment';
       });
   }
 });

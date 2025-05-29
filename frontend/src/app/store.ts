@@ -9,6 +9,7 @@ import regionsReducer from '../features/regions/regionsSlice';
 import usersReducer from '../features/users/usersSlice';
 import teachersReducer from '../features/teachers/teachersSlice';
 import assignmentsReducer from '../features/assignments/assignmentsSlice';
+import submissionsReducer from '../features/assignments/submissionsSlice';
 import assessmentsReducer from '../features/assessments/assessmentsSlice';
 import gradesReducer from '../features/grades/gradesSlice';
 import studentsReducer from '../features/students/studentsSlice';
@@ -18,6 +19,9 @@ import modalReducer from '../features/common/modalSlice';
 import headerReducer from '../features/common/headerSlice';
 import parentsReducer from '../features/parents/parentsSlice';
 import schedulesReducer from '../features/school_admin/schedulesSlice';
+import quizzesReducer from '../features/quizzes/quizzesSlice';
+import questionsReducer from '../features/quizzes/questionsSlice';
+import quizSubmissionsReducer from '../features/quizzes/quizSubmissionsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -31,6 +35,7 @@ export const store = configureStore({
     users: usersReducer,
     teachers: teachersReducer,
     assignments: assignmentsReducer,
+    submissions: submissionsReducer,
     assessments: assessmentsReducer,
     grades: gradesReducer,
     students: studentsReducer,
@@ -40,6 +45,9 @@ export const store = configureStore({
     header: headerReducer,
     parents: parentsReducer,
     schedules: schedulesReducer,
+    quizzes: quizzesReducer,
+    questions: questionsReducer,
+    quizSubmissions: quizSubmissionsReducer,
   },
 });
 

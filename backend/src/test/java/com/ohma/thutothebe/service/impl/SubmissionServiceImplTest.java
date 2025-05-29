@@ -81,19 +81,40 @@ class SubmissionServiceImplTest {
         submission.setStatus(SubmissionStatus.SUBMITTED);
 
         submissionDTO = new SubmissionDTO(
-            3L,
-            1L,
-            2L,
-            1L,
-            "Test content",
-            null,
-            SubmissionPhase.SUBMISSION,
-            SubmissionStatus.SUBMITTED,
-            null,
-            0.0,
-            null,
-            LocalDateTime.now(),
-            LocalDateTime.now()
+            3L,                          // id
+            1L,                          // studentId
+            2L,                          // courseId
+            1L,                          // assignmentId
+            "Test content",              // content
+            LocalDateTime.now(),         // submittedAt
+            SubmissionPhase.SUBMISSION,  // phase
+            SubmissionStatus.SUBMITTED,  // status
+            null,                        // assessments
+            0.0,                         // finalScore
+            null,                        // feedback
+            LocalDateTime.now(),         // createdAt
+            LocalDateTime.now(),         // updatedAt
+            null,                        // score
+            null,                        // maxScore
+            null,                        // percentage
+            null,                        // grade
+            null,                        // comments
+            null,                        // filePaths
+            null,                        // gradedAt
+            null,                        // gradedBy
+            1,                           // attemptNumber
+            false,                       // isLateSubmission
+            false,                       // needsReview
+            null,                        // originalFileName
+            null,                        // fileSize
+            false,                       // autoGraded
+            false,                       // manuallyGraded
+            null,                        // reviewedAt
+            null,                        // reviewedBy
+            null,                        // studentComments
+            null,                        // rubricScores
+            null,                        // timeSpent
+            false                        // plagiarismChecked
         );
     }
 

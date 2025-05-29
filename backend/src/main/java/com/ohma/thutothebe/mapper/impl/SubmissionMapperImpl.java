@@ -67,7 +67,28 @@ public class SubmissionMapperImpl implements SubmissionMapper {
             entity.getFinalScore(),
             entity.getFeedback(),
             entity.getCreatedAt(),
-            entity.getModifiedAt()
+            entity.getModifiedAt(),
+            entity.getScore(),
+            entity.getMaxScore(),
+            entity.getPercentage(),
+            entity.getGrade(),
+            entity.getComments(),
+            entity.getFilePaths(),
+            entity.getGradedAt(),
+            entity.getGradedBy() != null ? entity.getGradedBy().getId() : null,
+            entity.getAttemptNumber(),
+            entity.isLateSubmission(),
+            entity.isNeedsReview(),
+            entity.getOriginalFileName(),
+            entity.getFileSize(),
+            entity.isAutoGraded(),
+            entity.isManuallyGraded(),
+            entity.getReviewedAt(),
+            entity.getReviewedBy() != null ? entity.getReviewedBy().getId() : null,
+            entity.getStudentComments(),
+            entity.getRubricScores(),
+            entity.getTimeSpent(),
+            entity.isPlagiarismChecked()
         );
     }
 

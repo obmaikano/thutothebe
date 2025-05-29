@@ -2,6 +2,7 @@ package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.SubmissionDTO;
 import com.ohma.thutothebe.entity.enums.SubmissionPhase;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -44,4 +45,15 @@ public interface SubmissionService extends BaseService<SubmissionDTO, Long> {
     List<SubmissionDTO> getPendingSubmissionsByCourse(Long courseId);
 
     List<SubmissionDTO> getLateSubmissionsByCourse(Long courseId);
+    
+    // Additional methods expected by tests
+    SubmissionDTO gradeSubmissionWithDetails(Long submissionId, Double score, Double maxScore, String grade, String feedback, String rubricScores);
+    SubmissionDTO markSubmissionReviewed(Long submissionId, Long reviewerId);
+    List<SubmissionDTO> gradeMultipleSubmissions(List<Long> submissionIds, Double score, String feedback);
+    List<SubmissionDTO> returnMultipleSubmissions(List<Long> submissionIds, String feedback);
+    List<SubmissionDTO> getSubmissionsNeedingReviewByTeacher(Long teacherId);
+    List<SubmissionDTO> getSubmissionsByCourse(Long courseId);
+    SubmissionDTO returnSubmissionToStudent(Long submissionId, String feedback);
+    SubmissionDTO uploadSubmissionFile(Long submissionId, MultipartFile file);
+    SubmissionDTO deleteSubmissionFile(Long submissionId, String fileName);
 } 

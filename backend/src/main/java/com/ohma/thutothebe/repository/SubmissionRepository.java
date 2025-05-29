@@ -60,4 +60,10 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     @Query("SELECT s FROM Submission s JOIN s.assignment a WHERE s.course.id = :courseId AND s.submittedAt > a.dueDate")
     List<Submission> findLateByCourseId(@Param("courseId") Long courseId);
+    
+    // Additional methods expected by tests
+    @Query("SELECT s FROM Submission s JOIN s.assignment a JOIN a.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId AND s.requiresManualReview = true")
+    List<Submission> findNeedingReviewByTeacherId(@Param("teacherId") Long teacherId);
+    
+    List<Submission> findByIdIn(List<Long> ids);
 } 

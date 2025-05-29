@@ -107,13 +107,43 @@ class AssignmentServiceImplTest {
         assignment.setDueDate(LocalDateTime.now().plusDays(7));
 
         assignmentDTO = new AssignmentDTO(
-            1L,
-            "Test Assignment",
-            "Test Description",
-            1L,
-            1L,
-            LocalDateTime.now().plusDays(7),
-            AssignmentStatus.ACTIVE
+            1L,                                    // id
+            "Test Assignment",                     // title
+            "Test Description",                    // description
+            null,                                  // instructions
+            "TEST001",                             // code
+            1L,                                    // courseId
+            1L,                                    // instructorId
+            null,                                  // categoryId
+            LocalDateTime.now().plusDays(7),       // dueDate
+            LocalDateTime.now(),                   // createdAt
+            100.0,                                 // maxScore
+            null,                                  // weight
+            true,                                  // allowLateSubmissions
+            null,                                  // latePenalty
+            null,                                  // maxAttempts
+            null,                                  // shuffleQuestions
+            null,                                  // timeLimit
+            null,                                  // rubricId
+            null,                                  // gradingCriteria
+            null,                                  // estimatedDuration
+            null,                                  // difficultyLevel
+            "MANUAL",                              // gradingType
+            null,                                  // requiresSubmissionFile
+            null,                                  // allowMultipleFiles
+            null,                                  // showCorrectAnswers
+            null,                                  // randomizeQuestions
+            AssignmentStatus.ACTIVE,               // status
+            null,                                  // tags
+            null,                                  // passingScore
+            null,                                  // attachments
+            null,                                  // resources
+            null,                                  // submissionCount
+            null,                                  // gradedCount
+            null,                                  // visibility
+            true,                                  // active
+            null,                                  // publishedAt
+            LocalDateTime.now()                    // updatedAt
         );
 
         lenient().when(courseMapper.toEntity(any())).thenReturn(course);

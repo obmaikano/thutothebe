@@ -19,7 +19,28 @@ public record SubmissionDTO(
     Double finalScore,
     String feedback,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+    Double score,
+    Double maxScore,
+    Double percentage,
+    String grade,
+    String comments,
+    String filePaths,
+    LocalDateTime gradedAt,
+    Long gradedBy,
+    Integer attemptNumber,
+    Boolean isLateSubmission,
+    Boolean needsReview,
+    String originalFileName,
+    String fileSize,
+    Boolean autoGraded,
+    Boolean manuallyGraded,
+    LocalDateTime reviewedAt,
+    Long reviewedBy,
+    String studentComments,
+    String rubricScores,
+    Integer timeSpent,
+    Boolean plagiarismChecked
 ) {
     public SubmissionDTO {
         if (studentId == null) {

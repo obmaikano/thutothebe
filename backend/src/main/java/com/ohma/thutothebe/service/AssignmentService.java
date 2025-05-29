@@ -17,4 +17,12 @@ public interface AssignmentService extends BaseService<AssignmentDTO, Long> {
     List<AssignmentDTO> getActiveAssignmentsByTeacher(Long teacherId);
     List<AssignmentDTO> getAssignmentsByInstructor(Long instructorId);
     List<AssignmentDTO> getActiveAssignmentsByInstructor(Long instructorId);
+    
+    // Additional methods expected by tests
+    AssignmentDTO publishAssignment(Long assignmentId);
+    AssignmentDTO closeAssignment(Long assignmentId);
+    AssignmentDTO archiveAssignment(Long assignmentId);
+    void updateAssignmentStatistics(Long assignmentId);
+    List<AssignmentDTO> getAssignmentsByStatus(String status);
+    List<AssignmentDTO> getAssignmentsByCourseAndStatus(Long courseId, String status);
 } 

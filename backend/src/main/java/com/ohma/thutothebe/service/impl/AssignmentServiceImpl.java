@@ -192,4 +192,69 @@ public class AssignmentServiceImpl extends BaseServiceImpl<Assignment, Assignmen
             .map(assignmentMapper::toDto)
             .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional
+    public AssignmentDTO publishAssignment(Long assignmentId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+            .orElseThrow(() -> new AssignmentNotFoundException("Assignment not found with id: " + assignmentId));
+        
+        assignment.setStatus(AssignmentStatus.PUBLISHED);
+        assignment = assignmentRepository.save(assignment);
+        return assignmentMapper.toDto(assignment);
+    }
+
+    @Override
+    @Transactional
+    public AssignmentDTO closeAssignment(Long assignmentId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+            .orElseThrow(() -> new AssignmentNotFoundException("Assignment not found with id: " + assignmentId));
+        
+        assignment.setStatus(AssignmentStatus.CLOSED);
+        assignment = assignmentRepository.save(assignment);
+        return assignmentMapper.toDto(assignment);
+    }
+
+    @Override
+    @Transactional
+    public AssignmentDTO archiveAssignment(Long assignmentId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+            .orElseThrow(() -> new AssignmentNotFoundException("Assignment not found with id: " + assignmentId));
+        
+        assignment.setStatus(AssignmentStatus.ARCHIVED);
+        assignment.setActive(false);
+        assignment = assignmentRepository.save(assignment);
+        return assignmentMapper.toDto(assignment);
+    }
+
+    @Override
+    @Transactional
+    public void updateAssignmentStatistics(Long assignmentId) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+            .orElseThrow(() -> new AssignmentNotFoundException("Assignment not found with id: " + assignmentId));
+        
+        // In a real implementation, you would calculate and update submission and graded counts
+        // For now, this is a placeholder method
+        assignmentRepository.save(assignment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssignmentDTO> getAssignmentsByStatus(String status) {
+        AssignmentStatus assignmentStatus = AssignmentStatus.valueOf(status.toUpperCase());
+        return assignmentRepository.findByStatus(assignmentStatus).stream()
+            .map(assignmentMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssignmentDTO> getAssignmentsByCourseAndStatus(Long courseId, String status) {
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
+        AssignmentStatus assignmentStatus = AssignmentStatus.valueOf(status.toUpperCase());
+        return assignmentRepository.findByCourseAndStatus(course, assignmentStatus).stream()
+            .map(assignmentMapper::toDto)
+            .collect(Collectors.toList());
+    }
 } 

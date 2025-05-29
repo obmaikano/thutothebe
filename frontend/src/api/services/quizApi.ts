@@ -1,5 +1,6 @@
 import { api } from '../index';
 import { AxiosResponse } from 'axios';
+import { Question } from './questionApi';
 
 export interface Quiz {
   id: number;
@@ -20,6 +21,7 @@ export interface Quiz {
   showResultsImmediately: boolean;
   maxAttempts: number;
   active: boolean;
+  questions?: Question[];
 }
 
 export interface QuizResponse {

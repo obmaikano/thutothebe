@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { fetchQuizzes, clearQuizzesError } from '../quizzesSlice';
+import { fetchQuizSubmissionsByStudentId } from '../quizSubmissionsSlice';
 import { fetchCourses } from '../../courses/coursesSlice';
 import { Quiz } from '../../../api/services/quizApi';
 import { Search, Filter, Clock, Users, BookOpen, Play, CheckCircle, AlertCircle } from 'lucide-react';
@@ -8,8 +10,10 @@ import { Search, Filter, Clock, Users, BookOpen, Play, CheckCircle, AlertCircle 
 const StudentQuizListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { quizzes, status, error } = useAppSelector(state => state.quizzes || { quizzes: [], status: 'idle', error: null });
+  const { submissions } = useAppSelector(state => state.quizSubmissions || { submissions: [] });
   const { courses } = useAppSelector(state => state.courses || { courses: [] });
   const { user } = useAppSelector(state => state.auth);
+  const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
@@ -17,19 +21,27 @@ const StudentQuizListPage: React.FC = () => {
   useEffect(() => {
     dispatch(fetchQuizzes());
     dispatch(fetchCourses());
+    if (user) {
+      // Fetch student's quiz submissions to check completion status
+      dispatch(fetchQuizSubmissionsByStudentId(user.id));
+    }
     return () => {
       dispatch(clearQuizzesError());
     };
-  }, [dispatch]);
+  }, [dispatch, user]);
 
   const handleTakeQuiz = (quiz: Quiz) => {
-    // TODO: Navigate to quiz taking page
-    console.log('Take quiz:', quiz);
+    navigate(`/app/quiz-take/${quiz.id}`);
   };
 
   const handleViewResults = (quiz: Quiz) => {
-    // TODO: Navigate to quiz results page
-    console.log('View results:', quiz);
+    navigate(`/app/quiz-results/${quiz.id}`);
+  };
+
+  // Check if student has a submission for a quiz
+  const getQuizSubmissionStatus = (quizId: number) => {
+    const submission = (submissions || []).find(sub => sub.quizId === quizId);
+    return submission;
   };
 
   // Filter quizzes to show only published and active ones for students
@@ -52,7 +64,18 @@ const StudentQuizListPage: React.FC = () => {
     const now = new Date();
     const startDate = new Date(quiz.startDate);
     const endDate = new Date(quiz.endDate);
+    const submission = getQuizSubmissionStatus(quiz.id);
 
+    // Check submission status first
+    if (submission) {
+      if (submission.status === 'IN_PROGRESS') {
+        return { status: 'in-progress', label: 'In Progress', color: 'bg-blue-100 text-blue-800', icon: Clock };
+      } else if (submission.status === 'SUBMITTED' || submission.status === 'GRADED') {
+        return { status: 'completed', label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle };
+      }
+    }
+
+    // Check time-based status
     if (now < startDate) {
       return { status: 'upcoming', label: 'Upcoming', color: 'bg-blue-100 text-blue-800', icon: Clock };
     } else if (now > endDate) {
@@ -150,6 +173,7 @@ const StudentQuizListPage: React.FC = () => {
         {filteredQuizzes.map((quiz) => {
           const quizStatus = getQuizStatus(quiz);
           const StatusIcon = quizStatus.icon;
+          const submission = getQuizSubmissionStatus(quiz.id);
           
           return (
             <div key={quiz.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
@@ -184,6 +208,12 @@ const StudentQuizListPage: React.FC = () => {
                   <Users className="h-4 w-4" />
                   <span>{quiz.totalPoints} points</span>
                 </div>
+                {submission && submission.score !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Score: {submission.score}/{quiz.totalPoints}</span>
+                  </div>
+                )}
               </div>
 
               {/* Quiz Dates */}
@@ -217,7 +247,16 @@ const StudentQuizListPage: React.FC = () => {
                     Take Quiz
                   </button>
                 )}
-                {quizStatus.status === 'expired' && (
+                {quizStatus.status === 'in-progress' && (
+                  <button
+                    onClick={() => handleTakeQuiz(quiz)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Clock className="h-4 w-4" />
+                    Continue Quiz
+                  </button>
+                )}
+                {(quizStatus.status === 'completed' || quizStatus.status === 'expired') && submission && (
                   <button
                     onClick={() => handleViewResults(quiz)}
                     className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"

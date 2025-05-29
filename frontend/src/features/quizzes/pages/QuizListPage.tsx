@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { fetchQuizzes, clearQuizzesError } from '../quizzesSlice';
 import { fetchCourses } from '../../courses/coursesSlice';
+import { openModal } from '../../common/modalSlice';
+import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { Quiz } from '../../../api/services/quizApi';
-import { Plus, Search, Filter, Eye, Edit, Trash2, Play, Pause, Clock, Users, BookOpen } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, Eye, FileQuestion, Clock, Users, BookOpen } from 'lucide-react';
 
 const QuizListPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { quizzes, status, error } = useAppSelector(state => state.quizzes || { quizzes: [], status: 'idle', error: null });
   const { courses } = useAppSelector(state => state.courses || { courses: [] });
   const { user } = useAppSelector(state => state.auth);
@@ -24,29 +28,43 @@ const QuizListPage: React.FC = () => {
   }, [dispatch]);
 
   const handleCreateQuiz = () => {
-    // TODO: Open create quiz modal
-    console.log('Create quiz');
-  };
-
-  const handleViewQuiz = (quiz: Quiz) => {
-    // TODO: Navigate to quiz details
-    console.log('View quiz:', quiz);
+    dispatch(openModal({
+      title: 'Create New Quiz',
+      bodyType: MODAL_BODY_TYPES.QUIZ_ADD_NEW,
+      size: 'lg'
+    }));
   };
 
   const handleEditQuiz = (quiz: Quiz) => {
-    // TODO: Open edit quiz modal
-    console.log('Edit quiz:', quiz);
+    dispatch(openModal({
+      title: 'Edit Quiz',
+      bodyType: MODAL_BODY_TYPES.QUIZ_EDIT,
+      extraObject: quiz,
+      size: 'lg'
+    }));
   };
 
   const handleDeleteQuiz = (quiz: Quiz) => {
-    // TODO: Open delete confirmation modal
-    console.log('Delete quiz:', quiz);
+    dispatch(openModal({
+      title: 'Delete Quiz',
+      bodyType: MODAL_BODY_TYPES.QUIZ_DELETE_CONFIRMATION,
+      extraObject: quiz,
+      size: 'md'
+    }));
   };
 
-  const handleToggleStatus = (quiz: Quiz) => {
-    // TODO: Toggle quiz active status
-    console.log('Toggle status:', quiz);
+  const handleViewQuiz = (quiz: Quiz) => {
+    navigate(`/app/quiz-results/${quiz.id}`);
   };
+
+  // Check if user can create quizzes
+  const canCreateQuizzes = [
+    'TEACHER', 
+    'SCHOOL_ADMIN', 
+    'REGIONAL_ADMIN',
+    'MINISTRY_STAFF',
+    'SUPER_ADMIN'
+  ].includes(user?.role || '');
 
   const filteredQuizzes = (quizzes || []).filter(quiz => {
     const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,33 +75,22 @@ const QuizListPage: React.FC = () => {
     return matchesSearch && matchesStatus && matchesCourse;
   });
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      DRAFT: { color: 'bg-gray-100 text-gray-800', label: 'Draft' },
-      PUBLISHED: { color: 'bg-blue-100 text-blue-800', label: 'Published' },
-      IN_PROGRESS: { color: 'bg-yellow-100 text-yellow-800', label: 'In Progress' },
-      COMPLETED: { color: 'bg-green-100 text-green-800', label: 'Completed' },
-      ARCHIVED: { color: 'bg-red-100 text-red-800', label: 'Archived' }
-    };
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
-        {config.label}
-      </span>
-    );
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'PUBLISHED': return 'bg-green-100 text-green-800';
+      case 'DRAFT': return 'bg-yellow-100 text-yellow-800';
+      case 'ARCHIVED': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-blue-100 text-blue-800';
+    }
   };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric'
     });
   };
-
-  const canCreateQuizzes = ['TEACHER', 'SCHOOL_ADMIN', 'REGIONAL_ADMIN', 'MINISTRY_STAFF', 'SUPER_ADMIN'].includes(user?.role || '');
 
   if (status === 'loading') {
     return (
@@ -142,11 +149,9 @@ const QuizListPage: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
             >
-              <option value="">All Statuses</option>
+              <option value="">All Status</option>
               <option value="DRAFT">Draft</option>
               <option value="PUBLISHED">Published</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
               <option value="ARCHIVED">Archived</option>
             </select>
           </div>
@@ -179,12 +184,14 @@ const QuizListPage: React.FC = () => {
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{quiz.title}</h3>
                 <p className="text-sm text-gray-500 mb-2">Code: {quiz.code}</p>
-                {getStatusBadge(quiz.status)}
+                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(quiz.status)}`}>
+                  {quiz.status}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleViewQuiz(quiz)}
-                  className="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
+                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
                   title="View Quiz"
                 >
                   <Eye className="h-4 w-4" />
@@ -193,21 +200,14 @@ const QuizListPage: React.FC = () => {
                   <>
                     <button
                       onClick={() => handleEditQuiz(quiz)}
-                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                      className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
                       title="Edit Quiz"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleToggleStatus(quiz)}
-                      className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                      title={quiz.active ? "Deactivate Quiz" : "Activate Quiz"}
-                    >
-                      {quiz.active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                    </button>
-                    <button
                       onClick={() => handleDeleteQuiz(quiz)}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                       title="Delete Quiz"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -223,7 +223,7 @@ const QuizListPage: React.FC = () => {
             )}
 
             {/* Quiz Details */}
-            <div className="space-y-2 text-sm text-gray-600">
+            <div className="space-y-2 text-sm text-gray-600 mb-4">
               <div className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
                 <span>{quiz.courseName || 'Course'}</span>
@@ -239,10 +239,16 @@ const QuizListPage: React.FC = () => {
             </div>
 
             {/* Quiz Dates */}
-            <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="border-t pt-3">
               <div className="text-xs text-gray-500">
-                <div>Start: {formatDate(quiz.startDate)}</div>
-                <div>End: {formatDate(quiz.endDate)}</div>
+                <div className="flex justify-between">
+                  <span>Start:</span>
+                  <span>{formatDate(quiz.startDate)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>End:</span>
+                  <span>{formatDate(quiz.endDate)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -252,12 +258,14 @@ const QuizListPage: React.FC = () => {
       {/* Empty State */}
       {filteredQuizzes.length === 0 && (
         <div className="text-center py-12">
-          <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
+          <FileQuestion className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No quizzes found</h3>
           <p className="mt-1 text-sm text-gray-500">
             {searchTerm || statusFilter || courseFilter
               ? 'Try adjusting your search criteria.'
-              : 'Get started by creating your first quiz.'}
+              : canCreateQuizzes
+              ? 'Get started by creating your first quiz.'
+              : 'No quizzes have been created yet.'}
           </p>
           {canCreateQuizzes && !searchTerm && !statusFilter && !courseFilter && (
             <div className="mt-6">
@@ -266,7 +274,7 @@ const QuizListPage: React.FC = () => {
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
               >
                 <Plus className="h-5 w-5" />
-                Create Quiz
+                Create Your First Quiz
               </button>
             </div>
           )}

@@ -5,10 +5,40 @@ export interface Assignment {
   id: number;
   title: string;
   description: string;
+  instructions?: string;
+  code: string;
   courseId: number;
+  teacherId: number;
   instructorId: number;
   dueDate: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
+  startDate?: string;
+  maxScore: number;
+  weight: number;
+  allowLateSubmissions: boolean;
+  latePenalty?: number;
+  maxAttempts?: number;
+  isGroupAssignment: boolean;
+  maxGroupSize?: number;
+  submissionType: 'FILE' | 'TEXT' | 'LINK' | 'MIXED';
+  allowedFileTypes?: string;
+  maxFileSize?: number;
+  rubricId?: number;
+  gradingType: 'POINTS' | 'PERCENTAGE' | 'LETTER' | 'PASS_FAIL';
+  autoGrade: boolean;
+  publishGrades: boolean;
+  showRubric: boolean;
+  plagiarismCheck: boolean;
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
+  visibility: 'VISIBLE' | 'HIDDEN' | 'SCHEDULED';
+  estimatedDuration?: number;
+  tags?: string;
+  attachments?: string;
+  submissionCount: number;
+  gradedCount: number;
+  averageScore?: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AssignmentResponse {
@@ -18,8 +48,8 @@ export interface AssignmentResponse {
   timestamp: string | null;
 }
 
-export type CreateAssignmentRequest = Omit<Assignment, 'id'>;
-export type UpdateAssignmentRequest = Partial<Assignment>;
+export type CreateAssignmentRequest = Omit<Assignment, 'id' | 'submissionCount' | 'gradedCount' | 'averageScore' | 'createdAt' | 'updatedAt'>;
+export type UpdateAssignmentRequest = Partial<CreateAssignmentRequest>;
 
 /**
  * API service for interacting with assignment endpoints
@@ -78,34 +108,6 @@ const assignmentApi = {
   },
 
   /**
-   * Create a new assignment
-   * @param assignmentData Assignment data
-   * @returns Response with created assignment details
-   */
-  create: async (assignmentData: CreateAssignmentRequest): Promise<AxiosResponse<AssignmentResponse>> => {
-    return api.post('/assignments', assignmentData);
-  },
-
-  /**
-   * Update an existing assignment
-   * @param id Assignment ID
-   * @param assignmentData Updated assignment data
-   * @returns Response with updated assignment details
-   */
-  update: async (id: number, assignmentData: UpdateAssignmentRequest): Promise<AxiosResponse<AssignmentResponse>> => {
-    return api.put(`/assignments/${id}`, assignmentData);
-  },
-
-  /**
-   * Delete an assignment
-   * @param id Assignment ID
-   * @returns Response indicating success/failure
-   */
-  delete: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
-    return api.delete(`/assignments/${id}`);
-  },
-
-  /**
    * Get assignments by teacher
    * @param teacherId Teacher ID
    * @returns Response with assignments for the teacher
@@ -139,6 +141,61 @@ const assignmentApi = {
    */
   getActiveByInstructor: async (instructorId: number): Promise<AxiosResponse<AssignmentResponse>> => {
     return api.get(`/assignments/instructor/${instructorId}/active`);
+  },
+
+  /**
+   * Create a new assignment
+   * @param assignmentData Assignment data
+   * @returns Response with created assignment details
+   */
+  create: async (assignmentData: CreateAssignmentRequest): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.post('/assignments', assignmentData);
+  },
+
+  /**
+   * Update an existing assignment
+   * @param id Assignment ID
+   * @param assignmentData Updated assignment data
+   * @returns Response with updated assignment details
+   */
+  update: async (id: number, assignmentData: UpdateAssignmentRequest): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.put(`/assignments/${id}`, assignmentData);
+  },
+
+  /**
+   * Delete an assignment
+   * @param id Assignment ID
+   * @returns Response indicating success/failure
+   */
+  delete: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.delete(`/assignments/${id}`);
+  },
+
+  /**
+   * Publish an assignment
+   * @param id Assignment ID
+   * @returns Response with updated assignment details
+   */
+  publish: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.put(`/assignments/${id}/publish`);
+  },
+
+  /**
+   * Close an assignment
+   * @param id Assignment ID
+   * @returns Response with updated assignment details
+   */
+  close: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.put(`/assignments/${id}/close`);
+  },
+
+  /**
+   * Archive an assignment
+   * @param id Assignment ID
+   * @returns Response with updated assignment details
+   */
+  archive: async (id: number): Promise<AxiosResponse<AssignmentResponse>> => {
+    return api.put(`/assignments/${id}/archive`);
   },
 };
 
