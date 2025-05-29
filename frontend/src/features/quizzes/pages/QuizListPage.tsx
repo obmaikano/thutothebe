@@ -8,7 +8,7 @@ import { Plus, Search, Filter, Eye, Edit, Trash2, Play, Pause, Clock, Users, Boo
 const QuizListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { quizzes, status, error } = useAppSelector(state => state.quizzes);
-  const { courses } = useAppSelector(state => state.courses);
+  const { courses } = useAppSelector(state => state.courses || { courses: [] });
   const { user } = useAppSelector(state => state.auth);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,7 +48,7 @@ const QuizListPage: React.FC = () => {
     console.log('Toggle status:', quiz);
   };
 
-  const filteredQuizzes = quizzes.filter(quiz => {
+  const filteredQuizzes = (quizzes || []).filter(quiz => {
     const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          quiz.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          quiz.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -160,7 +160,7 @@ const QuizListPage: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
             >
               <option value="">All Courses</option>
-              {courses.map(course => (
+              {(courses || []).map(course => (
                 <option key={course.id} value={course.id.toString()}>
                   {course.name}
                 </option>

@@ -8,7 +8,7 @@ import { Search, Filter, Clock, Users, BookOpen, Play, CheckCircle, AlertCircle 
 const StudentQuizListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { quizzes, status, error } = useAppSelector(state => state.quizzes);
-  const { courses } = useAppSelector(state => state.courses);
+  const { courses } = useAppSelector(state => state.courses || { courses: [] });
   const { user } = useAppSelector(state => state.auth);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,7 +33,7 @@ const StudentQuizListPage: React.FC = () => {
   };
 
   // Filter quizzes to show only published and active ones for students
-  const availableQuizzes = quizzes.filter(quiz => 
+  const availableQuizzes = (quizzes || []).filter(quiz => 
     quiz.status === 'PUBLISHED' && 
     quiz.active &&
     new Date(quiz.startDate) <= new Date() &&
@@ -135,7 +135,7 @@ const StudentQuizListPage: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
             >
               <option value="">All Courses</option>
-              {courses.map(course => (
+              {(courses || []).map(course => (
                 <option key={course.id} value={course.id.toString()}>
                   {course.name}
                 </option>
