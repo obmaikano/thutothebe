@@ -35,19 +35,7 @@ const ModalLayout: React.FC = () => {
 
                     {/* Loading modal body according to different modal type */}
                     <div className="py-4">
-                        {
-                            {
-                                [MODAL_BODY_TYPES.USER_ADD_NEW]: <ModalContentSwitch content={MODAL_BODY_TYPES.USER_ADD_NEW} contentProps={extraObject} />,
-                                [MODAL_BODY_TYPES.USER_EDIT]: <ModalContentSwitch content={MODAL_BODY_TYPES.USER_EDIT} contentProps={extraObject} />,
-                                [MODAL_BODY_TYPES.USER_DELETE_CONFIRMATION]: <ModalContentSwitch content={MODAL_BODY_TYPES.USER_DELETE_CONFIRMATION} contentProps={extraObject} />,
-                                [MODAL_BODY_TYPES.SCHOOL_ADD_NEW]: <ModalContentSwitch content={MODAL_BODY_TYPES.SCHOOL_ADD_NEW} contentProps={extraObject} />,
-                                [MODAL_BODY_TYPES.SCHOOL_EDIT]: <ModalContentSwitch content={MODAL_BODY_TYPES.SCHOOL_EDIT} contentProps={extraObject} />,
-                                [MODAL_BODY_TYPES.SCHOOL_DELETE_CONFIRMATION]: <ModalContentSwitch content={MODAL_BODY_TYPES.SCHOOL_DELETE_CONFIRMATION} contentProps={extraObject} />,
-                                [MODAL_BODY_TYPES.SCHOOL_ASSIGN_ADMIN]: <ModalContentSwitch content={MODAL_BODY_TYPES.SCHOOL_ASSIGN_ADMIN} contentProps={extraObject} />,
-                                [MODAL_BODY_TYPES.CONFIRMATION]: <ModalContentSwitch content={MODAL_BODY_TYPES.CONFIRMATION} contentProps={extraObject} />,
-                                [MODAL_BODY_TYPES.DEFAULT]: <div></div>
-                            }[bodyType] || <div>No content found for modal type: {bodyType}</div>
-                        }
+                        <ModalContentSwitch content={bodyType} contentProps={extraObject} />
                     </div>
                 </div>
                 <form method="dialog" className="modal-backdrop">

@@ -85,6 +85,13 @@ const MarkAttendanceModal = lazy(() => import('../../attendance/modals/MarkAtten
 const BulkAttendanceModal = lazy(() => import('../../attendance/modals/BulkAttendanceModal'));
 const AttendanceDetailsModal = lazy(() => import('../../attendance/modals/AttendanceDetailsModal'));
 
+// Calendar Event management modals
+const CreateEventModal = lazy(() => import('../../calendar/modals/CreateEventModal'));
+const EditEventModal = lazy(() => import('../../calendar/modals/EditEventModal'));
+const EventDetailsModal = lazy(() => import('../../calendar/modals/EventDetailsModal'));
+const DeleteEventModal = lazy(() => import('../../calendar/modals/DeleteEventModal'));
+const AddAttendeeModal = lazy(() => import('../../calendar/modals/AddAttendeeModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -330,7 +337,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.PARENT_LINK_CHILD:
+    case MODAL_BODY_TYPES.PARENT_ASSIGN_CHILD:
       return (
         <Suspense fallback={fallback}>
           <LinkChildModal extraObject={contentProps} />
@@ -345,7 +352,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.ANNOUNCEMENT_VIEW_DETAILS:
+    case MODAL_BODY_TYPES.ANNOUNCEMENT_VIEW:
       return (
         <Suspense fallback={fallback}>
           <AnnouncementDetailsModal extraObject={contentProps} />
@@ -363,13 +370,6 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DeleteAnnouncementModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.ANNOUNCEMENT_ANALYTICS:
-      return (
-        <Suspense fallback={fallback}>
-          <AnnouncementAnalyticsModal extraObject={contentProps} />
         </Suspense>
       );
 
@@ -395,57 +395,21 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.TEACHER_VIEW_DETAILS:
+    case MODAL_BODY_TYPES.TEACHER_VIEW_PROFILE:
       return (
         <Suspense fallback={fallback}>
           <TeacherViewDetailsModal extraObject={contentProps} />
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.TEACHER_ASSIGN_COURSE:
+    case MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS:
       return (
         <Suspense fallback={fallback}>
-          <AssignCourseModal extraObject={contentProps} />
+          <AssignClassModal extraObject={contentProps} />
         </Suspense>
       );
 
-    // Schedule Management Modals
-    case MODAL_BODY_TYPES.SCHEDULE_ADD_NEW:
-      return (
-        <Suspense fallback={fallback}>
-          <ScheduleAddNewModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.SCHEDULE_EDIT:
-      return (
-        <Suspense fallback={fallback}>
-          <ScheduleEditModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.SCHEDULE_DELETE_CONFIRMATION:
-      return (
-        <Suspense fallback={fallback}>
-          <ScheduleDeleteModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.SCHEDULE_VIEW:
-      return (
-        <Suspense fallback={fallback}>
-          <ScheduleViewModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    // Assessment Management Modals
-    case MODAL_BODY_TYPES.GRADE_CATEGORY_ADD_NEW:
-      return (
-        <Suspense fallback={fallback}>
-          <GradeCategoryAddNewModal extraObject={contentProps} />
-        </Suspense>
-      );
-
+    // Assignment Management Modals
     case MODAL_BODY_TYPES.ASSIGNMENT_ADD_NEW:
       return (
         <Suspense fallback={fallback}>
@@ -491,7 +455,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.ASSIGNMENT_VIEW_DETAILS:
+    case MODAL_BODY_TYPES.ASSIGNMENT_VIEW:
       return (
         <Suspense fallback={fallback}>
           <div className="max-w-2xl">
@@ -522,27 +486,32 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.ASSIGNMENT_VIEW_SUBMISSIONS:
+    case MODAL_BODY_TYPES.SUBMISSION_GRADE:
       return (
         <Suspense fallback={fallback}>
-          <div className="max-w-4xl">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Assignment Submissions</h3>
-            <p className="text-sm text-gray-500">
-              Submissions for: {contentProps?.title || 'Assignment'}
-            </p>
-            {/* This would contain a list of submissions */}
+          <div className="max-w-2xl">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Grade Submission</h3>
+            {contentProps && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Student ID</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.studentId}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Assignment ID</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.assignmentId}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Content</label>
+                  <p className="mt-1 text-sm text-gray-900">{contentProps.content || 'No content'}</p>
+                </div>
+              </div>
+            )}
           </div>
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.SUBMISSION_GRADE:
-      return (
-        <Suspense fallback={fallback}>
-          <SubmissionGradeModal submission={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.SUBMISSION_VIEW_DETAILS:
+    case MODAL_BODY_TYPES.SUBMISSION_VIEW:
       return (
         <Suspense fallback={fallback}>
           <div className="max-w-2xl">
@@ -577,41 +546,22 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.SUBMISSION_DELETE_CONFIRMATION:
-      return (
-        <Suspense fallback={fallback}>
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Delete Submission</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              Are you sure you want to delete this submission? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => dispatch(closeModal({}))}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  // Handle delete logic here
-                  dispatch(closeModal({}));
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </Suspense>
-      );
-
     case MODAL_BODY_TYPES.SUBJECT_ASSIGN_TEACHER:
       return (
         <Suspense fallback={fallback}>
-          <SubjectAssignTeacherModal extraObject={contentProps} />
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Assign Teacher to Subject</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              This feature is not yet implemented.
+            </p>
+            <button
+              type="button"
+              onClick={() => dispatch(closeModal({}))}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
         </Suspense>
       );
 
@@ -701,6 +651,42 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
               </button>
             </div>
           </div>
+        </Suspense>
+      );
+      
+    // Calendar Event Management Modals
+    case MODAL_BODY_TYPES.CALENDAR_EVENT_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateEventModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CALENDAR_EVENT_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditEventModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CALENDAR_EVENT_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <EventDetailsModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CALENDAR_EVENT_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteEventModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CALENDAR_EVENT_ADD_ATTENDEE:
+      return (
+        <Suspense fallback={fallback}>
+          <AddAttendeeModal extraObject={contentProps} />
         </Suspense>
       );
       

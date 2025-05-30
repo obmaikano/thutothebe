@@ -102,9 +102,9 @@ export const studentMenuItems: MenuItem[] = [
   },
   {
     icon: Calendar,
-    label: 'Schedule',
-    path: '/app/schedule',
-    description: 'Your class timetable'
+    label: 'Calendar Events',
+    path: '/app/calendar',
+    description: 'View school events and your schedule'
   },
   {
     icon: MessageSquare,
@@ -219,9 +219,9 @@ export const teacherMenuItems: MenuItem[] = [
   },
   {
     icon: Calendar,
-    label: 'Schedule',
-    path: '/app/schedule',
-    description: 'Your teaching schedule'
+    label: 'Calendar Events',
+    path: '/app/calendar',
+    description: 'Manage school events and your schedule'
   },
   {
     icon: MessageSquare,
@@ -277,9 +277,9 @@ export const parentMenuItems: MenuItem[] = [
   },
   {
     icon: Calendar,
-    label: 'School Calendar',
-    path: '/app/school-calendar',
-    description: 'View school events and schedule'
+    label: 'Calendar Events',
+    path: '/app/calendar',
+    description: 'View school events and activities'
   },
   {
     icon: FileText,
@@ -396,9 +396,9 @@ export const schoolAdminMenuItems: MenuItem[] = [
   },
   {
     icon: Calendar,
-    label: 'School Calendar',
-    path: '/app/school-calendar',
-    description: 'Manage school events and schedule'
+    label: 'Calendar Events',
+    path: '/app/calendar',
+    description: 'Manage school events and activities'
   },
   {
     icon: Clipboard,
@@ -517,9 +517,9 @@ export const schoolHeadMenuItems: MenuItem[] = [
   },
   {
     icon: Calendar,
-    label: 'School Calendar',
-    path: '/app/school-calendar',
-    description: 'Manage school events and schedule'
+    label: 'Calendar Events',
+    path: '/app/calendar',
+    description: 'Manage school events and activities'
   },
   {
     icon: Clipboard,
@@ -759,9 +759,9 @@ export const regionalAdminMenuItems: MenuItem[] = [
   },
   {
     icon: Calendar,
-    label: 'Events',
-    path: '/app/events',
-    description: 'Regional calendar and events'
+    label: 'Calendar Events',
+    path: '/app/calendar',
+    description: 'Manage regional calendar and events'
   },
   {
     icon: Settings,
@@ -909,9 +909,9 @@ export const ministryStaffMenuItems: MenuItem[] = [
   },
   {
     icon: Calendar,
-    label: 'Schedule',
-    path: '/app/schedule',
-    description: 'Your work schedule'
+    label: 'Calendar Events',
+    path: '/app/calendar',
+    description: 'Manage ministry events and schedule'
   }
 ];
 
@@ -1112,29 +1112,17 @@ export const superAdminMenuItems: MenuItem[] = [
     ]
   },
   {
+    icon: Calendar,
+    label: 'Calendar Events',
+    path: '/app/calendar',
+    description: 'Manage system-wide calendar events'
+  },
+  {
     icon: Monitor,
     label: 'System Monitoring',
     path: '/app/monitoring',
     description: 'Monitor LMS usage and adoption',
     children: [
-      {
-        icon: BarChart,
-        label: 'Usage Analytics',
-        path: '/app/monitoring/usage',
-        description: 'Comprehensive usage monitoring'
-      },
-      {
-        icon: Activity,
-        label: 'Regional Usage',
-        path: '/app/monitoring/regional',
-        description: 'Regional usage patterns'
-      },
-      {
-        icon: School,
-        label: 'School Usage',
-        path: '/app/monitoring/school',
-        description: 'Individual school monitoring'
-      },
       {
         icon: Users,
         label: 'User Activity',
@@ -1145,9 +1133,9 @@ export const superAdminMenuItems: MenuItem[] = [
   },
   {
     icon: Settings,
-    label: 'System Settings',
+    label: 'Settings',
     path: '/app/settings',
-    description: 'Configure system parameters'
+    description: 'System configuration'
   }
 ];
 

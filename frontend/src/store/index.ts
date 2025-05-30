@@ -21,6 +21,7 @@ import questionsReducer from '../features/quizzes/questionsSlice';
 import quizSubmissionsReducer from '../features/quizzes/quizSubmissionsSlice';
 import announcementsReducer from '../features/announcements/announcementsSlice';
 import attendanceReducer from '../features/attendance/attendanceSlice';
+import calendarEventsReducer from '../features/calendar/calendarEventsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -45,6 +46,7 @@ export const store = configureStore({
     quizSubmissions: quizSubmissionsReducer,
     announcements: announcementsReducer,
     attendance: attendanceReducer,
+    calendarEvents: calendarEventsReducer,
   },
 });
 

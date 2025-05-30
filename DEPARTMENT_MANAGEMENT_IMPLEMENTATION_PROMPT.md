@@ -48,12 +48,15 @@ src/features/departments/
 │   ├── DepartmentForm.tsx
 │   ├── DepartmentTeachers.tsx
 │   ├── DepartmentSubjects.tsx
-│   └── DepartmentFilters.tsx
+│   ├── DepartmentFilters.tsx
+│   ├── DepartmentStats.tsx
+│   └── DepartmentHierarchy.tsx
 ├── modals/
 │   ├── CreateDepartmentModal.tsx
 │   ├── EditDepartmentModal.tsx
 │   ├── AssignTeacherModal.tsx
 │   ├── AssignSubjectModal.tsx
+│   ├── AssignDepartmentHeadModal.tsx
 │   └── DepartmentDetailsModal.tsx
 ├── departmentsSlice.ts
 ├── README.md
@@ -82,12 +85,15 @@ export interface Department {
   name: string;
   description?: string;
   schoolId: number;
+  schoolName: string;
   departmentHeadId?: number;
+  departmentHeadName?: string;
   departmentHead?: {
     id: number;
     firstName: string;
     lastName: string;
     email: string;
+    specialization?: string;
   };
   teachers: Array<{
     id: number;
@@ -95,12 +101,14 @@ export interface Department {
     lastName: string;
     email: string;
     specialization?: string;
+    yearsOfExperience?: number;
   }>;
   subjects: Array<{
     id: number;
     name: string;
     code: string;
     description?: string;
+    credits?: number;
   }>;
   budget?: number;
   location?: string;
@@ -112,10 +120,30 @@ export interface Department {
     totalSubjects: number;
     totalStudents: number;
     averageClassSize: number;
+    performanceRating?: number;
   };
   active: boolean;
   createdAt: string;
-  updatedAt: string;
+  modifiedAt: string;
+}
+
+export interface CreateDepartmentRequest {
+  name: string;
+  description?: string;
+  schoolId: number;
+  departmentHeadId?: number;
+  budget?: number;
+  location?: string;
+  goals?: string[];
+}
+
+export interface UpdateDepartmentRequest {
+  name?: string;
+  description?: string;
+  departmentHeadId?: number;
+  budget?: number;
+  location?: string;
+  goals?: string[];
 }
 
 const departmentApi = {
@@ -196,9 +224,81 @@ const departmentApi = {
 export default departmentApi;
 ```
 
+### 4. Component Patterns (EXISTING)
+Follow existing component patterns from `src/components/common/`:
+- Use existing `Button.tsx`, `Modal.tsx`, `Input.tsx`, `Select.tsx` components
+- Follow existing styling with DaisyUI classes
+- Use existing `Table.tsx` component for data display
+- Follow existing form patterns with React Hook Form
+
+### 5. Page Structure Pattern (EXISTING)
+Follow the existing pattern from `src/features/users/pages/UserListPage.tsx`:
+```typescript
+const DepartmentListPage: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { departments, status, error } = useAppSelector(state => state.departments);
+  const { user } = useAuth();
+  
+  // Follow existing useEffect pattern
+  useEffect(() => {
+    if (user?.schoolId) {
+      dispatch(fetchDepartmentsBySchool(user.schoolId));
+    } else {
+      dispatch(fetchAllDepartments());
+    }
+    return () => {
+      dispatch(clearDepartmentsError());
+    };
+  }, [dispatch, user?.schoolId]);
+
+  // Follow existing modal opening pattern
+  const handleCreateDepartment = () => {
+    dispatch(openModal({
+      title: 'Create New Department',
+      bodyType: MODAL_BODY_TYPES.DEPARTMENT_ADD_NEW,
+      size: 'lg'
+    }));
+  };
+
+  // Follow existing JSX structure with DaisyUI classes
+  return (
+    <div className="p-8 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Department Management</h1>
+          <p className="text-gray-600 mt-2">Manage academic departments and their resources</p>
+        </div>
+        {/* Follow existing button pattern */}
+        {canCreateDepartment && (
+          <button 
+            onClick={handleCreateDepartment}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Plus size={20} />
+            Create Department
+          </button>
+        )}
+      </div>
+      {/* Rest of component following existing patterns */}
+    </div>
+  );
+};
+```
+
 ## Core Features to Implement
 
-### 1. Department Management Interface
+### 1. Role-Based Dashboard Enhancement
+Extend existing dashboard functionality for educational roles:
+
+**Add to existing dashboard features:**
+- Department overview widgets
+- Teacher distribution charts using existing Chart.js setup
+- Subject allocation monitoring
+- Department performance indicators
+- Budget utilization tracking
+
+### 2. Department Management Interface
 
 **New Redux Slice to Create:**
 ```typescript
@@ -206,59 +306,81 @@ export default departmentApi;
 // Follow existing slice pattern from usersSlice.ts
 export const departmentsSlice = createSlice({
   name: 'departments',
-  initialState,
-  reducers: {
-    clearCurrentDepartment: (state) => {
-      state.currentDepartment = null;
+  initialState: {
+    departments: [],
+    currentDepartment: null,
+    status: 'idle',
+    error: null,
+    filters: {
+      search: '',
+      school: '',
+      active: true,
+      hasHead: null,
     },
-    clearDepartmentsError: (state) => {
+    statistics: {
+      totalDepartments: 0,
+      activeDepartments: 0,
+      departmentsWithoutHead: 0,
+      averageTeachersPerDepartment: 0,
+    }
+  },
+  reducers: {
+    setFilters: (state, action) => {
+      state.filters = { ...state.filters, ...action.payload };
+    },
+    clearError: (state) => {
       state.error = null;
     },
-    setDepartmentFilter: (state, action) => {
-      state.filter = action.payload;
-    },
-    updateDepartmentStatus: (state, action) => {
-      const department = state.departments.find(d => d.id === action.payload.id);
-      if (department) {
-        department.active = action.payload.active;
-      }
+    setCurrentDepartment: (state, action) => {
+      state.currentDepartment = action.payload;
     },
   },
   extraReducers: (builder) => {
     // Follow existing async thunk patterns
+    builder
+      .addCase(fetchDepartments.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchDepartments.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.departments = action.payload;
+      })
+      .addCase(fetchDepartments.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      });
   }
 });
 ```
 
+**New API Service to Create:**
+```typescript
+// src/api/services/departmentApi.ts
+// Follow existing userApi.ts pattern exactly
+```
+
 **New Pages to Create:**
-- `DepartmentListPage.tsx` - View and manage all departments
-- `DepartmentDetailsPage.tsx` - View department details and management
-- `CreateDepartmentPage.tsx` - Create and edit departments
-- `DepartmentManagementPage.tsx` - Advanced department administration
+- `DepartmentListPage.tsx` - Main department listing with filters
+- `DepartmentDetailsPage.tsx` - Detailed department view
+- `CreateDepartmentPage.tsx` - Department creation form
+- `DepartmentManagementPage.tsx` - Comprehensive management interface
 
-### 2. Department Administration
-Comprehensive department management:
-- Department creation and setup
-- Department profile management
-- Teacher assignment and management
-- Subject allocation
-- Department head assignment
+### 3. Department-Specific Components
 
-### 3. Academic Organization
-Department-based academic structure:
-- Subject-department relationships
-- Teacher-department assignments
-- Department hierarchy
-- Resource allocation
-- Performance tracking
+**Core Components:**
+- `DepartmentCard.tsx` - Department overview card
+- `DepartmentForm.tsx` - Create/edit department form
+- `DepartmentTeachers.tsx` - Teacher management within department
+- `DepartmentSubjects.tsx` - Subject assignment and management
+- `DepartmentStats.tsx` - Department statistics and metrics
+- `DepartmentHierarchy.tsx` - Organizational structure visualization
 
-### 4. Department Analytics
-Department performance monitoring:
-- Teacher statistics
-- Subject coverage
-- Student enrollment
-- Performance metrics
-- Resource utilization
+### 4. Teacher and Subject Assignment
+Extend existing teacher and subject management with department context:
+- Add department-based teacher filtering
+- Add subject assignment to departments
+- Add department head assignment functionality
+- Add bulk assignment capabilities
 
 ## Implementation Requirements
 
@@ -271,34 +393,21 @@ const userRole = user?.role;
 
 // Use existing role checking pattern
 const canManageDepartments = [
-  'SUPER_ADMIN',
-  'SCHOOL_ADMIN'
+  'SUPER_ADMIN', 
+  'SCHOOL_ADMIN',
+  'SCHOOL_HEAD'
 ].includes(userRole);
 
 const canViewDepartments = [
   'SUPER_ADMIN',
-  'SCHOOL_ADMIN',
+  'SCHOOL_ADMIN', 
   'SCHOOL_HEAD',
   'DEPARTMENT_HEAD',
   'SENIOR_TEACHER',
-  'TEACHER',
-  'STUDENT',
-  'PARENT'
-].includes(userRole);
-
-const canEditDepartment = [
-  'SUPER_ADMIN',
-  'SCHOOL_ADMIN',
-  'DEPARTMENT_HEAD'
+  'TEACHER'
 ].includes(userRole);
 
 const canAssignTeachers = [
-  'SUPER_ADMIN',
-  'SCHOOL_ADMIN',
-  'DEPARTMENT_HEAD'
-].includes(userRole);
-
-const canAssignSubjects = [
   'SUPER_ADMIN',
   'SCHOOL_ADMIN',
   'DEPARTMENT_HEAD'
@@ -317,6 +426,7 @@ export const MODAL_BODY_TYPES = {
   ASSIGN_TEACHER: "ASSIGN_TEACHER",
   ASSIGN_SUBJECT: "ASSIGN_SUBJECT",
   ASSIGN_DEPARTMENT_HEAD: "ASSIGN_DEPARTMENT_HEAD",
+  DEPARTMENT_STATS: "DEPARTMENT_STATS",
 };
 ```
 
@@ -324,13 +434,19 @@ export const MODAL_BODY_TYPES = {
 Use existing error patterns from other slices:
 ```typescript
 // Follow existing error handling pattern
-const handleDepartmentCreation = async (departmentData: CreateDepartmentData) => {
+const handleDepartmentUpdate = async () => {
   try {
-    await dispatch(createDepartment(departmentData)).unwrap();
-    // Success handling
+    await dispatch(updateDepartment(departmentData)).unwrap();
+    dispatch(showNotification({
+      message: 'Department updated successfully',
+      status: 'success'
+    }));
   } catch (error) {
-    console.error('Failed to create department:', error);
-    // Error handling following existing pattern
+    console.error('Failed to update department:', error);
+    dispatch(showNotification({
+      message: error.message || 'Failed to update department',
+      status: 'error'
+    }));
   }
 };
 ```
@@ -342,14 +458,30 @@ Use existing DaisyUI classes and patterns:
 <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
 
 // Follow existing card patterns
-<div className="bg-white border border-gray-200 rounded-lg p-6">
+<div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
 
 // Follow existing table patterns using existing Table component
 <Table 
   data={departments}
   columns={columns}
+  searchable={true}
+  filterable={true}
   // ... other props following existing pattern
 />
+
+// Follow existing form patterns
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div className="form-control">
+    <label className="label">
+      <span className="label-text">Department Name</span>
+    </label>
+    <input 
+      type="text" 
+      className="input input-bordered w-full" 
+      {...register('name')}
+    />
+  </div>
+</div>
 ```
 
 ## Specific Components to Create
@@ -357,42 +489,82 @@ Use existing DaisyUI classes and patterns:
 ### 1. Department Card Component
 ```typescript
 // src/features/departments/components/DepartmentCard.tsx
-// Display department information in card format
-// Follow existing component patterns
+interface DepartmentCardProps {
+  department: Department;
+  onEdit?: (department: Department) => void;
+  onDelete?: (departmentId: number) => void;
+  onViewDetails?: (department: Department) => void;
+}
+
+const DepartmentCard: React.FC<DepartmentCardProps> = ({
+  department,
+  onEdit,
+  onDelete,
+  onViewDetails
+}) => {
+  // Follow existing card component patterns
+  // Use existing styling and interaction patterns
+};
 ```
 
 ### 2. Department Form Component
 ```typescript
 // src/features/departments/components/DepartmentForm.tsx
-// Form for creating and editing departments
-// Follow existing form patterns
+interface DepartmentFormProps {
+  department?: Department;
+  onSubmit: (data: CreateDepartmentRequest | UpdateDepartmentRequest) => void;
+  onCancel: () => void;
+  isLoading?: boolean;
+}
+
+const DepartmentForm: React.FC<DepartmentFormProps> = ({
+  department,
+  onSubmit,
+  onCancel,
+  isLoading
+}) => {
+  // Follow existing form patterns with React Hook Form
+  // Use existing validation patterns with Zod
+};
 ```
 
 ### 3. Department Teachers Component
 ```typescript
 // src/features/departments/components/DepartmentTeachers.tsx
-// Manage teachers assigned to department
-// Follow existing component patterns
-```
+interface DepartmentTeachersProps {
+  departmentId: number;
+  teachers: Teacher[];
+  onAssignTeacher: (teacherId: number) => void;
+  onRemoveTeacher: (teacherId: number) => void;
+  canManageTeachers: boolean;
+}
 
-### 4. Department Subjects Component
-```typescript
-// src/features/departments/components/DepartmentSubjects.tsx
-// Manage subjects assigned to department
-// Follow existing component patterns
+const DepartmentTeachers: React.FC<DepartmentTeachersProps> = ({
+  departmentId,
+  teachers,
+  onAssignTeacher,
+  onRemoveTeacher,
+  canManageTeachers
+}) => {
+  // Follow existing list/table patterns
+  // Use existing modal patterns for assignment
+};
 ```
 
 ## Navigation Integration
 
 ### 1. Extend Existing Sidebar
-Update `src/routes/roleSidebar.ts` to include department routes:
+Update `src/containers/Sidebar.tsx` to include department management routes:
 ```typescript
-// Add to existing navigation items for appropriate roles
+// Add to existing navigation items
 {
-  icon: Building,
-  label: 'Departments',
-  path: '/app/departments',
-  description: 'Manage school departments'
+  label: 'Department Management',
+  icon: Building2,
+  submenu: [
+    { label: 'All Departments', path: '/app/departments' },
+    { label: 'Create Department', path: '/app/departments/create' },
+    { label: 'Department Analytics', path: '/app/departments/analytics' }
+  ]
 }
 ```
 
@@ -401,9 +573,8 @@ Update `src/app/AppRoutes.tsx` to include new routes:
 ```typescript
 // Add new routes following existing pattern
 <Route path="/departments" element={<DepartmentListPage />} />
-<Route path="/departments/:id" element={<DepartmentDetailsPage />} />
 <Route path="/departments/create" element={<CreateDepartmentPage />} />
-<Route path="/departments/:id/edit" element={<EditDepartmentPage />} />
+<Route path="/departments/:id" element={<DepartmentDetailsPage />} />
 <Route path="/departments/management" element={<DepartmentManagementPage />} />
 ```
 
@@ -414,9 +585,11 @@ Update `src/app/AppRoutes.tsx` to include new routes:
 // Follow existing async thunk patterns
 export const fetchDepartments = createAsyncThunk(
   'departments/fetchDepartments',
-  async (params: DepartmentFetchParams, { rejectWithValue }) => {
+  async (schoolId?: number, { rejectWithValue }) => {
     try {
-      const response = await departmentApi.getAll();
+      const response = schoolId 
+        ? await departmentApi.getBySchool(schoolId)
+        : await departmentApi.getAll();
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch departments');
@@ -426,7 +599,7 @@ export const fetchDepartments = createAsyncThunk(
 
 export const createDepartment = createAsyncThunk(
   'departments/createDepartment',
-  async (departmentData: CreateDepartmentData, { rejectWithValue }) => {
+  async (departmentData: CreateDepartmentRequest, { rejectWithValue }) => {
     try {
       const response = await departmentApi.create(departmentData);
       return response.data.data;
@@ -437,13 +610,10 @@ export const createDepartment = createAsyncThunk(
 );
 
 export const assignTeacherToDepartment = createAsyncThunk(
-  'departments/assignTeacherToDepartment',
-  async (assignmentData: AssignTeacherData, { rejectWithValue }) => {
+  'departments/assignTeacher',
+  async ({ departmentId, teacherId }: { departmentId: number; teacherId: number }, { rejectWithValue }) => {
     try {
-      const response = await departmentApi.assignTeacher(
-        assignmentData.departmentId,
-        assignmentData.teacherId
-      );
+      const response = await departmentApi.assignTeacher(departmentId, teacherId);
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to assign teacher');
@@ -454,26 +624,13 @@ export const assignTeacherToDepartment = createAsyncThunk(
 
 ### 2. Follow Existing Component State Patterns
 ```typescript
-// Follow existing useState patterns from existing pages
+// Follow existing useState patterns from UserListPage
 const [searchTerm, setSearchTerm] = useState('');
-const [statusFilter, setStatusFilter] = useState('');
 const [schoolFilter, setSchoolFilter] = useState('');
+const [activeFilter, setActiveFilter] = useState(true);
+const [hasHeadFilter, setHasHeadFilter] = useState<boolean | null>(null);
 const [selectedDepartments, setSelectedDepartments] = useState<number[]>([]);
 ```
-
-## Real-time Features
-
-### 1. Live Department Updates
-- Real-time department status changes
-- Live teacher assignments
-- Instant subject allocations
-- Department head assignments
-
-### 2. Department Analytics
-- Real-time statistics
-- Teacher performance metrics
-- Subject coverage analysis
-- Resource utilization tracking
 
 ## Security Implementation
 
@@ -482,43 +639,37 @@ const [selectedDepartments, setSelectedDepartments] = useState<number[]>([]);
 - Use existing API interceptors for authentication
 - Follow existing role-based access patterns
 
-### 2. Department Security Features
+### 2. Follow Existing Permission Checking
 ```typescript
-// Implement department access control
-const canViewDepartment = (department: Department, user: User) => {
-  // Super admins and school admins can view all departments
-  if (['SUPER_ADMIN', 'SCHOOL_ADMIN'].includes(user.role)) {
-    return true;
-  }
-  
-  // Department heads can view their own department
-  if (user.role === 'DEPARTMENT_HEAD' && department.departmentHeadId === user.id) {
-    return true;
-  }
-  
-  // Teachers can view departments they belong to
-  if (['SENIOR_TEACHER', 'TEACHER'].includes(user.role)) {
-    return department.teachers.some(teacher => teacher.id === user.id);
-  }
-  
-  return false;
+// Use existing role checking patterns
+const canAccessFeature = (requiredRoles: string[]) => {
+  return requiredRoles.includes(user?.role);
 };
 
-// Implement department management access control
-const canManageDepartment = (department: Department, user: User) => {
-  // Super admins and school admins can manage all departments
-  if (['SUPER_ADMIN', 'SCHOOL_ADMIN'].includes(user.role)) {
+// Department-specific permission checks
+const canManageDepartment = (department: Department) => {
+  if (['SUPER_ADMIN', 'SCHOOL_ADMIN'].includes(user?.role)) {
     return true;
   }
-  
-  // Department heads can manage their own department
-  if (user.role === 'DEPARTMENT_HEAD' && department.departmentHeadId === user.id) {
+  if (user?.role === 'DEPARTMENT_HEAD' && department.departmentHeadId === user?.id) {
     return true;
   }
-  
   return false;
 };
 ```
+
+## Testing Strategy
+
+### 1. Follow Existing Testing Patterns
+- Create tests following existing test structure (if any)
+- Test Redux slices following existing patterns
+- Test components following existing patterns
+
+### 2. Integration with Existing Features
+- Ensure compatibility with existing user management
+- Test integration with existing authentication
+- Verify compatibility with existing modal system
+- Test integration with existing teacher and subject management
 
 ## Performance Considerations
 
@@ -527,34 +678,21 @@ const canManageDepartment = (department: Department, user: User) => {
 - Follow existing component memoization patterns
 - Use existing data fetching patterns
 
-### 2. Department-Specific Optimizations
-- Efficient department listing
-- Smart teacher/subject loading
-- Optimized department hierarchy
-- Department statistics caching
-
-## Testing Strategy
-
-### 1. Follow Existing Testing Patterns
-- Create tests following existing test structure
-- Test Redux slices following existing patterns
-- Test components following existing patterns
-
-### 2. Department-Specific Testing
-- Test department creation workflow
-- Test teacher assignment functionality
-- Test subject allocation
-- Test access control mechanisms
+### 2. Leverage Existing Infrastructure
+- Use existing WebSocket service for real-time updates
+- Use existing caching patterns
+- Follow existing error boundary patterns
 
 ## Deliverables
 
 1. **New Redux Slice**: `departmentsSlice.ts`
 2. **New API Service**: `departmentApi.ts`
-3. **New Pages**: Department management pages
+3. **New Pages**: Department list, details, creation, and management pages
 4. **New Components**: Department-specific reusable components
-5. **Enhanced Existing Pages**: Integration with school management
-6. **Updated Navigation**: Extended sidebar and routes
-7. **New Modal Types**: Department-specific modals
+5. **New Modals**: Department creation, editing, and assignment modals
+6. **Enhanced Existing Pages**: Extended teacher and subject management with department context
+7. **Updated Navigation**: Extended sidebar and routes
+8. **New Modal Types**: Department-specific modals
 
 ## Success Criteria
 
@@ -563,12 +701,11 @@ const canManageDepartment = (department: Department, user: User) => {
 - Consistent styling and UX with existing application
 - Proper error handling following existing patterns
 - Role-based access control working with existing authentication
-- Department management functioning properly
-- Teacher assignment working correctly
-- Subject allocation functioning as expected
-- Real-time updates working reliably
+- Real-time updates using existing WebSocket infrastructure
 - Responsive design consistent with existing pages
-- Department security measures properly implemented
+- Proper integration with existing teacher and subject management
+- Efficient department hierarchy visualization
+- Comprehensive department analytics and reporting
 
 ## Implementation Notes
 
@@ -582,9 +719,8 @@ const canManageDepartment = (department: Department, user: User) => {
 8. **DO** follow existing Redux patterns and naming
 9. **DO** use existing utility functions and helpers
 10. **DO** maintain consistency with existing error handling patterns
-11. **DO** implement proper data validation
-12. **DO** ensure accurate department management
-13. **DO** implement comprehensive teacher/subject tracking
-14. **DO** optimize for school-based filtering
+11. **DO** integrate with existing teacher and subject management systems
+12. **DO** respect existing school-based data scoping
+13. **DO** follow existing permission checking patterns for educational roles
 
-This implementation should seamlessly integrate with the existing codebase while providing comprehensive department management capabilities for all user roles in the educational system. 
+This implementation should seamlessly integrate with the existing codebase while providing comprehensive department management capabilities for educational institutions. The system should support the full department lifecycle from creation to management, with proper role-based access control and integration with existing teacher and subject management systems. 

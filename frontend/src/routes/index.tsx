@@ -41,6 +41,9 @@ const AttendanceCalendar = lazy(() => import('../pages/protected/AttendanceCalen
 const MyAttendance = lazy(() => import('../pages/protected/MyAttendance'));
 const ChildAttendance = lazy(() => import('../pages/protected/ChildAttendance'));
 
+// Calendar pages
+const Calendar = lazy(() => import('../pages/protected/Calendar'));
+
 // Student role pages
 const StudentDashboard = lazy(() => import('../pages/protected/StudentDashboard'));
 const StudentCourses = lazy(() => import('../pages/protected/StudentCourses'));
@@ -207,6 +210,11 @@ export const appRoutes = [
   {
     path: 'child-attendance',
     element: ChildAttendance
+  },
+  // Calendar routes
+  {
+    path: 'calendar',
+    element: Calendar
   },
   // Student role routes
   {
