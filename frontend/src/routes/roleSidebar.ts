@@ -34,7 +34,8 @@ import {
   Book,
   Clock,
   FileQuestion,
-  Megaphone
+  Megaphone,
+  FolderOpen
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -194,6 +195,12 @@ export const teacherMenuItems: MenuItem[] = [
     description: 'Create and manage quizzes'
   },
   {
+    icon: FolderOpen,
+    label: 'Content Management',
+    path: '/app/content',
+    description: 'Manage course content and resources'
+  },
+  {
     icon: Library,
     label: 'Teaching Resources',
     path: '/app/teacher-resources',
@@ -347,6 +354,12 @@ export const schoolAdminMenuItems: MenuItem[] = [
     ]
   },
   {
+    icon: FolderOpen,
+    label: 'Content Management',
+    path: '/app/content',
+    description: 'Manage school content and resources'
+  },
+  {
     icon: Users,
     label: 'Staff Management',
     path: '/app/staff-management',
@@ -367,13 +380,13 @@ export const schoolAdminMenuItems: MenuItem[] = [
   {
     icon: Clock,
     label: 'Timetable Management',
-    path: '/app/timetable',
+    path: '/app/timetable-management',
     description: 'Create and manage class schedules'
   },
   {
     icon: FileText,
     label: 'Assessment Configuration',
-    path: '/app/assessments',
+    path: '/app/assessment-configuration',
     description: 'Configure assessments and grading'
   },
   {
@@ -397,80 +410,38 @@ export const schoolAdminMenuItems: MenuItem[] = [
   {
     icon: Calendar,
     label: 'Calendar Events',
-    path: '/app/calendar',
-    description: 'Manage school events and activities'
-  },
-  {
-    icon: Clipboard,
-    label: 'Attendance',
-    path: '/app/attendance',
-    description: 'School-wide attendance oversight',
-    children: [
-      {
-        icon: BarChart,
-        label: 'Attendance Reports',
-        path: '/app/attendance/reports',
-        description: 'Comprehensive attendance analytics and reports'
-      },
-      {
-        icon: Calendar,
-        label: 'Attendance Calendar',
-        path: '/app/attendance/calendar',
-        description: 'Calendar view of attendance records'
-      },
-      {
-        icon: TrendingUp,
-        label: 'Attendance Trends',
-        path: '/app/attendance/trends',
-        description: 'Attendance patterns and analysis'
-      }
-    ]
+    path: '/app/school-calendar',
+    description: 'Manage school calendar and events'
   },
   {
     icon: FileText,
     label: 'Documents',
     path: '/app/documents',
-    description: 'Manage school documentation'
-  },
-  {
-    icon: BarChart,
-    label: 'Reports',
-    path: '/app/reports',
-    description: 'Generate and view reports',
-    children: [
-      {
-        icon: Target,
-        label: 'Assignment Tracking',
-        path: '/app/reports/assignment-tracking',
-        description: 'Track assignment submissions'
-      }
-    ]
+    description: 'Manage school documents'
   },
   {
     icon: Monitor,
     label: 'Monitoring',
     path: '/app/monitoring',
-    description: 'School monitoring',
-    children: [
-      {
-        icon: School,
-        label: 'School Usage',
-        path: '/app/monitoring/school',
-        description: 'Monitor school LMS usage'
-      }
-    ]
+    description: 'Monitor school systems'
+  },
+  {
+    icon: BarChart,
+    label: 'Reports',
+    path: '/app/school-reports',
+    description: 'Generate and view school reports'
   },
   {
     icon: Settings,
     label: 'Settings',
-    path: '/app/settings',
-    description: 'School configuration'
+    path: '/app/school-settings',
+    description: 'Configure school settings'
   },
   {
     icon: HelpCircle,
     label: 'Help',
     path: '/app/school-admin-help',
-    description: 'School admin support and documentation'
+    description: 'Support and documentation'
   }
 ];
 
@@ -496,6 +467,12 @@ export const schoolHeadMenuItems: MenuItem[] = [
         description: 'Manage your announcements'
       }
     ]
+  },
+  {
+    icon: FolderOpen,
+    label: 'Content Management',
+    path: '/app/content',
+    description: 'Manage school content and resources'
   },
   {
     icon: Users,
@@ -700,6 +677,12 @@ export const regionalAdminMenuItems: MenuItem[] = [
     ]
   },
   {
+    icon: FolderOpen,
+    label: 'Content Management',
+    path: '/app/content',
+    description: 'Manage regional content and resources'
+  },
+  {
     icon: School,
     label: 'Schools',
     path: '/app/schools',
@@ -774,6 +757,12 @@ export const regionalAdminMenuItems: MenuItem[] = [
 // Director menu items
 export const directorMenuItems: MenuItem[] = [
   ...commonMenuItems,
+  {
+    icon: FolderOpen,
+    label: 'Content Management',
+    path: '/app/content',
+    description: 'Manage national content and resources'
+  },
   {
     icon: Globe,
     label: 'All Regions',
@@ -856,6 +845,12 @@ export const directorMenuItems: MenuItem[] = [
 export const ministryStaffMenuItems: MenuItem[] = [
   ...commonMenuItems,
   {
+    icon: FolderOpen,
+    label: 'Content Management',
+    path: '/app/content',
+    description: 'Manage ministry content and resources'
+  },
+  {
     icon: MapPin,
     label: 'Regional Oversight',
     path: '/app/regions',
@@ -918,6 +913,12 @@ export const ministryStaffMenuItems: MenuItem[] = [
 // Ministry Executive menu items
 export const ministryExecutiveMenuItems: MenuItem[] = [
   ...commonMenuItems,
+  {
+    icon: FolderOpen,
+    label: 'Content Management',
+    path: '/app/content',
+    description: 'Manage national content and resources'
+  },
   {
     icon: Globe,
     label: 'National Overview',
@@ -1030,6 +1031,12 @@ export const superAdminMenuItems: MenuItem[] = [
         description: 'Manage your announcements'
       }
     ]
+  },
+  {
+    icon: FolderOpen,
+    label: 'Content Management',
+    path: '/app/content',
+    description: 'Manage system-wide content and resources'
   },
   {
     icon: Users,

@@ -29,6 +29,12 @@ const EditCourseModal = lazy(() => import('../../courses/modals/EditCourseModal'
 const DeleteCourseModal = lazy(() => import('../../courses/modals/DeleteCourseModal'));
 const CourseViewModal = lazy(() => import('../../courses/modals/CourseViewModal'));
 
+// Content management modals
+const CreateContentModal = lazy(() => import('../../content/modals/CreateContentModal'));
+const EditContentModal = lazy(() => import('../../content/modals/EditContentModal'));
+const ViewContentModal = lazy(() => import('../../content/modals/ViewContentModal'));
+const DeleteContentModal = lazy(() => import('../../content/modals/DeleteContentModal'));
+
 // Class management modals
 const CreateClassModal = lazy(() => import('../../classes/modals/CreateClassModal'));
 const EditClassModal = lazy(() => import('../../classes/modals/EditClassModal'));
@@ -687,6 +693,35 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <AddAttendeeModal extraObject={contentProps} />
+        </Suspense>
+      );
+      
+    // Content Management Modals
+    case MODAL_BODY_TYPES.CONTENT_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateContentModal />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CONTENT_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditContentModal content={contentProps?.content} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CONTENT_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <ViewContentModal content={contentProps?.content} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CONTENT_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteContentModal content={contentProps?.content} />
         </Suspense>
       );
       

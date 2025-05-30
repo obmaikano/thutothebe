@@ -24,6 +24,10 @@ const TeacherAssignments = lazy(() => import('../pages/protected/TeacherAssignme
 const TeacherResources = lazy(() => import('../pages/protected/TeacherResources'));
 const TeacherSubmissions = lazy(() => import('../pages/protected/TeacherSubmissions'));
 
+// Content Management pages
+const Content = lazy(() => import('../pages/protected/Content'));
+const ContentDetail = lazy(() => import('../pages/protected/ContentDetail'));
+
 // Announcement pages
 const Announcements = lazy(() => import('../pages/protected/Announcements'));
 const MyAnnouncements = lazy(() => import('../pages/protected/MyAnnouncements'));
@@ -160,6 +164,15 @@ export const appRoutes = [
     path: 'teacher-submissions',
     element: TeacherSubmissions
   },
+  // Content Management routes
+  {
+    path: 'content',
+    element: Content
+  },
+  {
+    path: 'content/:id',
+    element: ContentDetail
+  },
   // Announcement routes
   {
     path: 'announcements',
@@ -234,15 +247,15 @@ export const appRoutes = [
     element: StudentGrades
   },
   {
-    path: 'messages',
+    path: 'student-messages',
     element: StudentMessages
   },
   {
-    path: 'schedule',
+    path: 'student-schedule',
     element: StudentSchedule
   },
   {
-    path: 'help',
+    path: 'student-help',
     element: StudentHelp
   },
   // School Admin role routes
@@ -267,11 +280,24 @@ export const appRoutes = [
     element: ClassManagement
   },
   {
-    path: 'timetable',
+    path: 'school-reports',
+    element: SchoolReports
+  },
+  {
+    path: 'school-settings',
+    element: SchoolSettings
+  },
+  {
+    path: 'school-admin-help',
+    element: SchoolAdminHelp
+  },
+  // Additional School Admin routes
+  {
+    path: 'timetable-management',
     element: TimetableManagement
   },
   {
-    path: 'assessments',
+    path: 'assessment-configuration',
     element: AssessmentConfiguration
   },
   {
@@ -294,24 +320,7 @@ export const appRoutes = [
     path: 'monitoring',
     element: Monitoring
   },
-  {
-    path: 'reports',
-    element: SchoolReports
-  },
-  {
-    path: 'settings',
-    element: SchoolSettings
-  },
-  {
-    path: 'school-admin-help',
-    element: SchoolAdminHelp
-  },
-  // Default redirect
-  {
-    path: '',
-    element: () => <Navigate to="dashboard" replace />
-  },
-  // 404 for protected routes
+  // Catch all route
   {
     path: '*',
     element: NotFoundPage
