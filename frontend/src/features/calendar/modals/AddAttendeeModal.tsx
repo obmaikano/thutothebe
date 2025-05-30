@@ -3,20 +3,12 @@ import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { addAttendee, clearCalendarError } from '../calendarEventsSlice';
 import { closeModal } from '../../common/modalSlice';
 import { CalendarEvent } from '../../../api/services/calendarEventApi';
+import userApi, { User } from '../../../api/services/userApi';
 import { useAuth } from '../../../contexts/AuthContext';
-import { Search, User, UserPlus, AlertCircle } from 'lucide-react';
+import { Search, User as UserIcon, UserPlus, AlertCircle } from 'lucide-react';
 
 interface AddAttendeeModalProps {
   extraObject: CalendarEvent;
-}
-
-interface UserOption {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  schoolId?: number;
-  regionId?: number;
 }
 
 const AddAttendeeModal: React.FC<AddAttendeeModalProps> = ({ extraObject: event }) => {
@@ -26,30 +18,48 @@ const AddAttendeeModal: React.FC<AddAttendeeModalProps> = ({ extraObject: event 
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Mock users - replace with actual API call
-  const mockUsers: UserOption[] = [
-    { id: 1, name: 'John Doe', email: 'john@school.edu', role: 'TEACHER', schoolId: 1 },
-    { id: 2, name: 'Jane Smith', email: 'jane@school.edu', role: 'STUDENT', schoolId: 1 },
-    { id: 3, name: 'Bob Wilson', email: 'bob@school.edu', role: 'TEACHER', schoolId: 1 },
-    { id: 4, name: 'Alice Brown', email: 'alice@school.edu', role: 'STUDENT', schoolId: 1 },
-    { id: 5, name: 'Charlie Davis', email: 'charlie@school.edu', role: 'PARENT', schoolId: 1 },
-  ];
+  const [fetchingUsers, setFetchingUsers] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Filter out users who are already attendees
-    const currentAttendeeIds = event.attendeeIds || [];
-    const filtered = mockUsers.filter(user => !currentAttendeeIds.includes(user.id));
-    setAvailableUsers(filtered);
-  }, [event.attendeeIds]);
+    const fetchUsers = async () => {
+      try {
+        setFetchingUsers(true);
+        setFetchError(null);
+        
+        const response = await userApi.getAll();
+        const allUsers = Array.isArray(response.data.data) ? response.data.data : [];
+        
+        // Filter out users who are already attendees and inactive users
+        const currentAttendeeIds = event.attendeeIds || [];
+        const filtered = allUsers.filter(user => 
+          !currentAttendeeIds.includes(user.id) && 
+          user.active &&
+          user.id !== event.createdById // Don't include the event creator
+        );
+        
+        setAvailableUsers(filtered);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+        setFetchError('Failed to load users. Please try again.');
+      } finally {
+        setFetchingUsers(false);
+      }
+    };
 
-  const filteredUsers = availableUsers.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    fetchUsers();
+  }, [event.attendeeIds, event.createdById]);
+
+  const filteredUsers = availableUsers.filter(user => {
+    const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
+    
+    return fullName.includes(searchLower) ||
+           user.email.toLowerCase().includes(searchLower) ||
+           user.role.toLowerCase().includes(searchLower);
+  });
 
   const handleUserToggle = (userId: number) => {
     setSelectedUsers(prev => 
@@ -83,13 +93,43 @@ const AddAttendeeModal: React.FC<AddAttendeeModalProps> = ({ extraObject: event 
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'TEACHER': return 'bg-blue-100 text-blue-800';
-      case 'STUDENT': return 'bg-green-100 text-green-800';
-      case 'PARENT': return 'bg-purple-100 text-purple-800';
-      case 'SCHOOL_ADMIN': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'TEACHER': 
+      case 'SENIOR_TEACHER': 
+      case 'DEPARTMENT_HEAD': 
+        return 'bg-blue-100 text-blue-800';
+      case 'STUDENT': 
+        return 'bg-green-100 text-green-800';
+      case 'PARENT': 
+        return 'bg-purple-100 text-purple-800';
+      case 'SCHOOL_ADMIN': 
+      case 'SCHOOL_HEAD': 
+      case 'REGIONAL_ADMIN': 
+      case 'REGIONAL_OFFICER':
+        return 'bg-red-100 text-red-800';
+      case 'MINISTRY_EXECUTIVE':
+      case 'MINISTRY_STAFF':
+      case 'DIRECTOR':
+      case 'SUPER_ADMIN':
+        return 'bg-yellow-100 text-yellow-800';
+      default: 
+        return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const formatRoleLabel = (role: string) => {
+    return role.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  if (fetchingUsers) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="loading loading-spinner loading-lg"></div>
+          <span className="ml-3 text-gray-600">Loading users...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -99,6 +139,17 @@ const AddAttendeeModal: React.FC<AddAttendeeModalProps> = ({ extraObject: event 
           Add attendees to "{event.title}"
         </p>
       </div>
+
+      {/* Fetch Error */}
+      {fetchError && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-red-800">
+            <AlertCircle size={16} />
+            <span className="text-sm font-medium">Error loading users</span>
+          </div>
+          <p className="text-sm text-red-700 mt-1">{fetchError}</p>
+        </div>
+      )}
 
       {/* Search */}
       <div className="mb-4">
@@ -128,7 +179,7 @@ const AddAttendeeModal: React.FC<AddAttendeeModalProps> = ({ extraObject: event 
         <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
           {filteredUsers.length === 0 ? (
             <div className="p-8 text-center">
-              <User size={48} className="mx-auto text-gray-400 mb-4" />
+              <UserIcon size={48} className="mx-auto text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
               <p className="text-gray-600">
                 {searchTerm ? "Try adjusting your search terms" : "No available users to add"}
@@ -155,16 +206,18 @@ const AddAttendeeModal: React.FC<AddAttendeeModalProps> = ({ extraObject: event 
                       />
                       <div className="flex-shrink-0">
                         <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                          <User size={20} className="text-gray-600" />
+                          <UserIcon size={20} className="text-gray-600" />
                         </div>
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-900">{userOption.name}</h4>
+                        <h4 className="font-medium text-gray-900">
+                          {userOption.firstName} {userOption.lastName}
+                        </h4>
                         <p className="text-sm text-gray-600">{userOption.email}</p>
                       </div>
                     </div>
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(userOption.role)}`}>
-                      {userOption.role.replace('_', ' ')}
+                      {formatRoleLabel(userOption.role)}
                     </span>
                   </div>
                 </div>
