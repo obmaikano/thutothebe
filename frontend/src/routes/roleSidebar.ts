@@ -95,6 +95,12 @@ export const studentMenuItems: MenuItem[] = [
     description: 'View your academic performance and grades'
   },
   {
+    icon: CheckSquare,
+    label: 'My Attendance',
+    path: '/app/my-attendance',
+    description: 'View your attendance record and statistics'
+  },
+  {
     icon: Calendar,
     label: 'Schedule',
     path: '/app/schedule',
@@ -148,6 +154,32 @@ export const teacherMenuItems: MenuItem[] = [
     label: 'My Students',
     path: '/app/teacher-students',
     description: 'View students from your courses'
+  },
+  {
+    icon: CheckSquare,
+    label: 'Attendance',
+    path: '/app/attendance',
+    description: 'Mark and manage student attendance',
+    children: [
+      {
+        icon: CheckSquare,
+        label: 'Mark Attendance',
+        path: '/app/attendance/mark',
+        description: 'Mark daily attendance for your classes'
+      },
+      {
+        icon: BarChart,
+        label: 'Attendance Reports',
+        path: '/app/attendance/reports',
+        description: 'View attendance analytics and reports'
+      },
+      {
+        icon: Calendar,
+        label: 'Attendance Calendar',
+        path: '/app/attendance/calendar',
+        description: 'Calendar view of attendance records'
+      }
+    ]
   },
   {
     icon: ClipboardList,
@@ -236,6 +268,12 @@ export const parentMenuItems: MenuItem[] = [
     label: 'Academic Progress',
     path: '/app/academic-progress',
     description: 'Track academic performance'
+  },
+  {
+    icon: CheckSquare,
+    label: 'Child Attendance',
+    path: '/app/child-attendance',
+    description: 'Monitor your child\'s attendance record'
   },
   {
     icon: Calendar,
@@ -366,7 +404,27 @@ export const schoolAdminMenuItems: MenuItem[] = [
     icon: Clipboard,
     label: 'Attendance',
     path: '/app/attendance',
-    description: 'Track staff and student attendance'
+    description: 'School-wide attendance oversight',
+    children: [
+      {
+        icon: BarChart,
+        label: 'Attendance Reports',
+        path: '/app/attendance/reports',
+        description: 'Comprehensive attendance analytics and reports'
+      },
+      {
+        icon: Calendar,
+        label: 'Attendance Calendar',
+        path: '/app/attendance/calendar',
+        description: 'Calendar view of attendance records'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Attendance Trends',
+        path: '/app/attendance/trends',
+        description: 'Attendance patterns and analysis'
+      }
+    ]
   },
   {
     icon: FileText,
@@ -467,7 +525,27 @@ export const schoolHeadMenuItems: MenuItem[] = [
     icon: Clipboard,
     label: 'Attendance',
     path: '/app/attendance',
-    description: 'Track staff and student attendance'
+    description: 'School-wide attendance oversight',
+    children: [
+      {
+        icon: BarChart,
+        label: 'Attendance Reports',
+        path: '/app/attendance/reports',
+        description: 'Comprehensive attendance analytics and reports'
+      },
+      {
+        icon: Calendar,
+        label: 'Attendance Calendar',
+        path: '/app/attendance/calendar',
+        description: 'Calendar view of attendance records'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Attendance Trends',
+        path: '/app/attendance/trends',
+        description: 'Attendance patterns and analysis'
+      }
+    ]
   },
   {
     icon: FileText,

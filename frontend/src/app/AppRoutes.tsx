@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AuthLayout from '../layouts/AuthLayout';
 import DashboardLayout from '../containers/Layout';
@@ -10,6 +10,7 @@ import Dashboard from '../features/dashboard/pages/Dashboard';
 import ProfilePage from '../features/profile/pages/ProfilePage';
 import NotFound from '../features/common/pages/NotFound';
 import ProtectedRoute from './ProtectedRoute';
+import { appRoutes } from '../routes';
 // Course routes
 import CourseListPage from '../features/courses/pages/CourseListPage';
 import CourseDetailPage from '../features/courses/pages/CourseDetailPage';
@@ -44,6 +45,22 @@ const AppRoutes: React.FC = () => {
         <Route path="/courses/new" element={<NewCoursePage />} />
         <Route path="/courses/:id" element={<CourseDetailPage />} />
         <Route path="/courses/:id/edit" element={<EditCoursePage />} />
+
+        {/* Dynamic App Routes */}
+        {appRoutes.map((route) => {
+          const Component = route.element;
+          return (
+            <Route
+              key={route.path}
+              path={`/app/${route.path}`}
+              element={
+                <Suspense fallback={<div className="loading loading-spinner loading-lg"></div>}>
+                  <Component />
+                </Suspense>
+              }
+            />
+          );
+        })}
       </Route>
 
       {/* Not Found Route */}

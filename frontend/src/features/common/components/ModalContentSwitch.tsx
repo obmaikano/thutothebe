@@ -52,6 +52,13 @@ const EditParentModal = lazy(() => import('../../parents/modals/EditParentModal'
 const DeleteParentModal = lazy(() => import('../../parents/modals/DeleteParentModal'));
 const LinkChildModal = lazy(() => import('../../parents/modals/LinkChildModal'));
 
+// Announcement management modals
+const CreateAnnouncementModal = lazy(() => import('../../announcements/modals/CreateAnnouncementModal'));
+const AnnouncementDetailsModal = lazy(() => import('../../announcements/modals/AnnouncementDetailsModal'));
+const EditAnnouncementModal = lazy(() => import('../../announcements/modals/EditAnnouncementModal'));
+const DeleteAnnouncementModal = lazy(() => import('../../announcements/modals/DeleteAnnouncementModal'));
+const AnnouncementAnalyticsModal = lazy(() => import('../../announcements/modals/AnnouncementAnalyticsModal'));
+
 // Teacher management modals
 const CreateTeacherModal = lazy(() => import('../../teachers/modals/CreateTeacherModal'));
 const EditTeacherModal = lazy(() => import('../../teachers/modals/EditTeacherModal'));
@@ -60,32 +67,23 @@ const TeacherViewDetailsModal = lazy(() => import('../../teachers/modals/Teacher
 const AssignCourseModal = lazy(() => import('../../teachers/modals/AssignCourseModal'));
 const AssignClassModal = lazy(() => import('../../teachers/modals/AssignClassModal'));
 
-// Announcement management modals
-const CreateAnnouncementModal = lazy(() => import('../../announcements/modals/CreateAnnouncementModal'));
-const EditAnnouncementModal = lazy(() => import('../../announcements/modals/EditAnnouncementModal'));
-const DeleteAnnouncementModal = lazy(() => import('../../announcements/modals/DeleteAnnouncementModal'));
-const AnnouncementDetailsModal = lazy(() => import('../../announcements/modals/AnnouncementDetailsModal'));
-const AnnouncementAnalyticsModal = lazy(() => import('../../announcements/modals/AnnouncementAnalyticsModal'));
-
 // Schedule management modals
-const ScheduleAddNewModal = lazy(() => import('../../school_admin/modals/ScheduleAddNewModal'));
-const ScheduleEditModal = lazy(() => import('../../school_admin/modals/ScheduleEditModal'));
-const ScheduleDeleteModal = lazy(() => import('../../school_admin/modals/ScheduleDeleteModal'));
-const ScheduleViewModal = lazy(() => import('../../school_admin/modals/ScheduleViewModal'));
+// Removed non-existent schedule modals
 
 // Assessment management modals
-const GradeCategoryAddNewModal = lazy(() => import('../../school_admin/modals/GradeCategoryAddNewModal'));
-const AssignmentAddNewModal = lazy(() => import('../../school_admin/modals/AssignmentAddNewModal'));
-const SubjectAssignTeacherModal = lazy(() => import('../../school_admin/modals/SubjectAssignTeacherModal'));
-
-// Assignment and Submission modals
+// Removed non-existent assessment modals
 const AssignmentFormModal = lazy(() => import('../../assignments/modals/AssignmentFormModal'));
-const SubmissionGradeModal = lazy(() => import('../../assignments/modals/SubmissionGradeModal'));
+// Removed non-existent submission and subject assign teacher modals
 
-// Quiz Management Modals
+// Quiz management modals
 const CreateQuizModal = lazy(() => import('../../quizzes/modals/CreateQuizModal'));
 const EditQuizModal = lazy(() => import('../../quizzes/modals/EditQuizModal'));
 const DeleteQuizModal = lazy(() => import('../../quizzes/modals/DeleteQuizModal'));
+
+// Attendance management modals
+const MarkAttendanceModal = lazy(() => import('../../attendance/modals/MarkAttendanceModal'));
+const BulkAttendanceModal = lazy(() => import('../../attendance/modals/BulkAttendanceModal'));
+const AttendanceDetailsModal = lazy(() => import('../../attendance/modals/AttendanceDetailsModal'));
 
 interface ModalContentSwitchProps {
   content: string;
@@ -246,7 +244,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.STUDENT_ASSIGN_CLASS:
+    case MODAL_BODY_TYPES.CLASS_ASSIGN_STUDENT:
       return (
         <Suspense fallback={fallback}>
           <StudentAssignClassModal extraObject={contentProps} />
@@ -256,7 +254,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
     case MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS:
       return (
         <Suspense fallback={fallback}>
-          <AssignClassModal extraObject={contentProps} />
+          <TeacherAssignClassModal extraObject={contentProps} />
         </Suspense>
       );
 
@@ -636,6 +634,73 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DeleteQuizModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Attendance Management Modals
+    case MODAL_BODY_TYPES.ATTENDANCE_MARK:
+      return (
+        <Suspense fallback={fallback}>
+          <MarkAttendanceModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ATTENDANCE_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <MarkAttendanceModal extraObject={{ ...contentProps, mode: 'edit' }} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ATTENDANCE_BULK_MARK:
+      return (
+        <Suspense fallback={fallback}>
+          <BulkAttendanceModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ATTENDANCE_BULK_UPDATE:
+      return (
+        <Suspense fallback={fallback}>
+          <BulkAttendanceModal extraObject={{ ...contentProps, mode: 'update' }} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ATTENDANCE_VIEW_DETAILS:
+      return (
+        <Suspense fallback={fallback}>
+          <AttendanceDetailsModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ATTENDANCE_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Delete Attendance Record</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to delete this attendance record? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => dispatch(closeModal({}))}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // Handle delete logic here
+                  dispatch(closeModal({}));
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </Suspense>
       );
       

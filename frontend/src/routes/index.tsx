@@ -34,6 +34,13 @@ const Quizzes = lazy(() => import('../pages/protected/Quizzes'));
 const QuizTakingPage = lazy(() => import('../features/quizzes/pages/QuizTakingPage'));
 const QuizResultsPage = lazy(() => import('../features/quizzes/pages/QuizResultsPage'));
 
+// Attendance pages
+const AttendanceMarking = lazy(() => import('../pages/protected/AttendanceMarking'));
+const AttendanceReports = lazy(() => import('../pages/protected/AttendanceReports'));
+const AttendanceCalendar = lazy(() => import('../pages/protected/AttendanceCalendar'));
+const MyAttendance = lazy(() => import('../pages/protected/MyAttendance'));
+const ChildAttendance = lazy(() => import('../pages/protected/ChildAttendance'));
+
 // Student role pages
 const StudentDashboard = lazy(() => import('../pages/protected/StudentDashboard'));
 const StudentCourses = lazy(() => import('../pages/protected/StudentCourses'));
@@ -59,7 +66,6 @@ const AssessmentConfiguration = lazy(() => import('../pages/protected/Assessment
 const SubjectAllocation = lazy(() => import('../pages/protected/SubjectAllocation'));
 const Facilities = lazy(() => import('../pages/protected/Facilities'));
 const SchoolCalendar = lazy(() => import('../pages/protected/SchoolCalendar'));
-const Attendance = lazy(() => import('../pages/protected/Attendance'));
 const Documents = lazy(() => import('../pages/protected/Documents'));
 const Monitoring = lazy(() => import('../pages/protected/Monitoring'));
 
@@ -177,6 +183,31 @@ export const appRoutes = [
     path: 'quiz-results/:id',
     element: QuizResultsPage
   },
+  // Attendance routes
+  {
+    path: 'attendance',
+    element: AttendanceMarking
+  },
+  {
+    path: 'attendance/mark',
+    element: AttendanceMarking
+  },
+  {
+    path: 'attendance/reports',
+    element: AttendanceReports
+  },
+  {
+    path: 'attendance/calendar',
+    element: AttendanceCalendar
+  },
+  {
+    path: 'my-attendance',
+    element: MyAttendance
+  },
+  {
+    path: 'child-attendance',
+    element: ChildAttendance
+  },
   // Student role routes
   {
     path: 'student-dashboard',
@@ -246,10 +277,6 @@ export const appRoutes = [
   {
     path: 'school-calendar',
     element: SchoolCalendar
-  },
-  {
-    path: 'attendance',
-    element: Attendance
   },
   {
     path: 'documents',
