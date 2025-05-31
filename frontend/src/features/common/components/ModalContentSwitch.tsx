@@ -29,6 +29,14 @@ const EditCourseModal = lazy(() => import('../../courses/modals/EditCourseModal'
 const DeleteCourseModal = lazy(() => import('../../courses/modals/DeleteCourseModal'));
 const CourseViewModal = lazy(() => import('../../courses/modals/CourseViewModal'));
 
+// Curriculum management modals
+const CreateCurriculumModal = lazy(() => import('../../curriculum/modals/CreateCurriculumModal'));
+const EditCurriculumModal = lazy(() => import('../../curriculum/modals/EditCurriculumModal'));
+const DeleteCurriculumModal = lazy(() => import('../../curriculum/modals/DeleteCurriculumModal'));
+const ViewCurriculumModal = lazy(() => import('../../curriculum/modals/ViewCurriculumModal'));
+const ApproveCurriculumModal = lazy(() => import('../../curriculum/modals/ApproveCurriculumModal'));
+const DuplicateCurriculumModal = lazy(() => import('../../curriculum/modals/DuplicateCurriculumModal'));
+
 // Content management modals
 const CreateContentModal = lazy(() => import('../../content/modals/CreateContentModal'));
 const EditContentModal = lazy(() => import('../../content/modals/EditContentModal'));
@@ -722,6 +730,49 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DeleteContentModal content={contentProps?.content} />
+        </Suspense>
+      );
+      
+    // Curriculum Management Modals
+    case MODAL_BODY_TYPES.CURRICULUM_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateCurriculumModal />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CURRICULUM_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditCurriculumModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CURRICULUM_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteCurriculumModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CURRICULUM_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <ViewCurriculumModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CURRICULUM_APPROVE:
+      return (
+        <Suspense fallback={fallback}>
+          <ApproveCurriculumModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CURRICULUM_DUPLICATE:
+      return (
+        <Suspense fallback={fallback}>
+          <DuplicateCurriculumModal extraObject={contentProps} />
         </Suspense>
       );
       

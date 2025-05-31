@@ -318,10 +318,66 @@ export const departmentHeadMenuItems: MenuItem[] = [
     description: 'Manage your department'
   },
   {
-    icon: CheckSquare,
-    label: 'Curriculum Planning',
+    icon: BookOpen,
+    label: 'Curriculum Management',
     path: '/app/curriculum',
-    description: 'Plan and review curriculum'
+    description: 'Manage regional curriculum',
+    children: [
+      {
+        icon: BookOpen,
+        label: 'All Curricula',
+        path: '/app/curriculum',
+        description: 'View and manage all curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Curriculum Builder',
+        path: '/app/curriculum-builder',
+        description: 'Create and edit curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Standards',
+        path: '/app/standards-management',
+        description: 'Manage learning standards'
+      },
+      {
+        icon: BookOpen,
+        label: 'Learning Objectives',
+        path: '/app/learning-objectives',
+        description: 'Define learning objectives'
+      },
+      {
+        icon: BookOpen,
+        label: 'Templates',
+        path: '/app/curriculum-templates',
+        description: 'Browse curriculum templates'
+      },
+      {
+        icon: CheckSquare,
+        label: 'Approval',
+        path: '/app/curriculum-approval',
+        description: 'Review and approve curricula'
+      },
+      {
+        icon: BarChart,
+        label: 'Analytics',
+        path: '/app/curriculum-analytics',
+        description: 'View curriculum implementation analytics'
+      },
+      {
+        icon: FolderOpen,
+        label: 'Resources',
+        path: '/app/curriculum-resources',
+        description: 'Manage curriculum resources and materials'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Progress Tracking',
+        path: '/app/curriculum-progress',
+        description: 'Track curriculum implementation progress'
+      }
+    ]
   }
 ];
 
@@ -400,6 +456,68 @@ export const schoolAdminMenuItems: MenuItem[] = [
     label: 'Subject Allocation',
     path: '/app/subject-allocation',
     description: 'Allocate subjects to teachers'
+  },
+  {
+    icon: BookOpen,
+    label: 'Curriculum Management',
+    path: '/app/curriculum',
+    description: 'Manage system-wide curriculum',
+    children: [
+      {
+        icon: BookOpen,
+        label: 'All Curricula',
+        path: '/app/curriculum',
+        description: 'View and manage all curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Curriculum Builder',
+        path: '/app/curriculum-builder',
+        description: 'Create and edit curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Standards',
+        path: '/app/standards-management',
+        description: 'Manage learning standards'
+      },
+      {
+        icon: BookOpen,
+        label: 'Learning Objectives',
+        path: '/app/learning-objectives',
+        description: 'Define learning objectives'
+      },
+      {
+        icon: BookOpen,
+        label: 'Templates',
+        path: '/app/curriculum-templates',
+        description: 'Browse curriculum templates'
+      },
+      {
+        icon: CheckSquare,
+        label: 'Approval',
+        path: '/app/curriculum-approval',
+        description: 'Review and approve curricula'
+      },
+      {
+        icon: BarChart,
+        label: 'Analytics',
+        path: '/app/curriculum-analytics',
+        description: 'View curriculum implementation analytics'
+      },
+      {
+        icon: FolderOpen,
+        label: 'Resources',
+        path: '/app/curriculum-resources',
+        description: 'Manage curriculum resources and materials'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Progress Tracking',
+        path: '/app/curriculum-progress',
+        description: 'Track curriculum implementation progress'
+      }
+    ]
   },
   {
     icon: Building,
@@ -695,6 +813,68 @@ export const regionalAdminMenuItems: MenuItem[] = [
     description: 'Manage regional configurations'
   },
   {
+    icon: BookOpen,
+    label: 'Curriculum Management',
+    path: '/app/curriculum',
+    description: 'Manage regional curriculum',
+    children: [
+      {
+        icon: BookOpen,
+        label: 'All Curricula',
+        path: '/app/curriculum',
+        description: 'View and manage all curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Curriculum Builder',
+        path: '/app/curriculum-builder',
+        description: 'Create and edit curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Standards',
+        path: '/app/standards-management',
+        description: 'Manage learning standards'
+      },
+      {
+        icon: BookOpen,
+        label: 'Learning Objectives',
+        path: '/app/learning-objectives',
+        description: 'Define learning objectives'
+      },
+      {
+        icon: BookOpen,
+        label: 'Templates',
+        path: '/app/curriculum-templates',
+        description: 'Browse curriculum templates'
+      },
+      {
+        icon: CheckSquare,
+        label: 'Approval',
+        path: '/app/curriculum-approval',
+        description: 'Review and approve curricula'
+      },
+      {
+        icon: BarChart,
+        label: 'Analytics',
+        path: '/app/curriculum-analytics',
+        description: 'View curriculum implementation analytics'
+      },
+      {
+        icon: FolderOpen,
+        label: 'Resources',
+        path: '/app/curriculum-resources',
+        description: 'Manage curriculum resources and materials'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Progress Tracking',
+        path: '/app/curriculum-progress',
+        description: 'Track curriculum implementation progress'
+      }
+    ]
+  },
+  {
     icon: Users,
     label: 'Personnel',
     path: '/app/personnel',
@@ -857,6 +1037,68 @@ export const ministryStaffMenuItems: MenuItem[] = [
     description: 'Monitor regional education offices'
   },
   {
+    icon: BookOpen,
+    label: 'Curriculum Management',
+    path: '/app/curriculum',
+    description: 'Manage national curriculum',
+    children: [
+      {
+        icon: BookOpen,
+        label: 'All Curricula',
+        path: '/app/curriculum',
+        description: 'View and manage all curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Curriculum Builder',
+        path: '/app/curriculum-builder',
+        description: 'Create and edit curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Standards',
+        path: '/app/standards-management',
+        description: 'Manage learning standards'
+      },
+      {
+        icon: BookOpen,
+        label: 'Learning Objectives',
+        path: '/app/learning-objectives',
+        description: 'Define learning objectives'
+      },
+      {
+        icon: BookOpen,
+        label: 'Templates',
+        path: '/app/curriculum-templates',
+        description: 'Browse curriculum templates'
+      },
+      {
+        icon: CheckSquare,
+        label: 'Approval',
+        path: '/app/curriculum-approval',
+        description: 'Review and approve curricula'
+      },
+      {
+        icon: BarChart,
+        label: 'Analytics',
+        path: '/app/curriculum-analytics',
+        description: 'View curriculum implementation analytics'
+      },
+      {
+        icon: FolderOpen,
+        label: 'Resources',
+        path: '/app/curriculum-resources',
+        description: 'Manage curriculum resources and materials'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Progress Tracking',
+        path: '/app/curriculum-progress',
+        description: 'Track curriculum implementation progress'
+      }
+    ]
+  },
+  {
     icon: FileText,
     label: 'Reports',
     path: '/app/reports',
@@ -930,6 +1172,50 @@ export const ministryExecutiveMenuItems: MenuItem[] = [
     label: 'Regional Administration',
     path: '/app/regions',
     description: 'Oversee all regional education offices'
+  },
+  {
+    icon: BookOpen,
+    label: 'Curriculum Management',
+    path: '/app/curriculum',
+    description: 'Oversee national curriculum',
+    children: [
+      {
+        icon: BookOpen,
+        label: 'All Curricula',
+        path: '/app/curriculum',
+        description: 'View and manage all curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Curriculum Builder',
+        path: '/app/curriculum-builder',
+        description: 'Create and edit curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Standards',
+        path: '/app/standards-management',
+        description: 'Manage learning standards'
+      },
+      {
+        icon: BookOpen,
+        label: 'Learning Objectives',
+        path: '/app/learning-objectives',
+        description: 'Define learning objectives'
+      },
+      {
+        icon: BookOpen,
+        label: 'Templates',
+        path: '/app/curriculum-templates',
+        description: 'Browse curriculum templates'
+      },
+      {
+        icon: CheckSquare,
+        label: 'Approval',
+        path: '/app/curriculum-approval',
+        description: 'Review and approve curricula'
+      }
+    ]
   },
   {
     icon: BarChart,
@@ -1067,6 +1353,68 @@ export const superAdminMenuItems: MenuItem[] = [
     label: 'Courses',
     path: '/app/courses',
     description: 'Manage courses'
+  },
+  {
+    icon: BookOpen,
+    label: 'Curriculum Management',
+    path: '/app/curriculum',
+    description: 'Manage system-wide curriculum',
+    children: [
+      {
+        icon: BookOpen,
+        label: 'All Curricula',
+        path: '/app/curriculum',
+        description: 'View and manage all curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Curriculum Builder',
+        path: '/app/curriculum-builder',
+        description: 'Create and edit curricula'
+      },
+      {
+        icon: BookOpen,
+        label: 'Standards',
+        path: '/app/standards-management',
+        description: 'Manage learning standards'
+      },
+      {
+        icon: BookOpen,
+        label: 'Learning Objectives',
+        path: '/app/learning-objectives',
+        description: 'Define learning objectives'
+      },
+      {
+        icon: BookOpen,
+        label: 'Templates',
+        path: '/app/curriculum-templates',
+        description: 'Browse curriculum templates'
+      },
+      {
+        icon: CheckSquare,
+        label: 'Approval',
+        path: '/app/curriculum-approval',
+        description: 'Review and approve curricula'
+      },
+      {
+        icon: BarChart,
+        label: 'Analytics',
+        path: '/app/curriculum-analytics',
+        description: 'View curriculum implementation analytics'
+      },
+      {
+        icon: FolderOpen,
+        label: 'Resources',
+        path: '/app/curriculum-resources',
+        description: 'Manage curriculum resources and materials'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Progress Tracking',
+        path: '/app/curriculum-progress',
+        description: 'Track curriculum implementation progress'
+      }
+    ]
   },
   {
     icon: Building2,

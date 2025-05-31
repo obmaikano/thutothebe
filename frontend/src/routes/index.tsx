@@ -28,6 +28,18 @@ const TeacherSubmissions = lazy(() => import('../pages/protected/TeacherSubmissi
 const Content = lazy(() => import('../pages/protected/Content'));
 const ContentDetail = lazy(() => import('../pages/protected/ContentDetail'));
 
+// Curriculum Management pages
+const Curriculum = lazy(() => import('../pages/protected/Curriculum'));
+const CurriculumDetail = lazy(() => import('../pages/protected/CurriculumDetail'));
+const CurriculumBuilder = lazy(() => import('../pages/protected/CurriculumBuilder'));
+const StandardsManagement = lazy(() => import('../pages/protected/StandardsManagement'));
+const LearningObjectives = lazy(() => import('../pages/protected/LearningObjectives'));
+const CurriculumTemplates = lazy(() => import('../pages/protected/CurriculumTemplates'));
+const CurriculumApproval = lazy(() => import('../pages/protected/CurriculumApproval'));
+const CurriculumAnalytics = lazy(() => import('../pages/protected/CurriculumAnalytics'));
+const CurriculumResources = lazy(() => import('../pages/protected/CurriculumResources'));
+const CurriculumProgress = lazy(() => import('../pages/protected/CurriculumProgress'));
+
 // Announcement pages
 const Announcements = lazy(() => import('../pages/protected/Announcements'));
 const MyAnnouncements = lazy(() => import('../pages/protected/MyAnnouncements'));
@@ -172,6 +184,47 @@ export const appRoutes = [
   {
     path: 'content/:id',
     element: ContentDetail
+  },
+  // Curriculum Management routes
+  {
+    path: 'curriculum',
+    element: Curriculum
+  },
+  {
+    path: 'curriculum/:id',
+    element: CurriculumDetail
+  },
+  {
+    path: 'curriculum-builder',
+    element: CurriculumBuilder
+  },
+  {
+    path: 'standards-management',
+    element: StandardsManagement
+  },
+  {
+    path: 'learning-objectives',
+    element: LearningObjectives
+  },
+  {
+    path: 'curriculum-templates',
+    element: CurriculumTemplates
+  },
+  {
+    path: 'curriculum-approval',
+    element: CurriculumApproval
+  },
+  {
+    path: 'curriculum-analytics/:curriculumId',
+    element: CurriculumAnalytics
+  },
+  {
+    path: 'curriculum-resources/:curriculumId',
+    element: CurriculumResources
+  },
+  {
+    path: 'curriculum-progress/:curriculumId',
+    element: CurriculumProgress
   },
   // Announcement routes
   {
