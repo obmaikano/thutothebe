@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { fetchCurricula, clearCurriculumError, activateCurriculum, suspendCurriculum, deleteCurriculum, approveCurriculum } from '../curriculumSlice';
 import { openModal } from '../../common/modalSlice';
@@ -8,6 +9,7 @@ import { Plus, Search, BookOpen, Edit, Trash2, Eye, CheckCircle, XCircle, Archiv
 
 const CurriculumListPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { curricula, status, error } = useAppSelector(state => state.curriculum);
   const { user } = useAppSelector(state => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,8 +86,12 @@ const CurriculumListPage: React.FC = () => {
     }
   };
 
-  const handleViewDetails = (curriculum: Curriculum) => {
-    window.location.href = `/app/curriculum/${curriculum.id}`;
+  const handleRowClick = (curriculum: Curriculum, event: React.MouseEvent) => {
+    // Prevent navigation if clicking on action buttons
+    if ((event.target as HTMLElement).closest('button')) {
+      return;
+    }
+    navigate(`/app/curriculum/${curriculum.id}`);
   };
 
   const canCreateCurriculum = user && [
@@ -404,7 +410,12 @@ const CurriculumListPage: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredCurricula.map((curriculum: Curriculum) => (
-                <tr key={curriculum.id} className="hover:bg-gray-50">
+                <tr 
+                  key={curriculum.id} 
+                  className="hover:bg-blue-50 hover:shadow-sm cursor-pointer transition-all duration-200 border-l-4 border-transparent hover:border-blue-400"
+                  onClick={(event) => handleRowClick(curriculum, event)}
+                  title="Click to view curriculum details"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -440,7 +451,10 @@ const CurriculumListPage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => handleView(curriculum)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleView(curriculum);
+                        }}
                         className="text-blue-600 hover:text-blue-900"
                         title="View Details"
                       >
@@ -448,7 +462,10 @@ const CurriculumListPage: React.FC = () => {
                       </button>
                       {canEditCurriculum(curriculum) && (
                         <button
-                          onClick={() => handleEdit(curriculum)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleEdit(curriculum);
+                          }}
                           className="text-indigo-600 hover:text-indigo-900"
                           title="Edit"
                         >
@@ -457,7 +474,10 @@ const CurriculumListPage: React.FC = () => {
                       )}
                       {canApproveCurriculum && curriculum.status === 'UNDER_REVIEW' && (
                         <button
-                          onClick={() => handleApprove(curriculum)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleApprove(curriculum);
+                          }}
                           className="text-green-600 hover:text-green-900"
                           title="Approve"
                         >
@@ -465,7 +485,10 @@ const CurriculumListPage: React.FC = () => {
                         </button>
                       )}
                       <button
-                        onClick={() => handleDuplicate(curriculum)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDuplicate(curriculum);
+                        }}
                         className="text-purple-600 hover:text-purple-900"
                         title="Duplicate"
                       >
@@ -473,7 +496,10 @@ const CurriculumListPage: React.FC = () => {
                       </button>
                       {canEditCurriculum(curriculum) && (
                         <button
-                          onClick={() => handleToggleStatus(curriculum)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleToggleStatus(curriculum);
+                          }}
                           className={curriculum.active ? "text-orange-600 hover:text-orange-900" : "text-green-600 hover:text-green-900"}
                           title={curriculum.active ? "Suspend" : "Activate"}
                         >
@@ -482,7 +508,10 @@ const CurriculumListPage: React.FC = () => {
                       )}
                       {canEditCurriculum(curriculum) && (
                         <button
-                          onClick={() => handleDelete(curriculum)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(curriculum);
+                          }}
                           className="text-red-600 hover:text-red-900"
                           title="Delete"
                         >
