@@ -4,16 +4,11 @@ import { AxiosResponse } from 'axios';
 export interface Comment {
   id: number;
   content: string;
+  threadId: number;
   authorId: number;
-  authorName: string;
-  authorRole: string;
-  announcementId: number;
-  parentCommentId?: number;
-  createdAt: string;
-  modifiedAt?: string;
-  likes: number;
-  isLiked: boolean;
-  replies?: Comment[];
+  parentId?: number;
+  createdAt?: string;
+  updatedAt?: string;
   active: boolean;
 }
 
@@ -43,42 +38,140 @@ export interface ActivityResponse {
   timestamp: string | null;
 }
 
+export type CreateCommentRequest = Omit<Comment, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateCommentRequest = Partial<Comment>;
+
+/**
+ * API service for interacting with comment endpoints
+ */
 const commentApi = {
-  // Comment endpoints
-  getCommentsByAnnouncement: async (announcementId: number): Promise<AxiosResponse<CommentResponse>> => {
-    return api.get(`/comments/announcement/${announcementId}`);
+  /**
+   * Get all comments
+   * @returns Response with a list of comments
+   */
+  getAll: async (): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get('/comments');
   },
 
-  createComment: async (commentData: {
-    announcementId: number;
-    authorId: number;
-    content: string;
-    parentCommentId?: number;
-  }): Promise<AxiosResponse<CommentResponse>> => {
-    return api.post('/comments', commentData);
+  /**
+   * Get comment by ID
+   * @param id Comment ID
+   * @returns Response with comment details
+   */
+  getById: async (id: number): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get(`/comments/${id}`);
   },
 
-  updateComment: async (commentId: number, updateData: {
-    content: string;
-    userId: number;
-  }): Promise<AxiosResponse<CommentResponse>> => {
-    return api.put(`/comments/${commentId}`, updateData);
+  /**
+   * Get comments by thread ID
+   * @param threadId Thread ID
+   * @returns Response with comments
+   */
+  getByThreadId: async (threadId: number): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get(`/comments/thread/${threadId}`);
   },
 
-  deleteComment: async (commentId: number, userId: number): Promise<AxiosResponse<CommentResponse>> => {
-    return api.delete(`/comments/${commentId}?userId=${userId}`);
+  /**
+   * Get active comments by thread ID
+   * @param threadId Thread ID
+   * @param active Active status
+   * @returns Response with comments
+   */
+  getByThreadIdAndActive: async (threadId: number, active: boolean = true): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get(`/comments/thread/${threadId}/active?active=${active}`);
   },
 
-  toggleLike: async (commentId: number, userId: number): Promise<AxiosResponse<CommentResponse>> => {
-    return api.post(`/comments/${commentId}/like`, { userId });
-  },
-
-  getCommentsByAuthor: async (authorId: number): Promise<AxiosResponse<CommentResponse>> => {
+  /**
+   * Get comments by author ID
+   * @param authorId Author ID
+   * @returns Response with comments
+   */
+  getByAuthorId: async (authorId: number): Promise<AxiosResponse<CommentResponse>> => {
     return api.get(`/comments/author/${authorId}`);
   },
 
-  getCommentCount: async (announcementId: number): Promise<AxiosResponse<{ status: string; message: string; data: number; timestamp: string | null; }>> => {
-    return api.get(`/comments/announcement/${announcementId}/count`);
+  /**
+   * Get active comments by author ID
+   * @param authorId Author ID
+   * @param active Active status
+   * @returns Response with comments
+   */
+  getByAuthorIdAndActive: async (authorId: number, active: boolean = true): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get(`/comments/author/${authorId}/active?active=${active}`);
+  },
+
+  /**
+   * Get comments by parent ID
+   * @param parentId Parent comment ID
+   * @returns Response with comments
+   */
+  getByParentId: async (parentId: number): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get(`/comments/parent/${parentId}`);
+  },
+
+  /**
+   * Get active comments by parent ID
+   * @param parentId Parent comment ID
+   * @param active Active status
+   * @returns Response with comments
+   */
+  getByParentIdAndActive: async (parentId: number, active: boolean = true): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get(`/comments/parent/${parentId}/active?active=${active}`);
+  },
+
+  /**
+   * Get comment with replies by ID
+   * @param id Comment ID
+   * @returns Response with comment and replies
+   */
+  getByIdWithReplies: async (id: number): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get(`/comments/${id}/replies`);
+  },
+
+  /**
+   * Get top-level comments by thread ID
+   * @param threadId Thread ID
+   * @returns Response with top-level comments
+   */
+  getTopLevelCommentsByThreadId: async (threadId: number): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get(`/comments/thread/${threadId}/top-level`);
+  },
+
+  /**
+   * Get replies by parent ID
+   * @param parentId Parent comment ID
+   * @returns Response with replies
+   */
+  getRepliesByParentId: async (parentId: number): Promise<AxiosResponse<CommentResponse>> => {
+    return api.get(`/comments/parent/${parentId}/replies`);
+  },
+
+  /**
+   * Create a new comment
+   * @param commentData Comment data
+   * @returns Response with created comment details
+   */
+  create: async (commentData: CreateCommentRequest): Promise<AxiosResponse<CommentResponse>> => {
+    return api.post('/comments', commentData);
+  },
+
+  /**
+   * Update an existing comment
+   * @param id Comment ID
+   * @param commentData Updated comment data
+   * @returns Response with updated comment details
+   */
+  update: async (id: number, commentData: UpdateCommentRequest): Promise<AxiosResponse<CommentResponse>> => {
+    return api.put(`/comments/${id}`, commentData);
+  },
+
+  /**
+   * Delete a comment
+   * @param id Comment ID
+   * @returns Response indicating success/failure
+   */
+  delete: async (id: number): Promise<AxiosResponse<CommentResponse>> => {
+    return api.delete(`/comments/${id}`);
   },
 
   // Activity endpoints

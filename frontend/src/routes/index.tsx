@@ -97,6 +97,11 @@ const SchoolCalendar = lazy(() => import('../pages/protected/SchoolCalendar'));
 const Documents = lazy(() => import('../pages/protected/Documents'));
 const Monitoring = lazy(() => import('../pages/protected/Monitoring'));
 
+// Forum pages
+const ForumListPage = lazy(() => import('../features/forums/pages/ForumListPage'));
+const ForumDetailPage = lazy(() => import('../pages/protected/forums/ForumDetailPage'));
+const ThreadDetailPage = lazy(() => import('../pages/protected/forums/ThreadDetailPage'));
+
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
 
 // App routes - nested under /app path
@@ -426,6 +431,19 @@ export const appRoutes = [
   {
     path: 'monitoring',
     element: Monitoring
+  },
+  // Forum routes
+  {
+    path: 'forum-list',
+    element: ForumListPage
+  },
+  {
+    path: 'forum-detail/:id',
+    element: ForumDetailPage
+  },
+  {
+    path: 'thread-detail/:id',
+    element: ThreadDetailPage
   },
   // Catch all route
   {

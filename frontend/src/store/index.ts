@@ -29,6 +29,9 @@ import curriculumReducer from '../features/curriculum/curriculumSlice';
 import curriculumAdvancedReducer from '../features/curriculum/curriculumAdvancedSlice';
 import curriculumProgressReducer from '../features/curriculum/curriculumProgressSlice';
 import curriculumSubjectReducer from '../features/curriculum/curriculumSubjectSlice';
+import forumsReducer from '../features/forums/forumsSlice';
+import threadsReducer from '../features/forums/threadsSlice';
+import commentsReducer from '../features/forums/commentsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -61,6 +64,9 @@ export const store = configureStore({
     curriculumAdvanced: curriculumAdvancedReducer,
     curriculumProgress: curriculumProgressReducer,
     curriculumSubject: curriculumSubjectReducer,
+    forums: forumsReducer,
+    threads: threadsReducer,
+    comments: commentsReducer,
   },
 });
 

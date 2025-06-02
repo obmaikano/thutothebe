@@ -75,7 +75,7 @@ export const studentMenuItems: MenuItem[] = [
   {
     icon: Megaphone,
     label: 'Announcements',
-    path: '/app/announcements',
+    path: '/app/student-announcements',
     description: 'View important announcements and updates'
   },
   {
@@ -93,7 +93,7 @@ export const studentMenuItems: MenuItem[] = [
   {
     icon: FileQuestion,
     label: 'Quizzes',
-    path: '/app/quizzes',
+    path: '/app/student-quizzes',
     description: 'Take quizzes and view results'
   },
   {
@@ -105,19 +105,25 @@ export const studentMenuItems: MenuItem[] = [
   {
     icon: CheckSquare,
     label: 'My Attendance',
-    path: '/app/my-attendance',
+    path: '/app/student-attendance',
     description: 'View your attendance record and statistics'
   },
   {
     icon: Calendar,
     label: 'Calendar Events',
-    path: '/app/calendar',
+    path: '/app/student-calendar',
     description: 'View school events and your schedule'
   },
   {
     icon: MessageSquare,
+    label: 'Discussion Forums',
+    path: '/app/student-forum-list',
+    description: 'Participate in course discussions'
+  },
+  {
+    icon: MessageSquare,
     label: 'Messages',
-    path: '/app/messages',
+    path: '/app/student-messages',
     description: 'Contact teachers and staff'
   }
 ];
@@ -128,19 +134,19 @@ export const teacherMenuItems: MenuItem[] = [
   {
     icon: Megaphone,
     label: 'Announcements',
-    path: '/app/announcements',
+    path: '/app/teacher-announcements',
     description: 'View and create announcements',
     children: [
       {
         icon: Megaphone,
         label: 'All Announcements',
-        path: '/app/announcements',
+        path: '/app/teacher-announcements',
         description: 'View all announcements'
       },
       {
         icon: Megaphone,
         label: 'My Announcements',
-        path: '/app/my-announcements',
+        path: '/app/teacher-my-announcements',
         description: 'Manage your announcements'
       }
     ]
@@ -166,25 +172,25 @@ export const teacherMenuItems: MenuItem[] = [
   {
     icon: CheckSquare,
     label: 'Attendance',
-    path: '/app/attendance',
+    path: '/app/teacher-attendance',
     description: 'Mark and manage student attendance',
     children: [
       {
         icon: CheckSquare,
         label: 'Mark Attendance',
-        path: '/app/attendance/mark',
+        path: '/app/teacher-attendance/mark',
         description: 'Mark daily attendance for your classes'
       },
       {
         icon: BarChart,
         label: 'Attendance Reports',
-        path: '/app/attendance/reports',
+        path: '/app/teacher-attendance/reports',
         description: 'View attendance analytics and reports'
       },
       {
         icon: Calendar,
         label: 'Attendance Calendar',
-        path: '/app/attendance/calendar',
+        path: '/app/teacher-attendance/calendar',
         description: 'Calendar view of attendance records'
       }
     ]
@@ -198,63 +204,83 @@ export const teacherMenuItems: MenuItem[] = [
   {
     icon: FileQuestion,
     label: 'Quizzes',
-    path: '/app/quizzes',
+    path: '/app/teacher-quizzes',
     description: 'Create and manage quizzes',
     children: [
       {
         icon: FileQuestion,
         label: 'All Quizzes',
-        path: '/app/quizzes',
-        description: 'View and manage all quizzes'
+        path: '/app/teacher-quizzes',
+        description: 'View all quizzes'
       },
       {
         icon: Plus,
         label: 'Create Quiz',
-        path: '/app/quiz-creation',
-        description: 'Create a new quiz'
+        path: '/app/teacher-quiz-creation',
+        description: 'Create new quiz'
       },
       {
-        icon: BarChart3,
+        icon: BarChart,
         label: 'Quiz Analytics',
-        path: '/app/quiz-analytics',
+        path: '/app/teacher-quiz-analytics',
         description: 'View quiz performance analytics'
       }
     ]
   },
   {
+    icon: MessageSquare,
+    label: 'Discussion Forums',
+    path: '/app/teacher-forum-list',
+    description: 'Participate in course discussions',
+    children: [
+      {
+        icon: MessageSquare,
+        label: 'All Forums',
+        path: '/app/teacher-forum-list',
+        description: 'View all discussion forums'
+      }
+    ]
+  },
+  {
+    icon: BarChart,
+    label: 'My Grades',
+    path: '/app/my-grades',
+    description: 'Manage student grades'
+  },
+  {
     icon: FolderOpen,
     label: 'Content Management',
-    path: '/app/content',
+    path: '/app/teacher-content',
     description: 'Manage course content and resources'
   },
   {
     icon: FileText,
     label: 'Document Library',
-    path: '/app/documents',
+    path: '/app/teacher-documents',
     description: 'Access and manage documents',
     children: [
       {
         icon: FileText,
         label: 'All Documents',
-        path: '/app/documents',
+        path: '/app/teacher-documents',
         description: 'Browse all available documents'
       },
       {
         icon: Upload,
         label: 'Upload Documents',
-        path: '/app/documents/upload',
+        path: '/app/teacher-documents/upload',
         description: 'Upload new documents'
       },
       {
         icon: User,
         label: 'My Documents',
-        path: '/app/my-documents',
+        path: '/app/teacher-my-documents',
         description: 'View your uploaded documents'
       },
       {
         icon: Eye,
         label: 'Document Approval',
-        path: '/app/documents/approval',
+        path: '/app/teacher-documents/approval',
         description: 'Review and approve documents'
       }
     ]
@@ -286,7 +312,7 @@ export const teacherMenuItems: MenuItem[] = [
   {
     icon: BarChart,
     label: 'Grade Management',
-    path: '/app/grades',
+    path: '/app/grade-management',
     description: 'View and manage all grades',
     children: [
       {
@@ -306,13 +332,13 @@ export const teacherMenuItems: MenuItem[] = [
   {
     icon: Calendar,
     label: 'Calendar Events',
-    path: '/app/calendar',
+    path: '/app/teacher-calendar',
     description: 'Manage school events and your schedule'
   },
   {
     icon: MessageSquare,
     label: 'Messages',
-    path: '/app/messages',
+    path: '/app/teacher-messages',
     description: 'Communicate with students and parents'
   }
 ];
@@ -340,49 +366,49 @@ export const parentMenuItems: MenuItem[] = [
   {
     icon: Megaphone,
     label: 'Announcements',
-    path: '/app/announcements',
+    path: '/app/parent-announcements',
     description: 'View school announcements and updates'
   },
   {
     icon: Users,
     label: 'My Children',
-    path: '/app/children',
+    path: '/app/parent-children',
     description: 'View your children\'s profiles'
   },
   {
     icon: BarChart,
     label: 'Academic Progress',
-    path: '/app/academic-progress',
+    path: '/app/parent-academic-progress',
     description: 'Track academic performance'
   },
   {
     icon: CheckSquare,
     label: 'Child Attendance',
-    path: '/app/child-attendance',
+    path: '/app/parent-child-attendance',
     description: 'Monitor your child\'s attendance record'
   },
   {
     icon: Calendar,
     label: 'Calendar Events',
-    path: '/app/calendar',
+    path: '/app/parent-calendar',
     description: 'View school events and activities'
   },
   {
     icon: FileText,
     label: 'Reports',
-    path: '/app/reports',
+    path: '/app/parent-reports',
     description: 'View academic reports'
   },
   {
     icon: MessageSquare,
     label: 'Messages',
-    path: '/app/messages',
+    path: '/app/parent-messages',
     description: 'Contact teachers and staff'
   },
   {
     icon: Bell,
     label: 'Notifications',
-    path: '/app/notifications',
+    path: '/app/parent-notifications',
     description: 'School announcements and alerts'
   }
 ];

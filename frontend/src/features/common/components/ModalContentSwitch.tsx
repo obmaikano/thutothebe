@@ -133,6 +133,15 @@ const GradeBulkUpdateModal = lazy(() => import('../../grades/modals/GradeBulkUpd
 const GradeExportModal = lazy(() => import('../../grades/modals/GradeExportModal'));
 const GradeCategoryManageModal = lazy(() => import('../../grades/modals/GradeCategoryManageModal'));
 
+// Forum management modals
+const CreateForumModal = lazy(() => import('../../forums/components/CreateForumModal'));
+const EditForumModal = lazy(() => import('../../forums/components/EditForumModal'));
+const DeleteForumModal = lazy(() => import('../../forums/components/DeleteForumModal'));
+const CreateThreadModal = lazy(() => import('../../forums/components/CreateThreadModal'));
+const EditThreadModal = lazy(() => import('../../forums/components/EditThreadModal'));
+const DeleteThreadModal = lazy(() => import('../../forums/components/DeleteThreadModal'));
+const CreateCommentModal = lazy(() => import('../../forums/components/CreateCommentModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -1001,6 +1010,63 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <GradeCategoryManageModal extraObject={contentProps} />
+        </Suspense>
+      );
+      
+    // Forum Management Modals
+    case MODAL_BODY_TYPES.FORUM_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateForumModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.FORUM_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditForumModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.FORUM_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteForumModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.THREAD_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateThreadModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.THREAD_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditThreadModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.THREAD_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteThreadModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.COMMENT_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateCommentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.COMMENT_REPLY:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateCommentModal extraObject={contentProps} />
         </Suspense>
       );
       
