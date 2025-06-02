@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { fetchCurriculumRecommendations, validateCurriculumAlignment } from '../curriculumSlice';
 import { Curriculum } from '../../../api/services/curriculumApi';
@@ -18,7 +18,8 @@ import {
   Target,
   TrendingUp,
   Users,
-  Clock
+  Clock,
+  X
 } from 'lucide-react';
 
 interface CurriculumRecommendationsTabProps {
@@ -43,12 +44,12 @@ const CurriculumRecommendationsTab: React.FC<CurriculumRecommendationsTabProps> 
     message: string;
   } | null>(null);
 
-  const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
+  const showNotification = useCallback((type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 5000);
-  };
+  }, []);
 
-  const handleFetchRecommendations = async () => {
+  const handleFetchRecommendations = useCallback(async () => {
     setLoading(true);
     try {
       await dispatch(fetchCurriculumRecommendations(filters)).unwrap();
@@ -58,7 +59,7 @@ const CurriculumRecommendationsTab: React.FC<CurriculumRecommendationsTabProps> 
     } finally {
       setLoading(false);
     }
-  };
+  }, [dispatch, filters, showNotification]);
 
   const handleValidateAlignment = async (recommendationId: number) => {
     if (!filters.regionId) {
@@ -82,6 +83,11 @@ const CurriculumRecommendationsTab: React.FC<CurriculumRecommendationsTabProps> 
       showNotification('error', error || 'Failed to validate curriculum alignment');
     }
   };
+
+  // Load recommendations only when component mounts or when manually refreshed
+  useEffect(() => {
+    handleFetchRecommendations();
+  }, []); // Empty dependency array - only run on mount
 
   // Filter curricula based on current filters and exclude current curriculum
   const getFilteredRecommendations = () => {
@@ -146,28 +152,45 @@ const CurriculumRecommendationsTab: React.FC<CurriculumRecommendationsTabProps> 
     );
   };
 
-  useEffect(() => {
-    handleFetchRecommendations();
-  }, [filters]);
-
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col space-y-6">
       {/* Notification */}
       {notification && (
-        <div className={`alert ${
-          notification.type === 'success' ? 'alert-success' : 
-          notification.type === 'error' ? 'alert-error' : 'alert-info'
-        } mb-4`}>
-          <span>{notification.message}</span>
+        <div className={`rounded-lg border p-3 flex-shrink-0 ${
+          notification.type === 'success' ? 'bg-green-50 border-green-200' : 
+          notification.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {notification.type === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
+              {notification.type === 'error' && <AlertTriangle className="h-4 w-4 text-red-600" />}
+              {notification.type === 'info' && <AlertTriangle className="h-4 w-4 text-blue-600" />}
+              <span className={`text-sm font-medium ${
+                notification.type === 'success' ? 'text-green-800' : 
+                notification.type === 'error' ? 'text-red-800' : 'text-blue-800'
+              }`}>
+                {notification.message}
+              </span>
+            </div>
+            <button
+              onClick={() => setNotification(null)}
+              className={`p-1 rounded-md transition-colors ${
+                notification.type === 'success' ? 'hover:bg-green-100 text-green-600' : 
+                notification.type === 'error' ? 'hover:bg-red-100 text-red-600' : 'hover:bg-blue-100 text-blue-600'
+              }`}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
       {/* Header and Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex justify-between items-start mb-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 flex-shrink-0">
+        <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Curriculum Recommendations</h3>
-            <p className="text-gray-600">Discover curricula that match your requirements and standards</p>
+            <p className="text-sm text-gray-600">Discover curricula that match your requirements and standards</p>
           </div>
           <button
             onClick={handleFetchRecommendations}
@@ -235,110 +258,115 @@ const CurriculumRecommendationsTab: React.FC<CurriculumRecommendationsTabProps> 
       </div>
 
       {/* Recommendations List */}
-      <div className="space-y-4">
-        {loading ? (
-          <div className="flex justify-center items-center min-h-64">
-            <div className="loading loading-spinner loading-lg"></div>
-          </div>
-        ) : getFilteredRecommendations().length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Recommendations Found</h3>
-            <p className="text-gray-600 mb-6">Try adjusting your filters to find relevant curricula.</p>
-            <button
-              onClick={handleFetchRecommendations}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Recommendations
-            </button>
-          </div>
-        ) : (
-          getFilteredRecommendations().map((curriculum) => (
-            <div key={curriculum.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h4 className="text-lg font-semibold text-gray-900">{curriculum.title}</h4>
-                    {getStatusBadge(curriculum.status)}
-                    {getTypeBadge(curriculum.curriculumType)}
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-4">
+          {loading ? (
+            <div className="flex justify-center items-center min-h-64">
+              <div className="text-center">
+                <div className="loading loading-spinner loading-lg text-blue-600"></div>
+                <p className="mt-3 text-sm text-gray-600">Loading recommendations...</p>
+              </div>
+            </div>
+          ) : getFilteredRecommendations().length === 0 ? (
+            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+              <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Recommendations Found</h3>
+              <p className="text-gray-600 mb-6">Try adjusting your filters to find relevant curricula.</p>
+              <button
+                onClick={handleFetchRecommendations}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Recommendations
+              </button>
+            </div>
+          ) : (
+            getFilteredRecommendations().map((curriculum) => (
+              <div key={curriculum.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h4 className="text-lg font-semibold text-gray-900">{curriculum.title}</h4>
+                      {getStatusBadge(curriculum.status)}
+                      {getTypeBadge(curriculum.curriculumType)}
+                    </div>
+                    <p className="text-gray-600 mb-3">{curriculum.description}</p>
+                    
+                    {/* Curriculum Details */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Academic Year: {curriculum.academicYear}
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
+                        Duration: {curriculum.durationWeeks} weeks
+                      </div>
+                      <div className="flex items-center">
+                        <BookOpen className="h-4 w-4 mr-1" />
+                        Total Hours: {curriculum.totalHours}
+                      </div>
+                      <div className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        Created by: {curriculum.createdByName}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-gray-600 mb-3">{curriculum.description}</p>
                   
-                  {/* Curriculum Details */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Academic Year: {curriculum.academicYear}
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      Duration: {curriculum.durationWeeks} weeks
-                    </div>
-                    <div className="flex items-center">
-                      <BookOpen className="h-4 w-4 mr-1" />
-                      Total Hours: {curriculum.totalHours}
-                    </div>
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 mr-1" />
-                      Created by: {curriculum.createdByName}
-                    </div>
+                  {/* Actions */}
+                  <div className="flex items-center space-x-2 ml-4">
+                    <button
+                      onClick={() => handleValidateAlignment(curriculum.id)}
+                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <Shield className="h-4 w-4 mr-1" />
+                      Validate
+                    </button>
+                    <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </button>
+                    <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                      <Download className="h-4 w-4 mr-1" />
+                      Adopt
+                    </button>
                   </div>
                 </div>
                 
-                {/* Actions */}
-                <div className="flex items-center space-x-2 ml-4">
-                  <button
-                    onClick={() => handleValidateAlignment(curriculum.id)}
-                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    <Shield className="h-4 w-4 mr-1" />
-                    Validate
-                  </button>
-                  <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </button>
-                  <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                    <Download className="h-4 w-4 mr-1" />
-                    Adopt
-                  </button>
-                </div>
-              </div>
-              
-              {/* Validation Results */}
-              {validationResults[curriculum.id] && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                    <span className="text-sm font-medium text-green-800">Validation Result</span>
+                {/* Validation Results */}
+                {validationResults[curriculum.id] && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                      <span className="text-sm font-medium text-green-800">Validation Result</span>
+                    </div>
+                    <p className="text-sm text-green-700 mt-1">{validationResults[curriculum.id]}</p>
                   </div>
-                  <p className="text-sm text-green-700 mt-1">{validationResults[curriculum.id]}</p>
-                </div>
-              )}
-              
-              {/* Recommendation Score */}
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">Recommendation Score:</span>
-                  <div className="flex items-center">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`h-4 w-4 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                      />
-                    ))}
-                    <span className="text-sm text-gray-600 ml-1">(4.0/5.0)</span>
+                )}
+                
+                {/* Recommendation Score */}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-500">Recommendation Score:</span>
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-4 w-4 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                        />
+                      ))}
+                      <span className="text-sm text-gray-600 ml-1">(4.0/5.0)</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-500">
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    95% compatibility
                   </div>
                 </div>
-                <div className="flex items-center text-sm text-gray-500">
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  95% compatibility
-                </div>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
