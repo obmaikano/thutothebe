@@ -26,6 +26,10 @@ const TeacherAssignments = lazy(() => import('../pages/protected/TeacherAssignme
 const TeacherResources = lazy(() => import('../pages/protected/TeacherResources'));
 const TeacherSubmissions = lazy(() => import('../pages/protected/TeacherSubmissions'));
 
+// Grade Management pages
+const Grades = lazy(() => import('../pages/protected/Grades'));
+const Gradebook = lazy(() => import('../pages/protected/Gradebook'));
+
 // Content Management pages
 const Content = lazy(() => import('../pages/protected/Content'));
 const ContentDetail = lazy(() => import('../pages/protected/ContentDetail'));
@@ -186,6 +190,15 @@ export const appRoutes = [
   {
     path: 'teacher-submissions',
     element: TeacherSubmissions
+  },
+  // Grade Management routes
+  {
+    path: 'grades',
+    element: Grades
+  },
+  {
+    path: 'gradebook',
+    element: Gradebook
   },
   // Content Management routes
   {

@@ -122,6 +122,13 @@ const DocumentViewModal = lazy(() => import('../../documents/modals/DocumentView
 const DocumentEditModal = lazy(() => import('../../documents/modals/DocumentEditModal'));
 const DocumentDeleteModal = lazy(() => import('../../documents/modals/DocumentDeleteModal'));
 
+// Grade management modals
+const GradeFormModal = lazy(() => import('../../grades/modals/GradeFormModal'));
+const GradeDetailsModal = lazy(() => import('../../grades/modals/GradeDetailsModal'));
+const GradeBulkUpdateModal = lazy(() => import('../../grades/modals/GradeBulkUpdateModal'));
+const GradeExportModal = lazy(() => import('../../grades/modals/GradeExportModal'));
+const GradeCategoryManageModal = lazy(() => import('../../grades/modals/GradeCategoryManageModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -516,7 +523,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
               <button
                 type="button"
                 onClick={() => dispatch(closeModal({}))}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Cancel
               </button>
@@ -526,7 +533,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
                   // Handle delete logic here
                   dispatch(closeModal({}));
                 }}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
+                className="px-4 py-2 text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
               >
                 Delete
               </button>
@@ -637,7 +644,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
             <button
               type="button"
               onClick={() => dispatch(closeModal({}))}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             >
               Close
             </button>
@@ -715,7 +722,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
               <button
                 type="button"
                 onClick={() => dispatch(closeModal({}))}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Cancel
               </button>
@@ -725,7 +732,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
                   // Handle delete logic here
                   dispatch(closeModal({}));
                 }}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
+                className="px-4 py-2 text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
               >
                 Delete
               </button>
@@ -853,7 +860,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
     case MODAL_BODY_TYPES.DOCUMENT_UPLOAD:
       return (
         <Suspense fallback={fallback}>
-          <DocumentUploadModal />
+          <DocumentUploadModal extraObject={contentProps} />
         </Suspense>
       );
 
@@ -875,6 +882,75 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DocumentDeleteModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Grade Management Modals
+    case MODAL_BODY_TYPES.GRADE_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <GradeFormModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.GRADE_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <GradeFormModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.GRADE_VIEW_DETAILS:
+      return (
+        <Suspense fallback={fallback}>
+          <GradeDetailsModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.GRADE_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <div className="text-center py-8">
+            <p className="text-gray-600 mb-4">Are you sure you want to delete this grade?</p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => dispatch(closeModal())}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // TODO: Implement delete functionality
+                  dispatch(closeModal());
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.GRADE_BULK_UPDATE:
+      return (
+        <Suspense fallback={fallback}>
+          <GradeBulkUpdateModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.GRADE_EXPORT:
+      return (
+        <Suspense fallback={fallback}>
+          <GradeExportModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.GRADE_CATEGORY_MANAGE:
+      return (
+        <Suspense fallback={fallback}>
+          <GradeCategoryManageModal extraObject={contentProps} />
         </Suspense>
       );
       

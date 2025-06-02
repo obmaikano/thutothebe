@@ -262,6 +262,26 @@ export const teacherMenuItems: MenuItem[] = [
     description: 'Manage student grades'
   },
   {
+    icon: BarChart,
+    label: 'Grade Management',
+    path: '/app/grades',
+    description: 'View and manage all grades',
+    children: [
+      {
+        icon: BarChart,
+        label: 'All Grades',
+        path: '/app/grades',
+        description: 'View and manage all grades'
+      },
+      {
+        icon: BarChart,
+        label: 'Gradebook',
+        path: '/app/gradebook',
+        description: 'Interactive gradebook interface'
+      }
+    ]
+  },
+  {
     icon: Calendar,
     label: 'Calendar Events',
     path: '/app/calendar',

@@ -13,6 +13,7 @@ import assignmentsReducer from '../features/assignments/assignmentsSlice';
 import submissionsReducer from '../features/assignments/submissionsSlice';
 import assessmentsReducer from '../features/assessments/assessmentsSlice';
 import gradesReducer from '../features/grades/gradesSlice';
+import gradeCategoriesReducer from '../features/grades/gradeCategoriesSlice';
 import studentsReducer from '../features/students/studentsSlice';
 import progressReducer from '../features/progress/progressSlice';
 import rightDrawerReducer from '../features/common/rightDrawerSlice';
@@ -47,6 +48,7 @@ export const store = configureStore({
     submissions: submissionsReducer,
     assessments: assessmentsReducer,
     grades: gradesReducer,
+    gradeCategories: gradeCategoriesReducer,
     students: studentsReducer,
     progress: progressReducer,
     rightDrawer: rightDrawerReducer,
