@@ -389,6 +389,14 @@ export const appRoutes = [
     element: Documents
   },
   {
+    path: 'documents/upload',
+    element: lazy(() => import('../features/documents/pages/DocumentUploadPage'))
+  },
+  {
+    path: 'my-documents',
+    element: lazy(() => import('../features/documents/pages/MyDocumentsPage'))
+  },
+  {
     path: 'monitoring',
     element: Monitoring
   },

@@ -35,7 +35,12 @@ import {
   Clock,
   FileQuestion,
   Megaphone,
-  FolderOpen
+  FolderOpen,
+  Upload,
+  Download,
+  Eye,
+  Share2,
+  Archive
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -199,6 +204,38 @@ export const teacherMenuItems: MenuItem[] = [
     label: 'Content Management',
     path: '/app/content',
     description: 'Manage course content and resources'
+  },
+  {
+    icon: FileText,
+    label: 'Document Library',
+    path: '/app/documents',
+    description: 'Access and manage documents',
+    children: [
+      {
+        icon: FileText,
+        label: 'All Documents',
+        path: '/app/documents',
+        description: 'Browse all available documents'
+      },
+      {
+        icon: Upload,
+        label: 'Upload Documents',
+        path: '/app/documents/upload',
+        description: 'Upload new documents'
+      },
+      {
+        icon: User,
+        label: 'My Documents',
+        path: '/app/my-documents',
+        description: 'View your uploaded documents'
+      },
+      {
+        icon: Eye,
+        label: 'Document Approval',
+        path: '/app/documents/approval',
+        description: 'Review and approve documents'
+      }
+    ]
   },
   {
     icon: Library,

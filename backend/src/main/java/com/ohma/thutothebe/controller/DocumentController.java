@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.DocumentDTO;
+import com.ohma.thutothebe.dto.DocumentUploadRequest;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.entity.DocumentAccessLevel;
 import com.ohma.thutothebe.entity.DocumentApprovalStatus;
@@ -25,7 +26,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/documents")
+@RequestMapping("/documents")
 @Tag(name = "Document Management", description = "Document management operations")
 public class DocumentController extends BaseController<DocumentDTO, Long> {
 
@@ -56,18 +57,13 @@ public class DocumentController extends BaseController<DocumentDTO, Long> {
             @RequestParam(value = "isPublic", defaultValue = "false") boolean isPublic,
             @RequestParam(value = "requiresApproval", defaultValue = "false") boolean requiresApproval) {
         try {
-            DocumentDTO documentDTO = new DocumentDTO(
-                null, title, description, null, null, null, null, null,
-                documentCategory, accessLevel, uploadedById, null, null,
-                schoolId, null, regionId, null, classId, null, courseId, null,
-                subjectId, null, tags, null, 1, null, null, null,
-                isPublic, requiresApproval, DocumentApprovalStatus.PENDING,
-                null, null, null, null, 0L, 0L, null, null,
-                false, null, null, null, true, null, null,
-                null, null, null
+            DocumentUploadRequest uploadRequest = new DocumentUploadRequest(
+                title, description, documentCategory, accessLevel, uploadedById,
+                schoolId, regionId, classId, courseId, subjectId, tags,
+                isPublic, requiresApproval
             );
 
-            DocumentDTO uploadedDocument = documentService.uploadDocument(file, documentDTO, uploadedById);
+            DocumentDTO uploadedDocument = documentService.uploadDocument(file, uploadRequest, uploadedById);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Document uploaded successfully", uploadedDocument, null));
         } catch (Exception e) {
             log.error("Error uploading document: {}", e.getMessage(), e);

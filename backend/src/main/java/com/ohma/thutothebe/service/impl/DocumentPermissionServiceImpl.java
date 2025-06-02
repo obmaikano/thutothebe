@@ -214,7 +214,120 @@ public class DocumentPermissionServiceImpl extends BaseServiceImpl<DocumentPermi
 
     @Override
     public boolean hasDownloadPermission(Long documentId, Long userId) {
-        return hasSpecificUserPermission(documentId, userId, DocumentPermissionType.DOWNLOAD);
+        // Get the document to check access level and ownership
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+        
+        // Get the user to check role
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        
+        // 1. Check if user is the document owner
+        if (document.getUploadedBy() != null && document.getUploadedBy().getId().equals(userId)) {
+            return true;
+        }
+        
+        // 2. Check admin roles - they can download any document
+        if (user.getRole() == UserRole.SUPER_ADMIN || 
+            user.getRole() == UserRole.SCHOOL_ADMIN) {
+            return true;
+        }
+        
+        // 3. Check document access level
+        switch (document.getAccessLevel()) {
+            case PUBLIC:
+                // Public documents can be downloaded by anyone
+                return true;
+                
+            case SCHOOL:
+                // School-level documents can be downloaded by users in the same school
+                if (document.getSchool() != null && user.getSchool() != null && 
+                    document.getSchool().getId().equals(user.getSchool().getId())) {
+                    return true;
+                }
+                break;
+                
+            case CLASS:
+                // Class-level documents can be downloaded by teachers and students in the class
+                if (document.getClassEntity() != null && user.getRole() == UserRole.TEACHER) {
+                    // Teachers can download class documents if they teach the class
+                    // This would require checking teacher-class relationships
+                    return true;
+                }
+                break;
+                
+            case TEACHER_ONLY:
+                // Only teachers and above can download
+                if (user.getRole() == UserRole.TEACHER || 
+                    user.getRole() == UserRole.SENIOR_TEACHER ||
+                    user.getRole() == UserRole.DEPARTMENT_HEAD ||
+                    user.getRole() == UserRole.SCHOOL_HEAD) {
+                    return true;
+                }
+                break;
+                
+            case ADMIN_ONLY:
+                // Only admins can download
+                if (user.getRole() == UserRole.SCHOOL_ADMIN || 
+                    user.getRole() == UserRole.SUPER_ADMIN ||
+                    user.getRole() == UserRole.DEPARTMENT_HEAD ||
+                    user.getRole() == UserRole.SCHOOL_HEAD) {
+                    return true;
+                }
+                break;
+                
+            case PRIVATE:
+                // Private documents require explicit permission
+                break;
+        }
+        
+        // 4. Check explicit user permissions as fallback
+        boolean hasExplicitPermission = hasSpecificUserPermission(documentId, userId, DocumentPermissionType.DOWNLOAD);
+        if (hasExplicitPermission) {
+            return true;
+        }
+        
+        // 5. Check role-based permissions
+        boolean hasRolePermission = hasPermission(documentId, user.getRole(), DocumentPermissionType.DOWNLOAD);
+        if (hasRolePermission) {
+            return true;
+        }
+        
+        // 6. For approved documents, allow broader access based on role
+        if (document.getApprovalStatus() == DocumentApprovalStatus.APPROVED) {
+            switch (user.getRole()) {
+                case TEACHER:
+                case SENIOR_TEACHER:
+                case DEPARTMENT_HEAD:
+                case SCHOOL_HEAD:
+                    // Teachers can download approved educational content
+                    if (document.getDocumentCategory() == DocumentCategory.CURRICULUM ||
+                        document.getDocumentCategory() == DocumentCategory.LESSON_PLAN ||
+                        document.getDocumentCategory() == DocumentCategory.ACADEMIC_RESOURCE ||
+                        document.getDocumentCategory() == DocumentCategory.TRAINING_MATERIAL ||
+                        document.getDocumentCategory() == DocumentCategory.REFERENCE_MATERIAL) {
+                        return true;
+                    }
+                    break;
+                case STUDENT:
+                    // Students can download approved student resources
+                    if (document.getDocumentCategory() == DocumentCategory.ACADEMIC_RESOURCE ||
+                        document.getDocumentCategory() == DocumentCategory.ASSIGNMENT ||
+                        document.getDocumentCategory() == DocumentCategory.REFERENCE_MATERIAL) {
+                        return true;
+                    }
+                    break;
+                case PARENT:
+                    // Parents can download approved announcements and forms
+                    if (document.getDocumentCategory() == DocumentCategory.ANNOUNCEMENT ||
+                        document.getDocumentCategory() == DocumentCategory.FORM) {
+                        return true;
+                    }
+                    break;
+            }
+        }
+        
+        return false;
     }
 
     @Override

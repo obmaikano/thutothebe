@@ -1,14 +1,14 @@
 package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.DocumentDTO;
+import com.ohma.thutothebe.dto.DocumentUploadRequest;
 import com.ohma.thutothebe.entity.*;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.DocumentMapper;
 import com.ohma.thutothebe.repository.*;
-import com.ohma.thutothebe.service.DocumentService;
 import com.ohma.thutothebe.service.DocumentAccessLogService;
 import com.ohma.thutothebe.service.DocumentPermissionService;
-import com.ohma.thutothebe.service.impl.BaseServiceImpl;
+import com.ohma.thutothebe.service.DocumentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,12 +26,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -93,6 +88,72 @@ public class DocumentServiceImpl extends BaseServiceImpl<Document, DocumentDTO, 
     @Override
     protected void updateEntity(Document entity, DocumentDTO dto) {
         documentMapper.updateEntityFromDto(entity, dto);
+    }
+
+    @Override
+    public DocumentDTO uploadDocument(MultipartFile file, DocumentUploadRequest uploadRequest, Long uploadedById) {
+        validateFile(file);
+        
+        User uploadedBy = userRepository.findById(uploadedById)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + uploadedById));
+
+        try {
+            // Create upload directory if it doesn't exist
+            Path uploadPath = Paths.get(uploadDirectory);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            // Generate unique filename
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isBlank()) {
+                originalFilename = "uploaded_file_" + System.currentTimeMillis();
+            }
+            String fileExtension = getFileExtension(originalFilename);
+            String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
+            Path filePath = uploadPath.resolve(uniqueFilename);
+
+            // Copy file to upload directory
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Calculate checksum
+            String checksum = calculateChecksum(file.getBytes());
+
+            // Create document entity directly from upload request
+            Document document = new Document();
+            document.setTitle(uploadRequest.title());
+            document.setDescription(uploadRequest.description());
+            document.setFileName(originalFilename);
+            document.setFilePath(filePath.toString());
+            document.setFileSize(file.getSize());
+            document.setMimeType(file.getContentType() != null ? file.getContentType() : "application/octet-stream");
+            document.setDocumentType(determineDocumentType(file.getContentType()));
+            document.setDocumentCategory(uploadRequest.documentCategory());
+            document.setAccessLevel(uploadRequest.accessLevel());
+            document.setUploadedBy(uploadedBy);
+            document.setUploadedAt(LocalDateTime.now());
+            document.setChecksum(checksum);
+            document.setTags(uploadRequest.tags());
+            document.setPublic(uploadRequest.isPublic());
+            document.setRequiresApproval(uploadRequest.requiresApproval());
+            document.setApprovalStatus(uploadRequest.requiresApproval() ? DocumentApprovalStatus.PENDING : DocumentApprovalStatus.APPROVED);
+
+            // Set related entities
+            setRelatedEntities(document, uploadRequest);
+
+            Document savedDocument = documentRepository.save(document);
+
+            // Log the upload
+            documentAccessLogService.logSuccessfulAccess(savedDocument.getId(), uploadedById, 
+                    DocumentAccessType.EDIT, null, null, null);
+
+            log.info("Document uploaded successfully: {} by user: {}", savedDocument.getTitle(), uploadedById);
+            return documentMapper.toDto(savedDocument);
+
+        } catch (IOException e) {
+            log.error("Error uploading document: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to upload document: " + e.getMessage());
+        }
     }
 
     @Override
@@ -324,6 +385,38 @@ public class DocumentServiceImpl extends BaseServiceImpl<Document, DocumentDTO, 
         if (documentDTO.subjectId() != null) {
             Subject subject = subjectRepository.findById(documentDTO.subjectId())
                     .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + documentDTO.subjectId()));
+            document.setSubject(subject);
+        }
+    }
+
+    private void setRelatedEntities(Document document, DocumentUploadRequest uploadRequest) {
+        if (uploadRequest.schoolId() != null) {
+            School school = schoolRepository.findById(uploadRequest.schoolId())
+                    .orElseThrow(() -> new ResourceNotFoundException("School not found with id: " + uploadRequest.schoolId()));
+            document.setSchool(school);
+        }
+        
+        if (uploadRequest.regionId() != null) {
+            Region region = regionRepository.findById(uploadRequest.regionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Region not found with id: " + uploadRequest.regionId()));
+            document.setRegion(region);
+        }
+        
+        if (uploadRequest.classId() != null) {
+            com.ohma.thutothebe.entity.Class classEntity = classRepository.findById(uploadRequest.classId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Class not found with id: " + uploadRequest.classId()));
+            document.setClassEntity(classEntity);
+        }
+        
+        if (uploadRequest.courseId() != null) {
+            Course course = courseRepository.findById(uploadRequest.courseId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + uploadRequest.courseId()));
+            document.setCourse(course);
+        }
+        
+        if (uploadRequest.subjectId() != null) {
+            Subject subject = subjectRepository.findById(uploadRequest.subjectId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + uploadRequest.subjectId()));
             document.setSubject(subject);
         }
     }

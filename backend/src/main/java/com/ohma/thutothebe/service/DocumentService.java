@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.DocumentDTO;
+import com.ohma.thutothebe.dto.DocumentUploadRequest;
 import com.ohma.thutothebe.entity.DocumentAccessLevel;
 import com.ohma.thutothebe.entity.DocumentApprovalStatus;
 import com.ohma.thutothebe.entity.DocumentCategory;
@@ -15,6 +16,7 @@ import java.util.List;
 public interface DocumentService extends BaseService<DocumentDTO, Long> {
 
     // File upload and management
+    DocumentDTO uploadDocument(MultipartFile file, DocumentUploadRequest uploadRequest, Long uploadedById);
     DocumentDTO uploadDocument(MultipartFile file, DocumentDTO documentDTO, Long uploadedById);
     DocumentDTO uploadDocumentVersion(Long parentDocumentId, MultipartFile file, DocumentDTO documentDTO, Long uploadedById);
     byte[] downloadDocument(Long documentId, Long userId);

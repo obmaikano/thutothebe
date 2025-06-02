@@ -29,6 +29,7 @@ import calendarEventsReducer from '../features/calendar/calendarEventsSlice';
 import contentReducer from '../features/content/contentSlice';
 import curriculumReducer from '../features/curriculum/curriculumSlice';
 import curriculumSubjectReducer from '../features/curriculum/curriculumSubjectSlice';
+import documentsReducer from '../features/documents/documentsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -62,6 +63,7 @@ export const store = configureStore({
     content: contentReducer,
     curriculum: curriculumReducer,
     curriculumSubject: curriculumSubjectReducer,
+    documents: documentsReducer,
   },
 });
 

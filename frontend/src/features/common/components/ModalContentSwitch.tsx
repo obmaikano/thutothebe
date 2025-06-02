@@ -116,6 +116,12 @@ const EventDetailsModal = lazy(() => import('../../calendar/modals/EventDetailsM
 const DeleteEventModal = lazy(() => import('../../calendar/modals/DeleteEventModal'));
 const AddAttendeeModal = lazy(() => import('../../calendar/modals/AddAttendeeModal'));
 
+// Document management modals
+const DocumentUploadModal = lazy(() => import('../../documents/modals/DocumentUploadModal'));
+const DocumentViewModal = lazy(() => import('../../documents/modals/DocumentViewModal'));
+const DocumentEditModal = lazy(() => import('../../documents/modals/DocumentEditModal'));
+const DocumentDeleteModal = lazy(() => import('../../documents/modals/DocumentDeleteModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -840,6 +846,35 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DuplicateCurriculumModal extraObject={contentProps} />
+        </Suspense>
+      );
+      
+    // Document Management Modals
+    case MODAL_BODY_TYPES.DOCUMENT_UPLOAD:
+      return (
+        <Suspense fallback={fallback}>
+          <DocumentUploadModal />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.DOCUMENT_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <DocumentViewModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.DOCUMENT_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <DocumentEditModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.DOCUMENT_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DocumentDeleteModal extraObject={contentProps} />
         </Suspense>
       );
       

@@ -71,6 +71,13 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
+  # File Upload Configuration
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      enabled: true
+
 server:
   port: 8080
   servlet:
