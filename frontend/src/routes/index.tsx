@@ -54,6 +54,8 @@ const AnnouncementDetails = lazy(() => import('../pages/protected/AnnouncementDe
 
 // Quiz Management pages
 const Quizzes = lazy(() => import('../pages/protected/Quizzes'));
+const QuizCreation = lazy(() => import('../pages/protected/QuizCreation'));
+const QuizAnalytics = lazy(() => import('../pages/protected/QuizAnalytics'));
 const QuizTakingPage = lazy(() => import('../features/quizzes/pages/QuizTakingPage'));
 const QuizResultsPage = lazy(() => import('../features/quizzes/pages/QuizResultsPage'));
 
@@ -275,6 +277,18 @@ export const appRoutes = [
   {
     path: 'quizzes',
     element: Quizzes
+  },
+  {
+    path: 'quiz-creation',
+    element: QuizCreation
+  },
+  {
+    path: 'quiz-creation/:id',
+    element: QuizCreation
+  },
+  {
+    path: 'quiz-analytics',
+    element: QuizAnalytics
   },
   {
     path: 'quiz-take/:id',

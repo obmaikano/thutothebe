@@ -104,6 +104,10 @@ const CreateQuizModal = lazy(() => import('../../quizzes/modals/CreateQuizModal'
 const EditQuizModal = lazy(() => import('../../quizzes/modals/EditQuizModal'));
 const DeleteQuizModal = lazy(() => import('../../quizzes/modals/DeleteQuizModal'));
 
+// Question management modals
+const CreateQuestionModal = lazy(() => import('../../quizzes/modals/CreateQuestionModal'));
+const EditQuestionModal = lazy(() => import('../../quizzes/modals/EditQuestionModal'));
+
 // Attendance management modals
 const MarkAttendanceModal = lazy(() => import('../../attendance/modals/MarkAttendanceModal'));
 const BulkAttendanceModal = lazy(() => import('../../attendance/modals/BulkAttendanceModal'));
@@ -674,6 +678,52 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
+    // Question Management Modals
+    case MODAL_BODY_TYPES.QUESTION_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateQuestionModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.QUESTION_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditQuestionModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.QUESTION_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Delete Question</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to delete this question? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => dispatch(closeModal({}))}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // Handle delete logic here
+                  dispatch(closeModal({}));
+                }}
+                className="px-4 py-2 text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </Suspense>
+      );
+
     // Attendance Management Modals
     case MODAL_BODY_TYPES.ATTENDANCE_MARK:
       return (
@@ -914,7 +964,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
             <p className="text-gray-600 mb-4">Are you sure you want to delete this grade?</p>
             <div className="flex justify-center space-x-4">
               <button
-                onClick={() => dispatch(closeModal())}
+                onClick={() => dispatch(closeModal({}))}
                 className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
               >
                 Cancel
@@ -922,7 +972,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
               <button
                 onClick={() => {
                   // TODO: Implement delete functionality
-                  dispatch(closeModal());
+                  dispatch(closeModal({}));
                 }}
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
               >

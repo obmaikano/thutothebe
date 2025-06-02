@@ -40,7 +40,9 @@ import {
   Download,
   Eye,
   Share2,
-  Archive
+  Archive,
+  Plus,
+  BarChart3
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -197,7 +199,27 @@ export const teacherMenuItems: MenuItem[] = [
     icon: FileQuestion,
     label: 'Quizzes',
     path: '/app/quizzes',
-    description: 'Create and manage quizzes'
+    description: 'Create and manage quizzes',
+    children: [
+      {
+        icon: FileQuestion,
+        label: 'All Quizzes',
+        path: '/app/quizzes',
+        description: 'View and manage all quizzes'
+      },
+      {
+        icon: Plus,
+        label: 'Create Quiz',
+        path: '/app/quiz-creation',
+        description: 'Create a new quiz'
+      },
+      {
+        icon: BarChart3,
+        label: 'Quiz Analytics',
+        path: '/app/quiz-analytics',
+        description: 'View quiz performance analytics'
+      }
+    ]
   },
   {
     icon: FolderOpen,

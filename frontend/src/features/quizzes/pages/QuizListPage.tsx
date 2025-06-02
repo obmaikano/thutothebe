@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store';
-import { fetchQuizzes, clearQuizzesError } from '../quizzesSlice';
+import { fetchQuizzes, clearQuizzesError, activateQuiz, deactivateQuiz } from '../quizzesSlice';
 import { fetchCourses } from '../../courses/coursesSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { Quiz } from '../../../api/services/quizApi';
-import { Search, Filter, Plus, Edit, Trash2, Eye, FileQuestion, Clock, Users, BookOpen } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, Eye, FileQuestion, Clock, Users, BookOpen, Play, Settings, BarChart3 } from 'lucide-react';
 
 const QuizListPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -28,20 +28,11 @@ const QuizListPage: React.FC = () => {
   }, [dispatch]);
 
   const handleCreateQuiz = () => {
-    dispatch(openModal({
-      title: 'Create New Quiz',
-      bodyType: MODAL_BODY_TYPES.QUIZ_ADD_NEW,
-      size: 'lg'
-    }));
+    navigate('/app/quiz-creation');
   };
 
   const handleEditQuiz = (quiz: Quiz) => {
-    dispatch(openModal({
-      title: 'Edit Quiz',
-      bodyType: MODAL_BODY_TYPES.QUIZ_EDIT,
-      extraObject: quiz,
-      size: 'lg'
-    }));
+    navigate(`/app/quiz-creation/${quiz.id}`);
   };
 
   const handleDeleteQuiz = (quiz: Quiz) => {
@@ -55,6 +46,22 @@ const QuizListPage: React.FC = () => {
 
   const handleViewQuiz = (quiz: Quiz) => {
     navigate(`/app/quiz-results/${quiz.id}`);
+  };
+
+  const handleViewAnalytics = () => {
+    navigate('/app/quiz-analytics');
+  };
+
+  const handleToggleStatus = async (quiz: Quiz) => {
+    try {
+      if (quiz.active) {
+        await dispatch(deactivateQuiz(quiz.id)).unwrap();
+      } else {
+        await dispatch(activateQuiz(quiz.id)).unwrap();
+      }
+    } catch (error) {
+      console.error('Failed to toggle quiz status:', error);
+    }
   };
 
   // Check if user can create quizzes
@@ -72,6 +79,12 @@ const QuizListPage: React.FC = () => {
                          quiz.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || quiz.status === statusFilter;
     const matchesCourse = !courseFilter || quiz.courseId.toString() === courseFilter;
+    
+    // For teachers, only show their quizzes
+    if (user?.role === 'TEACHER') {
+      return quiz.instructorId === user.id && matchesSearch && matchesStatus && matchesCourse;
+    }
+    
     return matchesSearch && matchesStatus && matchesCourse;
   });
 
@@ -94,8 +107,8 @@ const QuizListPage: React.FC = () => {
 
   if (status === 'loading') {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="flex justify-center items-center min-h-64">
+        <div className="loading loading-spinner loading-lg"></div>
       </div>
     );
   }
@@ -108,178 +121,281 @@ const QuizListPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Quiz Management</h1>
           <p className="text-gray-600 mt-2">Create and manage quizzes for your courses</p>
         </div>
-        {canCreateQuizzes && (
+        <div className="flex items-center gap-3">
           <button
-            onClick={handleCreateQuiz}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            onClick={handleViewAnalytics}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
-            <Plus className="h-5 w-5" />
-            Create Quiz
+            <BarChart3 size={16} />
+            Analytics
           </button>
-        )}
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Search quizzes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          {/* Status Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
+          {canCreateQuizzes && (
+            <button
+              onClick={handleCreateQuiz}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
             >
-              <option value="">All Status</option>
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
-          </div>
-
-          {/* Course Filter */}
-          <div className="relative">
-            <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <select
-              value={courseFilter}
-              onChange={(e) => setCourseFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
-            >
-              <option value="">All Courses</option>
-              {(courses || []).map(course => (
-                <option key={course.id} value={course.id.toString()}>
-                  {course.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Quiz Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredQuizzes.map((quiz) => (
-          <div key={quiz.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-            {/* Quiz Header */}
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">{quiz.title}</h3>
-                <p className="text-sm text-gray-500 mb-2">Code: {quiz.code}</p>
-                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(quiz.status)}`}>
-                  {quiz.status}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => handleViewQuiz(quiz)}
-                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="View Quiz"
-                >
-                  <Eye className="h-4 w-4" />
-                </button>
-                {canCreateQuizzes && (
-                  <>
-                    <button
-                      onClick={() => handleEditQuiz(quiz)}
-                      className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
-                      title="Edit Quiz"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteQuiz(quiz)}
-                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                      title="Delete Quiz"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Quiz Description */}
-            {quiz.description && (
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">{quiz.description}</p>
-            )}
-
-            {/* Quiz Details */}
-            <div className="space-y-2 text-sm text-gray-600 mb-4">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                <span>{quiz.courseName || 'Course'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span>{quiz.timeLimit} minutes</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span>{quiz.totalPoints} points</span>
-              </div>
-            </div>
-
-            {/* Quiz Dates */}
-            <div className="border-t pt-3">
-              <div className="text-xs text-gray-500">
-                <div className="flex justify-between">
-                  <span>Start:</span>
-                  <span>{formatDate(quiz.startDate)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>End:</span>
-                  <span>{formatDate(quiz.endDate)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {filteredQuizzes.length === 0 && (
-        <div className="text-center py-12">
-          <FileQuestion className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No quizzes found</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            {searchTerm || statusFilter || courseFilter
-              ? 'Try adjusting your search criteria.'
-              : canCreateQuizzes
-              ? 'Get started by creating your first quiz.'
-              : 'No quizzes have been created yet.'}
-          </p>
-          {canCreateQuizzes && !searchTerm && !statusFilter && !courseFilter && (
-            <div className="mt-6">
-              <button
-                onClick={handleCreateQuiz}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
-              >
-                <Plus className="h-5 w-5" />
-                Create Your First Quiz
-              </button>
-            </div>
+              <Plus size={16} />
+              Create Quiz
+            </button>
           )}
         </div>
+      </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="flex justify-between items-center">
+            <span>{error}</span>
+            <button
+              onClick={() => dispatch(clearQuizzesError())}
+              className="text-red-500 hover:text-red-700"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       )}
+
+      {/* Search and Filters */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center space-x-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search quizzes by title, code, or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">All Status</option>
+            <option value="DRAFT">Draft</option>
+            <option value="PUBLISHED">Published</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+          <select 
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">All Courses</option>
+            {(courses || []).map(course => (
+              <option key={course.id} value={course.id.toString()}>
+                {course.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Stats Summary */}
+      {filteredQuizzes.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                <FileQuestion size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{filteredQuizzes.length}</div>
+                <div className="text-sm text-gray-500">Total Quizzes</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg mr-3">
+                <Play size={20} className="text-green-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {filteredQuizzes.filter(q => q.status === 'PUBLISHED' && q.active).length}
+                </div>
+                <div className="text-sm text-gray-500">Active Quizzes</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg mr-3">
+                <Edit size={20} className="text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {filteredQuizzes.filter(q => q.status === 'DRAFT').length}
+                </div>
+                <div className="text-sm text-gray-500">Draft Quizzes</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                <BookOpen size={20} className="text-purple-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {new Set(filteredQuizzes.map(q => q.courseId)).size}
+                </div>
+                <div className="text-sm text-gray-500">Courses with Quizzes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quiz Table */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Quiz List</h3>
+          <p className="text-sm text-gray-600">Manage your quizzes and track their performance</p>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Quiz Details
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Course
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Schedule
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Settings
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredQuizzes.map((quiz) => (
+                <tr key={quiz.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{quiz.title}</div>
+                      <div className="text-sm text-gray-500">Code: {quiz.code}</div>
+                      {quiz.description && (
+                        <div className="text-sm text-gray-500 mt-1 max-w-xs truncate">
+                          {quiz.description}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {quiz.courseName || courses?.find(c => c.id === quiz.courseId)?.name || 'N/A'}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-col gap-1">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(quiz.status)}`}>
+                        {quiz.status}
+                      </span>
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                        quiz.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {quiz.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <Clock size={12} className="text-gray-400" />
+                        <span>Start: {formatDate(quiz.startDate)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock size={12} className="text-gray-400" />
+                        <span>End: {formatDate(quiz.endDate)}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div className="flex flex-col gap-1">
+                      <div>{quiz.timeLimit} minutes</div>
+                      <div>{quiz.totalPoints} points</div>
+                      <div>Max attempts: {quiz.maxAttempts}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleViewQuiz(quiz)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View Results"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      {canCreateQuizzes && (
+                        <>
+                          <button
+                            onClick={() => handleEditQuiz(quiz)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Edit Quiz"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleToggleStatus(quiz)}
+                            className={`${
+                              quiz.active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                            }`}
+                            title={quiz.active ? 'Deactivate Quiz' : 'Activate Quiz'}
+                          >
+                            {quiz.active ? <Users size={16} /> : <Play size={16} />}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteQuiz(quiz)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete Quiz"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {filteredQuizzes.length === 0 && (
+          <div className="text-center py-12">
+            <FileQuestion size={48} className="mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Quizzes Found</h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm || statusFilter || courseFilter 
+                ? 'No quizzes match your current filters.' 
+                : 'Get started by creating your first quiz.'}
+            </p>
+            {canCreateQuizzes && !searchTerm && !statusFilter && !courseFilter && (
+              <button
+                onClick={handleCreateQuiz}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors mx-auto"
+              >
+                <Plus size={16} />
+                Create First Quiz
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
