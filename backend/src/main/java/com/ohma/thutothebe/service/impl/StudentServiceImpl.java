@@ -76,7 +76,7 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         entity.setDisabilities(dto.disabilities());
         entity.setEmergencyContactName(dto.emergencyContactName());
         entity.setEmergencyContactPhone(dto.emergencyContactPhone());
-        entity.setEmergencyContactRelation(dto.emergencyContactRelation());
+        entity.setEmergencyContactRelationship(dto.emergencyContactRelation());
         entity.setActive(dto.active());
         entity.setStatus(dto.status());
         entity.setOnboardingNotes(dto.onboardingNotes());
@@ -891,7 +891,7 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
             null, // disabilities
             user.getPerson() != null ? user.getPerson().getFirstName() : "Emergency Contact", // emergencyContactName
             "", // emergencyContactPhone - will be updated during onboarding
-            "Parent", // emergencyContactRelation
+            "Parent", // emergencyContactRelationship
             user.getSchool().getId(), // schoolId
             user.getId(), // userId
             user.getPerson() != null ? user.getPerson().getId() : null, // personId

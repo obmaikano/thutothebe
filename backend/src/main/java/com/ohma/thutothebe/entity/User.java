@@ -9,15 +9,17 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Objects;
 
 @Entity
 @Table(name = "users")
 @Data
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 public class User extends BaseEntity {
     
     @NotBlank
     @Column(unique = true)
+    @EqualsAndHashCode.Include
     private String username;
 
     @NotBlank
@@ -32,6 +34,7 @@ public class User extends BaseEntity {
     @Email
     @NotBlank
     @Column(unique = true)
+    @EqualsAndHashCode.Include
     private String email;
 
     @NotNull
@@ -69,4 +72,20 @@ public class User extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "person_id")
     private Person person;
+
+    // Override hashCode and equals to prevent circular references
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User that = (User) o;
+        return Objects.equals(getId(), that.getId()) && 
+               Objects.equals(username, that.username) &&
+               Objects.equals(email, that.email);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), username, email);
+    }
 } 

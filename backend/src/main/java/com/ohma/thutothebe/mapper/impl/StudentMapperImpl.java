@@ -52,7 +52,7 @@ public class StudentMapperImpl implements StudentMapper {
         student.setDisabilities(dto.disabilities());
         student.setEmergencyContactName(dto.emergencyContactName());
         student.setEmergencyContactPhone(dto.emergencyContactPhone());
-        student.setEmergencyContactRelation(dto.emergencyContactRelation());
+        student.setEmergencyContactRelationship(dto.emergencyContactRelation());
         student.setActive(dto.active());
         student.setStatus(dto.status());
         student.setOnboardingNotes(dto.onboardingNotes());
@@ -107,7 +107,7 @@ public class StudentMapperImpl implements StudentMapper {
             entity.getDisabilities(),
             entity.getEmergencyContactName(),
             entity.getEmergencyContactPhone(),
-            entity.getEmergencyContactRelation(),
+            entity.getEmergencyContactRelationship(),
             entity.getSchool() != null ? entity.getSchool().getId() : null,
             entity.getUser() != null ? entity.getUser().getId() : null,
             entity.getPerson() != null ? entity.getPerson().getId() : null,

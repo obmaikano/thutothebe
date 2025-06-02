@@ -1,6 +1,10 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.CurriculumDTO;
+import com.ohma.thutothebe.dto.CurriculumSubjectDTO;
+import com.ohma.thutothebe.dto.CurriculumUnitDTO;
+import com.ohma.thutothebe.dto.SubjectDTO;
+import com.ohma.thutothebe.dto.UpdateCurriculumSubjectRequest;
 import com.ohma.thutothebe.entity.CurriculumStatus;
 import com.ohma.thutothebe.entity.CurriculumType;
 import com.ohma.thutothebe.entity.enums.GradeLevel;
@@ -48,6 +52,8 @@ public interface CurriculumService extends BaseService<CurriculumDTO, Long> {
 
     CurriculumDTO archiveCurriculum(Long curriculumId);
 
+    CurriculumDTO submitCurriculumForReview(Long curriculumId);
+
     CurriculumDTO addSubjectToCurriculum(Long curriculumId, Long subjectId, boolean isCore, Integer allocatedHours, Double weightPercentage);
 
     CurriculumDTO removeSubjectFromCurriculum(Long curriculumId, Long subjectId);
@@ -60,9 +66,26 @@ public interface CurriculumService extends BaseService<CurriculumDTO, Long> {
 
     CurriculumDTO createCurriculumTopic(Long curriculumUnitId, String title, String description, Integer topicOrder, Integer durationHours);
 
+    // ==================== CURRICULUM UNITS ====================
+    
+    List<CurriculumUnitDTO> getCurriculumUnits(Long curriculumId);
+
     List<CurriculumDTO> getCurriculumRecommendations(GradeLevel gradeLevel, CurriculumType type, Long regionId);
 
     void validateCurriculumAlignment(Long curriculumId, Long regionId);
 
     CurriculumDTO duplicateCurriculum(Long curriculumId, String newTitle, Integer newAcademicYear);
+
+    // Subject management methods
+    CurriculumDTO updateCurriculumSubjects(Long curriculumId, List<Long> subjectIds);
+
+    // Export/Import methods
+    String exportCurriculum(Long curriculumId, String format);
+    
+    CurriculumDTO importCurriculum(String fileContent, String format);
+
+    // New methods for subject management
+    List<SubjectDTO> getAvailableSubjects(Long curriculumId);
+
+    CurriculumSubjectDTO updateCurriculumSubject(Long curriculumId, Long subjectId, UpdateCurriculumSubjectRequest request);
 } 

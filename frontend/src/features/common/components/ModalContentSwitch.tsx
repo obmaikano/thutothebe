@@ -8,6 +8,15 @@ const CreateSubjectModal = lazy(() => import('../../subjects/modals/CreateSubjec
 const EditSubjectModal = lazy(() => import('../../subjects/modals/EditSubjectModal'));
 const DeleteSubjectModal = lazy(() => import('../../subjects/modals/DeleteSubjectModal'));
 
+// Department management modals
+const CreateDepartmentModal = lazy(() => import('../../departments/modals/CreateDepartmentModal'));
+const EditDepartmentModal = lazy(() => import('../../departments/modals/EditDepartmentModal'));
+const DeleteDepartmentModal = lazy(() => import('../../departments/modals/DeleteDepartmentModal'));
+const ViewDepartmentModal = lazy(() => import('../../departments/modals/ViewDepartmentModal'));
+const AssignDepartmentHeadModal = lazy(() => import('../../departments/modals/AssignDepartmentHeadModal'));
+const AssignTeacherModal = lazy(() => import('../../departments/modals/AssignTeacherModal'));
+const AssignSubjectModal = lazy(() => import('../../departments/modals/AssignSubjectModal'));
+
 // School management modals
 const CreateSchoolModal = lazy(() => import('../../schools/modals/CreateSchoolModal'));
 const EditSchoolModal = lazy(() => import('../../schools/modals/EditSchoolModal'));
@@ -139,6 +148,56 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DeleteSubjectModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Department Management Modals
+    case MODAL_BODY_TYPES.DEPARTMENT_ADD_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateDepartmentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.DEPARTMENT_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <EditDepartmentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.DEPARTMENT_DELETE_CONFIRMATION:
+      return (
+        <Suspense fallback={fallback}>
+          <DeleteDepartmentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.DEPARTMENT_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <ViewDepartmentModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.DEPARTMENT_ASSIGN_HEAD:
+      return (
+        <Suspense fallback={fallback}>
+          <AssignDepartmentHeadModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.DEPARTMENT_ASSIGN_TEACHER:
+      return (
+        <Suspense fallback={fallback}>
+          <AssignTeacherModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.DEPARTMENT_ASSIGN_SUBJECT:
+      return (
+        <Suspense fallback={fallback}>
+          <AssignSubjectModal extraObject={contentProps} />
         </Suspense>
       );
 

@@ -5,6 +5,8 @@ import { Navigate } from 'react-router-dom';
 const Dashboard = lazy(() => import('../pages/protected/Dashboard'));
 const Subjects = lazy(() => import('../pages/protected/Subjects'));
 const SubjectDetail = lazy(() => import('../pages/protected/SubjectDetail'));
+const Departments = lazy(() => import('../pages/protected/Departments'));
+const DepartmentDetail = lazy(() => import('../pages/protected/DepartmentDetail'));
 const Regions = lazy(() => import('../pages/protected/Regions'));
 const RegionDetail = lazy(() => import('../pages/protected/RegionDetail'));
 const Schools = lazy(() => import('../pages/protected/Schools'));
@@ -104,6 +106,14 @@ export const appRoutes = [
   {
     path: 'subjects/:id',
     element: SubjectDetail
+  },
+  {
+    path: 'departments',
+    element: Departments
+  },
+  {
+    path: 'departments/:id',
+    element: DepartmentDetail
   },
   {
     path: 'regions',

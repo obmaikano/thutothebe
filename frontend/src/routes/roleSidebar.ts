@@ -458,6 +458,12 @@ export const schoolAdminMenuItems: MenuItem[] = [
     description: 'Allocate subjects to teachers'
   },
   {
+    icon: Building2,
+    label: 'Department Management',
+    path: '/app/departments',
+    description: 'Manage school departments and their resources'
+  },
+  {
     icon: BookOpen,
     label: 'Curriculum Management',
     path: '/app/curriculum',
@@ -597,6 +603,12 @@ export const schoolHeadMenuItems: MenuItem[] = [
     label: 'Staff Management',
     path: '/app/staff',
     description: 'Manage school staff'
+  },
+  {
+    icon: Building2,
+    label: 'Department Management',
+    path: '/app/departments',
+    description: 'Manage school departments and their resources'
   },
   {
     icon: UserSquare,

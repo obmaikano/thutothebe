@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.repository;
 
 import com.ohma.thutothebe.entity.CurriculumUnit;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +14,7 @@ import java.util.Optional;
 public interface CurriculumUnitRepository extends JpaRepository<CurriculumUnit, Long> {
 
     @Query("SELECT cu FROM CurriculumUnit cu WHERE cu.curriculum.id = :curriculumId AND cu.active = true ORDER BY cu.unitOrder")
+    @EntityGraph(attributePaths = {"curriculumTopics"})
     List<CurriculumUnit> findByCurriculumIdOrderByUnitOrder(@Param("curriculumId") Long curriculumId);
 
     @Query("SELECT cu FROM CurriculumUnit cu WHERE cu.curriculum.id = :curriculumId AND cu.unitOrder = :unitOrder AND cu.active = true")

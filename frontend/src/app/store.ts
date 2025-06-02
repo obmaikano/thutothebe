@@ -3,6 +3,7 @@ import authReducer from '../features/auth/authSlice';
 import commonReducer from '../features/common/commonSlice';
 import coursesReducer from '../features/courses/coursesSlice';
 import subjectsReducer from '../features/subjects/subjectsSlice';
+import departmentsReducer from '../features/departments/departmentsSlice';
 import classesReducer from '../features/classes/classesSlice';
 import schoolsReducer from '../features/schools/schoolsSlice';
 import regionsReducer from '../features/regions/regionsSlice';
@@ -35,6 +36,7 @@ export const store = configureStore({
     common: commonReducer,
     courses: coursesReducer,
     subjects: subjectsReducer,
+    departments: departmentsReducer,
     classes: classesReducer,
     schools: schoolsReducer,
     regions: regionsReducer,

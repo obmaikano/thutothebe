@@ -2,8 +2,10 @@ package com.ohma.thutothebe.mapper;
 
 import com.ohma.thutothebe.dto.CurriculumUnitDTO;
 import com.ohma.thutothebe.entity.CurriculumUnit;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -16,20 +18,36 @@ public class CurriculumUnitMapper implements BaseDtoMapper<CurriculumUnit, Curri
             return null;
         }
 
-        Set<Long> topicIds = entity.getCurriculumTopics() != null ?
-            entity.getCurriculumTopics().stream()
+        // Safely handle lazy-loaded topics collection
+        Set<Long> topicIds = null;
+        Set<String> topicTitles = null;
+        
+        if (entity.getCurriculumTopics() != null && Hibernate.isInitialized(entity.getCurriculumTopics())) {
+            topicIds = entity.getCurriculumTopics().stream()
                 .map(topic -> topic.getId())
-                .collect(Collectors.toSet()) : null;
-
-        Set<String> topicTitles = entity.getCurriculumTopics() != null ?
-            entity.getCurriculumTopics().stream()
+                .collect(Collectors.toSet());
+                
+            topicTitles = entity.getCurriculumTopics().stream()
                 .map(topic -> topic.getTitle())
-                .collect(Collectors.toSet()) : null;
+                .collect(Collectors.toSet());
+        } else {
+            topicIds = Collections.emptySet();
+            topicTitles = Collections.emptySet();
+        }
+
+        // Safely handle curriculum reference to avoid circular references
+        Long curriculumId = null;
+        String curriculumTitle = null;
+        
+        if (entity.getCurriculum() != null && Hibernate.isInitialized(entity.getCurriculum())) {
+            curriculumId = entity.getCurriculum().getId();
+            curriculumTitle = entity.getCurriculum().getTitle();
+        }
 
         return new CurriculumUnitDTO(
             entity.getId(),
-            entity.getCurriculum() != null ? entity.getCurriculum().getId() : null,
-            entity.getCurriculum() != null ? entity.getCurriculum().getTitle() : null,
+            curriculumId,
+            curriculumTitle,
             entity.getTitle(),
             entity.getDescription(),
             entity.getUnitOrder(),

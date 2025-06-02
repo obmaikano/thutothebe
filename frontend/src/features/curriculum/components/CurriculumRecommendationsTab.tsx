@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { fetchCurriculumRecommendations, validateCurriculumAlignment } from '../curriculumSlice';
 import { Curriculum } from '../../../api/services/curriculumApi';
@@ -38,28 +38,50 @@ const CurriculumRecommendationsTab: React.FC<CurriculumRecommendationsTabProps> 
   });
   
   const [validationResults, setValidationResults] = useState<Record<number, string>>({});
-  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
     message: string;
   } | null>(null);
 
-  const showNotification = useCallback((type: 'success' | 'error' | 'info', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 5000);
-  }, []);
+  // Load recommendations when component mounts - without filters to avoid infinite loops
+  useEffect(() => {
+    // Load with default filters on mount only
+    const defaultFilters = {
+      gradeLevel: 'STANDARD_1',
+      type: 'NATIONAL',
+      regionId: user?.regionId || undefined
+    };
+    dispatch(fetchCurriculumRecommendations(defaultFilters));
+  }, [dispatch, user?.regionId]);
 
-  const handleFetchRecommendations = useCallback(async () => {
-    setLoading(true);
+  // Clear notifications after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
+    setNotification({ type, message });
+  };
+
+  const handleFetchRecommendations = async () => {
     try {
-      await dispatch(fetchCurriculumRecommendations(filters)).unwrap();
+      // Use current filters state directly in the function call
+      const currentFilters = {
+        gradeLevel: filters.gradeLevel,
+        type: filters.type,
+        regionId: filters.regionId
+      };
+      await dispatch(fetchCurriculumRecommendations(currentFilters)).unwrap();
       showNotification('success', 'Recommendations loaded successfully');
     } catch (error: any) {
       showNotification('error', error || 'Failed to fetch recommendations');
-    } finally {
-      setLoading(false);
     }
-  }, [dispatch, filters, showNotification]);
+  };
 
   const handleValidateAlignment = async (recommendationId: number) => {
     if (!filters.regionId) {
@@ -83,11 +105,6 @@ const CurriculumRecommendationsTab: React.FC<CurriculumRecommendationsTabProps> 
       showNotification('error', error || 'Failed to validate curriculum alignment');
     }
   };
-
-  // Load recommendations only when component mounts or when manually refreshed
-  useEffect(() => {
-    handleFetchRecommendations();
-  }, []); // Empty dependency array - only run on mount
 
   // Filter curricula based on current filters and exclude current curriculum
   const getFilteredRecommendations = () => {
@@ -194,10 +211,9 @@ const CurriculumRecommendationsTab: React.FC<CurriculumRecommendationsTabProps> 
           </div>
           <button
             onClick={handleFetchRecommendations}
-            disabled={loading}
             className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2`} />
             Refresh
           </button>
         </div>
@@ -260,14 +276,7 @@ const CurriculumRecommendationsTab: React.FC<CurriculumRecommendationsTabProps> 
       {/* Recommendations List */}
       <div className="flex-1 overflow-y-auto">
         <div className="space-y-4">
-          {loading ? (
-            <div className="flex justify-center items-center min-h-64">
-              <div className="text-center">
-                <div className="loading loading-spinner loading-lg text-blue-600"></div>
-                <p className="mt-3 text-sm text-gray-600">Loading recommendations...</p>
-              </div>
-            </div>
-          ) : getFilteredRecommendations().length === 0 ? (
+          {getFilteredRecommendations().length === 0 ? (
             <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
               <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Recommendations Found</h3>

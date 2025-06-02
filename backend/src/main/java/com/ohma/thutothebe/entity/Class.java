@@ -9,14 +9,16 @@ import lombok.EqualsAndHashCode;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Objects;
 
 @Data
 @Entity
 @Table(name = "classes")
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 public class Class extends BaseEntity {
     
     @Column(nullable = false)
+    @EqualsAndHashCode.Include
     private String name;
     
     @Column
@@ -63,6 +65,23 @@ public class Class extends BaseEntity {
     
     @Column(nullable = false)
     private boolean active = true;
+
+    // Override hashCode and equals to prevent circular references
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Class that = (Class) o;
+        return Objects.equals(getId(), that.getId()) && 
+               Objects.equals(name, that.name) &&
+               Objects.equals(school != null ? school.getId() : null, 
+                             that.school != null ? that.school.getId() : null);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), name, school != null ? school.getId() : null);
+    }
 
     // Helper methods for managing relationships
     public void addTeacher(Teacher teacher) {

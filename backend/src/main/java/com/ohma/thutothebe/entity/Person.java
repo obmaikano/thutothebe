@@ -13,11 +13,12 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Objects;
 
 @Data
 @Entity
 @Table(name = "persons")
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 public class Person extends BaseEntity {
 
     @NotBlank(message = "First name is required")
@@ -34,6 +35,7 @@ public class Person extends BaseEntity {
     private String passportNumber;
 
     @Column(name = "identity_number")
+    @EqualsAndHashCode.Include
     private String identityNumber;
 
     @NotNull(message = "Gender is required")
@@ -42,6 +44,7 @@ public class Person extends BaseEntity {
     private Gender gender;
 
     @Column(name = "birth_certificate_number")
+    @EqualsAndHashCode.Include
     private String birthCertificateNumber;
 
     @Column(name = "birth_registration_number")
@@ -62,5 +65,21 @@ public class Person extends BaseEntity {
 
     public int getAge() {
         return LocalDate.now().getYear() - dateOfBirth.getYear();
+    }
+
+    // Override hashCode and equals to prevent circular references
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Person that = (Person) o;
+        return Objects.equals(getId(), that.getId()) && 
+               Objects.equals(identityNumber, that.identityNumber) &&
+               Objects.equals(birthCertificateNumber, that.birthCertificateNumber);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), identityNumber, birthCertificateNumber);
     }
 } 

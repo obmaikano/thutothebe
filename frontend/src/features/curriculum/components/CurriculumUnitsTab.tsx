@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { 
   fetchCurriculumUnits, 
@@ -46,33 +46,30 @@ const CurriculumUnitsTab: React.FC<CurriculumUnitsTabProps> = ({ curriculumId })
     type: 'success' | 'error' | 'info';
     message: string;
   } | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  const showNotification = useCallback((type: 'success' | 'error' | 'info', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 5000);
-  }, []);
-
-  // Load units only when component mounts or curriculumId changes
-  const loadUnits = useCallback(async () => {
-    if (curriculumId) {
-      setLoading(true);
-      try {
-        await dispatch(fetchCurriculumUnits(curriculumId)).unwrap();
-      } catch (error) {
-        showNotification('error', 'Failed to load curriculum units');
-      } finally {
-        setLoading(false);
-      }
-    }
-  }, [dispatch, curriculumId, showNotification]);
-
+  // Load units when component mounts or curriculumId changes
   useEffect(() => {
-    loadUnits();
-  }, [loadUnits]);
+    if (curriculumId) {
+      dispatch(fetchCurriculumUnits(curriculumId));
+    }
+  }, [dispatch, curriculumId]);
+
+  // Clear notifications after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
+    setNotification({ type, message });
+  };
 
   // Fetch topics when a unit is expanded
-  const toggleUnitExpansion = useCallback(async (unitId: number) => {
+  const toggleUnitExpansion = async (unitId: number) => {
     const newExpanded = new Set(expandedUnits);
     if (newExpanded.has(unitId)) {
       newExpanded.delete(unitId);
@@ -88,9 +85,9 @@ const CurriculumUnitsTab: React.FC<CurriculumUnitsTabProps> = ({ curriculumId })
       }
     }
     setExpandedUnits(newExpanded);
-  }, [expandedUnits, topics, dispatch, showNotification]);
+  };
 
-  const handleCreateUnit = useCallback(() => {
+  const handleCreateUnit = () => {
     dispatch(openModal({
       title: 'Create Curriculum Unit',
       bodyType: MODAL_BODY_TYPES.CURRICULUM_UNIT_FORM,
@@ -109,16 +106,17 @@ const CurriculumUnitsTab: React.FC<CurriculumUnitsTabProps> = ({ curriculumId })
             })).unwrap();
             
             showNotification('success', 'Curriculum unit created successfully');
-            await loadUnits(); // Refresh units list
+            // Refresh units list
+            dispatch(fetchCurriculumUnits(curriculumId));
           } catch (error: any) {
             showNotification('error', error || 'Failed to create curriculum unit');
           }
         }
       }
     }));
-  }, [dispatch, curriculumId, showNotification, loadUnits]);
+  };
 
-  const handleCreateTopic = useCallback((unitId: number) => {
+  const handleCreateTopic = (unitId: number) => {
     dispatch(openModal({
       title: 'Create Curriculum Topic',
       bodyType: MODAL_BODY_TYPES.CURRICULUM_TOPIC_FORM,
@@ -137,16 +135,16 @@ const CurriculumUnitsTab: React.FC<CurriculumUnitsTabProps> = ({ curriculumId })
             
             showNotification('success', 'Curriculum topic created successfully');
             // Refresh topics for this unit
-            await dispatch(fetchCurriculumTopics(unitId)).unwrap();
+            dispatch(fetchCurriculumTopics(unitId));
           } catch (error: any) {
             showNotification('error', error || 'Failed to create curriculum topic');
           }
         }
       }
     }));
-  }, [dispatch, showNotification]);
+  };
 
-  const handleEditUnit = useCallback((unit: CurriculumUnit) => {
+  const handleEditUnit = (unit: CurriculumUnit) => {
     dispatch(openModal({
       title: 'Edit Curriculum Unit',
       bodyType: MODAL_BODY_TYPES.CURRICULUM_UNIT_FORM,
@@ -161,16 +159,17 @@ const CurriculumUnitsTab: React.FC<CurriculumUnitsTabProps> = ({ curriculumId })
               ...unitData
             })).unwrap();
             showNotification('success', 'Curriculum unit updated successfully');
-            await loadUnits(); // Refresh units list
+            // Refresh units list
+            dispatch(fetchCurriculumUnits(curriculumId));
           } catch (error: any) {
             showNotification('error', error || 'Failed to update curriculum unit');
           }
         }
       }
     }));
-  }, [dispatch, curriculumId, showNotification, loadUnits]);
+  };
 
-  const handleEditTopic = useCallback((topic: CurriculumTopic, unitId: number) => {
+  const handleEditTopic = (topic: CurriculumTopic, unitId: number) => {
     dispatch(openModal({
       title: 'Edit Curriculum Topic',
       bodyType: MODAL_BODY_TYPES.CURRICULUM_TOPIC_FORM,
@@ -186,51 +185,52 @@ const CurriculumUnitsTab: React.FC<CurriculumUnitsTabProps> = ({ curriculumId })
             })).unwrap();
             showNotification('success', 'Curriculum topic updated successfully');
             // Refresh topics for this unit
-            await dispatch(fetchCurriculumTopics(unitId)).unwrap();
+            dispatch(fetchCurriculumTopics(unitId));
           } catch (error: any) {
             showNotification('error', error || 'Failed to update curriculum topic');
           }
         }
       }
     }));
-  }, [dispatch, showNotification]);
+  };
 
-  const handleDeleteUnit = useCallback(async (unitId: number) => {
+  const handleDeleteUnit = async (unitId: number) => {
     if (window.confirm('Are you sure you want to delete this unit? This action cannot be undone.')) {
       try {
         await dispatch(deleteCurriculumUnit(unitId)).unwrap();
         showNotification('success', 'Curriculum unit deleted successfully');
-        await loadUnits(); // Refresh units list
+        // Refresh units list
+        dispatch(fetchCurriculumUnits(curriculumId));
       } catch (error: any) {
         showNotification('error', error || 'Failed to delete curriculum unit');
       }
     }
-  }, [dispatch, showNotification, loadUnits]);
+  };
 
-  const handleDeleteTopic = useCallback(async (topicId: number, unitId: number) => {
+  const handleDeleteTopic = async (topicId: number, unitId: number) => {
     if (window.confirm('Are you sure you want to delete this topic? This action cannot be undone.')) {
       try {
         await dispatch(deleteCurriculumTopic(topicId)).unwrap();
         showNotification('success', 'Curriculum topic deleted successfully');
         // Refresh topics for this unit
-        await dispatch(fetchCurriculumTopics(unitId)).unwrap();
+        dispatch(fetchCurriculumTopics(unitId));
       } catch (error: any) {
         showNotification('error', error || 'Failed to delete curriculum topic');
       }
     }
-  }, [dispatch, showNotification]);
+  };
 
-  const getTotalHours = useCallback(() => {
+  const getTotalHours = () => {
     return units.reduce((total, unit) => total + (unit.allocatedHours || 0), 0);
-  }, [units]);
+  };
 
-  const getTotalWeeks = useCallback(() => {
+  const getTotalWeeks = () => {
     return units.reduce((total, unit) => total + (unit.durationWeeks || 0), 0);
-  }, [units]);
+  };
 
-  const getTotalTopics = useCallback(() => {
+  const getTotalTopics = () => {
     return Object.values(topics).reduce((total, unitTopics) => total + unitTopics.length, 0);
-  }, [topics]);
+  };
 
   if (status === 'loading') {
     return (
@@ -285,11 +285,10 @@ const CurriculumUnitsTab: React.FC<CurriculumUnitsTabProps> = ({ curriculumId })
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={loadUnits}
+              onClick={() => dispatch(fetchCurriculumUnits(curriculumId))}
               className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              disabled={loading}
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="h-4 w-4" />
               Refresh
             </button>
             <button

@@ -9,16 +9,18 @@ import lombok.EqualsAndHashCode;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Objects;
 
 @Data
 @Entity
 @Table(name = "departments")
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 public class Department extends BaseEntity {
 
     @NotBlank(message = "Department name is required")
     @Size(min = 2, max = 100, message = "Department name must be between 2 and 100 characters")
     @Column(nullable = false, length = 100)
+    @EqualsAndHashCode.Include
     private String name;
 
     @Size(max = 500, message = "Description cannot exceed 500 characters")
@@ -47,6 +49,21 @@ public class Department extends BaseEntity {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    // Override hashCode and equals to prevent circular references
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Department that = (Department) o;
+        return Objects.equals(getId(), that.getId()) && 
+               Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId(), name);
+    }
 
     // Helper methods for managing relationships
     public void addSubject(Subject subject) {
