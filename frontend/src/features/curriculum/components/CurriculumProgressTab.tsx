@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import { fetchAllProgress, fetchProgressSummary } from '../curriculumProgressSlice';
 import { TrendingUp, CheckCircle, Clock, ExternalLink, AlertCircle } from 'lucide-react';
 
 interface CurriculumProgressTabProps {
@@ -8,10 +10,81 @@ interface CurriculumProgressTabProps {
 
 const CurriculumProgressTab: React.FC<CurriculumProgressTabProps> = ({ curriculumId }) => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  
+  const {
+    progressRecords,
+    progressSummary,
+    status,
+    error
+  } = useAppSelector(state => (state as any).curriculumProgress || {
+    progressRecords: [],
+    progressSummary: null,
+    status: 'idle',
+    error: null
+  });
+
+  useEffect(() => {
+    if (curriculumId) {
+      dispatch(fetchAllProgress());
+      dispatch(fetchProgressSummary(curriculumId));
+    }
+  }, [dispatch, curriculumId]);
 
   const handleViewFullProgress = () => {
     navigate(`/app/curriculum-progress/${curriculumId}`);
   };
+
+  // Filter progress records for this curriculum
+  const curriculumProgress = progressRecords.filter((record: any) => 
+    record.curriculumId === curriculumId
+  );
+
+  // Calculate stats from real data
+  const progressStats = {
+    completed: curriculumProgress.filter((p: any) => p.status === 'COMPLETED').length,
+    inProgress: curriculumProgress.filter((p: any) => p.status === 'IN_PROGRESS').length,
+    overdue: curriculumProgress.filter((p: any) => p.status === 'OVERDUE').length,
+    overall: progressSummary?.overallProgress || 0
+  };
+
+  // Get recent progress updates
+  const recentUpdates = curriculumProgress
+    .sort((a: any, b: any) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+    .slice(0, 3);
+
+  if (status === 'loading') {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-8">
+          <div className="text-center">
+            <div className="loading loading-spinner loading-lg text-green-600 mb-4"></div>
+            <p className="text-gray-600">Loading progress data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-8">
+          <div className="text-center">
+            <AlertCircle className="mx-auto h-12 w-12 text-red-400 mb-4" />
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Progress Error</h3>
+            <p className="text-red-600 mb-6">{error}</p>
+            <button
+              onClick={handleViewFullProgress}
+              className="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              View Progress Page
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -44,7 +117,7 @@ const CurriculumProgressTab: React.FC<CurriculumProgressTabProps> = ({ curriculu
               <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">12</div>
+              <div className="text-2xl font-bold text-gray-900">{progressStats.completed}</div>
               <div className="text-sm text-gray-500">Completed</div>
             </div>
           </div>
@@ -56,7 +129,7 @@ const CurriculumProgressTab: React.FC<CurriculumProgressTabProps> = ({ curriculu
               <Clock className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">8</div>
+              <div className="text-2xl font-bold text-gray-900">{progressStats.inProgress}</div>
               <div className="text-sm text-gray-500">In Progress</div>
             </div>
           </div>
@@ -68,7 +141,7 @@ const CurriculumProgressTab: React.FC<CurriculumProgressTabProps> = ({ curriculu
               <AlertCircle className="h-6 w-6 text-orange-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">3</div>
+              <div className="text-2xl font-bold text-gray-900">{progressStats.overdue}</div>
               <div className="text-sm text-gray-500">Overdue</div>
             </div>
           </div>
@@ -80,7 +153,7 @@ const CurriculumProgressTab: React.FC<CurriculumProgressTabProps> = ({ curriculu
               <TrendingUp className="h-6 w-6 text-purple-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">75%</div>
+              <div className="text-2xl font-bold text-gray-900">{Math.round(progressStats.overall)}%</div>
               <div className="text-sm text-gray-500">Overall Progress</div>
             </div>
           </div>
@@ -90,46 +163,45 @@ const CurriculumProgressTab: React.FC<CurriculumProgressTabProps> = ({ curriculu
       {/* Progress Timeline Preview */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h4 className="text-lg font-semibold text-gray-900 mb-4">Recent Progress Updates</h4>
-        <div className="space-y-4">
-          <div className="flex items-start space-x-4">
-            <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <div className="font-medium text-gray-900">Teacher Training Completed</div>
-                <div className="text-sm text-gray-500">2 days ago</div>
+        {recentUpdates.length > 0 ? (
+          <div className="space-y-4">
+            {recentUpdates.map((update: any, index: number) => (
+              <div key={update.id || index} className="flex items-start space-x-4">
+                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                  update.status === 'COMPLETED' ? 'bg-green-100' :
+                  update.status === 'IN_PROGRESS' ? 'bg-blue-100' :
+                  update.status === 'OVERDUE' ? 'bg-orange-100' : 'bg-gray-100'
+                }`}>
+                  {update.status === 'COMPLETED' ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : update.status === 'OVERDUE' ? (
+                    <AlertCircle className="h-4 w-4 text-orange-600" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-blue-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium text-gray-900">
+                      {update.milestone || update.description || 'Progress Update'}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {new Date(update.lastUpdated).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {update.notes || `Progress: ${update.progressPercentage || 0}%`}
+                  </div>
+                </div>
               </div>
-              <div className="text-sm text-gray-600">All teachers have completed the curriculum training program</div>
-            </div>
+            ))}
           </div>
-          
-          <div className="flex items-start space-x-4">
-            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <Clock className="h-4 w-4 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <div className="font-medium text-gray-900">Resource Distribution</div>
-                <div className="text-sm text-gray-500">5 days ago</div>
-              </div>
-              <div className="text-sm text-gray-600">Curriculum materials distributed to 15 schools</div>
-            </div>
+        ) : (
+          <div className="text-center py-8">
+            <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <p className="text-gray-600">No recent progress updates available</p>
           </div>
-          
-          <div className="flex items-start space-x-4">
-            <div className="flex-shrink-0 w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-              <AlertCircle className="h-4 w-4 text-orange-600" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <div className="font-medium text-gray-900">Assessment Review Pending</div>
-                <div className="text-sm text-gray-500">1 week ago</div>
-              </div>
-              <div className="text-sm text-gray-600">Curriculum assessment materials require review</div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Features List */}

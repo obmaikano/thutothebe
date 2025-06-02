@@ -27,6 +27,7 @@ import attendanceReducer from '../features/attendance/attendanceSlice';
 import calendarEventsReducer from '../features/calendar/calendarEventsSlice';
 import contentReducer from '../features/content/contentSlice';
 import curriculumReducer from '../features/curriculum/curriculumSlice';
+import curriculumSubjectReducer from '../features/curriculum/curriculumSubjectSlice';
 
 export const store = configureStore({
   reducer: {
@@ -58,6 +59,7 @@ export const store = configureStore({
     calendarEvents: calendarEventsReducer,
     content: contentReducer,
     curriculum: curriculumReducer,
+    curriculumSubject: curriculumSubjectReducer,
   },
 });
 

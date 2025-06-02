@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { closeModal } from '../../common/modalSlice';
-import { updateCurriculum } from '../curriculumSlice';
+import { updateCurriculum, updateCurriculumSubjects } from '../curriculumSlice';
 import { fetchSubjects } from '../../subjects/subjectsSlice';
 import { fetchSchools } from '../../schools/schoolsSlice';
 import { fetchRegions } from '../../regions/regionsSlice';
@@ -82,10 +82,21 @@ const EditCurriculumModal: React.FC<EditCurriculumModalProps> = ({ extraObject: 
       setIsLoading(true);
       setError(null);
       
+      // Update curriculum basic information
       await dispatch(updateCurriculum({ 
         id: curriculum.id, 
         curriculumData: formData as UpdateCurriculumRequest 
       })).unwrap();
+      
+      // Update curriculum subjects if they have changed
+      if (JSON.stringify(formData.subjectIds.sort()) !== JSON.stringify((curriculum.subjectIds || []).sort())) {
+        console.log('Updating curriculum subjects:', formData.subjectIds);
+        await dispatch(updateCurriculumSubjects({ 
+          curriculumId: curriculum.id, 
+          subjectIds: formData.subjectIds 
+        })).unwrap();
+      }
+      
       dispatch(closeModal({}));
     } catch (error: any) {
       setError(error.message || 'Failed to update curriculum');

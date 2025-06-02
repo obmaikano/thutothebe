@@ -35,6 +35,7 @@ const EditCurriculumModal = lazy(() => import('../../curriculum/modals/EditCurri
 const DeleteCurriculumModal = lazy(() => import('../../curriculum/modals/DeleteCurriculumModal'));
 const ViewCurriculumModal = lazy(() => import('../../curriculum/modals/ViewCurriculumModal'));
 const ApproveCurriculumModal = lazy(() => import('../../curriculum/modals/ApproveCurriculumModal'));
+const RejectCurriculumModal = lazy(() => import('../../curriculum/modals/RejectCurriculumModal'));
 const DuplicateCurriculumModal = lazy(() => import('../../curriculum/modals/DuplicateCurriculumModal'));
 
 // Content management modals
@@ -766,6 +767,13 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <ApproveCurriculumModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CURRICULUM_REJECT:
+      return (
+        <Suspense fallback={fallback}>
+          <RejectCurriculumModal extraObject={contentProps} />
         </Suspense>
       );
 

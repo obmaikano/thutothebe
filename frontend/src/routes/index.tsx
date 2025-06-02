@@ -32,6 +32,7 @@ const ContentDetail = lazy(() => import('../pages/protected/ContentDetail'));
 const Curriculum = lazy(() => import('../pages/protected/Curriculum'));
 const CurriculumDetail = lazy(() => import('../pages/protected/CurriculumDetail'));
 const CurriculumBuilder = lazy(() => import('../pages/protected/CurriculumBuilder'));
+const CurriculumSubjectManagement = lazy(() => import('../pages/protected/CurriculumSubjectManagement'));
 const StandardsManagement = lazy(() => import('../pages/protected/StandardsManagement'));
 const LearningObjectives = lazy(() => import('../pages/protected/LearningObjectives'));
 const CurriculumTemplates = lazy(() => import('../pages/protected/CurriculumTemplates'));
@@ -197,6 +198,14 @@ export const appRoutes = [
   {
     path: 'curriculum-builder',
     element: CurriculumBuilder
+  },
+  {
+    path: 'curriculum-builder/:id',
+    element: CurriculumBuilder
+  },
+  {
+    path: 'curriculum/:curriculumId/subjects',
+    element: CurriculumSubjectManagement
   },
   {
     path: 'standards-management',

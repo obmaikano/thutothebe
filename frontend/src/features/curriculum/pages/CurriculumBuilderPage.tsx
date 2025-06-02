@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { fetchCurriculumById, createCurriculum, updateCurriculum, clearCurriculumError } from '../curriculumSlice';
+import { fetchCurriculumById, createCurriculum, updateCurriculum, clearCurriculumError, updateCurriculumSubjects } from '../curriculumSlice';
 import { fetchSubjects } from '../../subjects/subjectsSlice';
 import { fetchSchools } from '../../schools/schoolsSlice';
 import { fetchRegions } from '../../regions/regionsSlice';
@@ -153,15 +153,27 @@ const CurriculumBuilderPage: React.FC = () => {
         })
       };
 
+      let savedCurriculum;
       if (isEditMode && id) {
-        await dispatch(updateCurriculum({ 
+        savedCurriculum = await dispatch(updateCurriculum({ 
           id: Number(id), 
           curriculumData: curriculumData as UpdateCurriculumRequest 
         })).unwrap();
+        
+        // Update curriculum subjects if they have changed
+        if (currentCurriculum && 
+            JSON.stringify(formData.subjectIds.sort()) !== JSON.stringify((currentCurriculum.subjectIds || []).sort())) {
+          console.log('Updating curriculum subjects:', formData.subjectIds);
+          await dispatch(updateCurriculumSubjects({ 
+            curriculumId: Number(id), 
+            subjectIds: formData.subjectIds 
+          })).unwrap();
+        }
       } else {
-        await dispatch(createCurriculum(curriculumData as CreateCurriculumRequest)).unwrap();
+        savedCurriculum = await dispatch(createCurriculum(curriculumData as CreateCurriculumRequest)).unwrap();
       }
 
+      console.log('Curriculum saved successfully:', savedCurriculum);
       navigate('/app/curriculum');
     } catch (error) {
       console.error('Failed to save curriculum:', error);

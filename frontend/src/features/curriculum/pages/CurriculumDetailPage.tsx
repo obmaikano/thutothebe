@@ -5,6 +5,7 @@ import { fetchCurriculumById, clearCurriculumError, activateCurriculum, suspendC
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { Curriculum } from '../../../api/services/curriculumApi';
+import curriculumApi from '../../../api/services/curriculumApi';
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -36,13 +37,19 @@ import {
   Building,
   GraduationCap,
   BookMarked,
-  Activity
+  Activity,
+  Star
 } from 'lucide-react';
 
 // Tab components
 import CurriculumAnalyticsTab from '../components/CurriculumAnalyticsTab';
 import CurriculumProgressTab from '../components/CurriculumProgressTab';
 import CurriculumResourcesTab from '../components/CurriculumResourcesTab';
+import CurriculumSubjectsTab from '../components/CurriculumSubjectsTab';
+import CurriculumUnitsTab from '../components/CurriculumUnitsTab';
+import CurriculumRecommendationsTab from '../components/CurriculumRecommendationsTab';
+import CurriculumWorkflowControls from '../components/CurriculumWorkflowControls';
+import CurriculumWorkflowStatus from '../components/CurriculumWorkflowStatus';
 
 const CurriculumDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -116,12 +123,75 @@ const CurriculumDetailPage: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
-    console.log('Export curriculum:', currentCurriculum?.id);
+  const handleExport = async () => {
+    if (!currentCurriculum) return;
+    
+    try {
+      // Try to use the backend export endpoint first
+      try {
+        const response = await curriculumApi.export(currentCurriculum.id);
+        
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `curriculum-${currentCurriculum.title}-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('Curriculum exported successfully');
+        return;
+      } catch (exportError: any) {
+        // If backend export fails, fall back to client-side export
+        console.warn('Backend export failed, using client-side export:', exportError);
+      }
+      
+      // Fallback: Client-side export
+      const exportData = {
+        curriculum: currentCurriculum,
+        exportedAt: new Date().toISOString(),
+        exportedBy: user?.name || 'Unknown User',
+        version: '1.0'
+      };
+      
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      
+      const exportFileDefaultName = `curriculum-${currentCurriculum.title}-${new Date().toISOString().split('T')[0]}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+      
+      console.log('Curriculum exported successfully (client-side)');
+    } catch (error) {
+      console.error('Failed to export curriculum:', error);
+      alert('Failed to export curriculum. Please try again.');
+    }
   };
 
   const handleShare = () => {
-    console.log('Share curriculum:', currentCurriculum?.id);
+    if (!currentCurriculum) return;
+    
+    const shareData = {
+      title: currentCurriculum.title,
+      text: `Check out this curriculum: ${currentCurriculum.title}`,
+      url: window.location.href
+    };
+    
+    if (navigator.share) {
+      navigator.share(shareData).catch(console.error);
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        alert('Curriculum link copied to clipboard!');
+      }).catch(() => {
+        alert('Unable to share. Please copy the URL manually.');
+      });
+    }
   };
 
   const canEditCurriculum = (curriculum: Curriculum) => {
@@ -203,8 +273,11 @@ const CurriculumDetailPage: React.FC = () => {
     { id: 'analytics', label: 'Analytics', icon: BarChart3, requiresPermission: canViewAnalytics },
     { id: 'progress', label: 'Progress', icon: TrendingUp },
     { id: 'resources', label: 'Resources', icon: FolderOpen },
+    { id: 'units', label: 'Units', icon: BookMarked },
+    { id: 'recommendations', label: 'Recommendations', icon: Star },
     { id: 'standards', label: 'Standards', icon: Target },
-    { id: 'objectives', label: 'Objectives', icon: Award }
+    { id: 'objectives', label: 'Objectives', icon: Award },
+    { id: 'subjects', label: 'Subjects', icon: Users }
   ].filter(tab => !tab.requiresPermission || tab.requiresPermission);
 
   if (status === 'loading') {
@@ -279,6 +352,10 @@ const CurriculumDetailPage: React.FC = () => {
         return <CurriculumProgressTab curriculumId={currentCurriculum.id} />;
       case 'resources':
         return <CurriculumResourcesTab curriculumId={currentCurriculum.id} />;
+      case 'units':
+        return <CurriculumUnitsTab curriculumId={currentCurriculum.id} />;
+      case 'recommendations':
+        return <CurriculumRecommendationsTab curriculumId={currentCurriculum.id} />;
       case 'standards':
         return (
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
@@ -286,7 +363,7 @@ const CurriculumDetailPage: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Standards Management</h3>
             <p className="text-gray-600 mb-6">Curriculum standards management coming soon.</p>
             <button
-              onClick={() => navigate(`/app/curriculum/standards?curriculumId=${currentCurriculum.id}`)}
+              onClick={() => navigate(`/app/curriculum/${currentCurriculum.id}/standards`)}
               className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
             >
               Go to Standards Page
@@ -300,39 +377,95 @@ const CurriculumDetailPage: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Learning Objectives</h3>
             <p className="text-gray-600 mb-6">Learning objectives management coming soon.</p>
             <button
-              onClick={() => navigate(`/app/curriculum/objectives?curriculumId=${currentCurriculum.id}`)}
+              onClick={() => navigate(`/app/curriculum/${currentCurriculum.id}/objectives`)}
               className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
             >
               Go to Objectives Page
             </button>
           </div>
         );
+      case 'subjects':
+        return (
+          <CurriculumSubjectsTab 
+            curriculumId={currentCurriculum.id}
+            currentSubjectIds={currentCurriculum.subjectIds || []}
+            currentSubjectNames={currentCurriculum.subjectNames ? Array.from(currentCurriculum.subjectNames) : []}
+            onSubjectsUpdate={(subjectIds) => {
+              // Update the current curriculum state when subjects change
+              if (currentCurriculum) {
+                // This would ideally trigger a refresh of the curriculum data
+                dispatch(fetchCurriculumById(currentCurriculum.id));
+              }
+            }}
+          />
+        );
       default:
         return (
           <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-8">
-              <div className="flex items-start space-x-6">
-                <div className="flex-shrink-0">
-                  <div className="h-20 w-20 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <BookOpen className="h-10 w-10 text-white" />
+            {/* Header with Workflow Status and Controls */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                <div className="flex-1">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <BookMarked className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                        {currentCurriculum.title}
+                      </h1>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <GraduationCap className="h-4 w-4" />
+                          {currentCurriculum.gradeLevel.replace('_', ' ')}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Academic Year {currentCurriculum.academicYear}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Building className="h-4 w-4" />
+                          {getTypeBadge(currentCurriculum.curriculumType)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Workflow Status */}
+                  <CurriculumWorkflowStatus 
+                    curriculum={currentCurriculum} 
+                    variant="compact"
+                    showNextActions={true}
+                  />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-3">{currentCurriculum.title}</h1>
-                  <p className="text-lg text-gray-600 mb-4 leading-relaxed">
-                    {currentCurriculum.description || 'No description available'}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {getStatusBadge(currentCurriculum.status)}
-                    {getTypeBadge(currentCurriculum.curriculumType)}
-                    <span className="inline-flex items-center px-3 py-1.5 text-sm font-medium bg-gray-100 text-gray-800 rounded-lg border border-gray-200">
-                      <GraduationCap size={14} className="mr-1.5" />
-                      {currentCurriculum.gradeLevel.replace('GRADE_', 'Grade ').replace('STANDARD_', 'Standard ').replace('FORM_', 'Form ')}
-                    </span>
-                    <span className="inline-flex items-center px-3 py-1.5 text-sm font-medium bg-gray-100 text-gray-800 rounded-lg border border-gray-200">
-                      <Calendar size={14} className="mr-1.5" />
-                      {currentCurriculum.academicYear}
-                    </span>
+
+                {/* Workflow Controls */}
+                <div className="flex flex-col gap-4">
+                  <CurriculumWorkflowControls
+                    curriculum={currentCurriculum}
+                    variant="expanded"
+                    showLabels={true}
+                    onAction={(action, curriculum) => {
+                      console.log(`Action ${action} performed on curriculum ${curriculum.id}`);
+                    }}
+                  />
+                  
+                  {/* Additional Quick Actions */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                    <button
+                      onClick={() => navigate(`/app/curriculum-builder/${currentCurriculum.id}`)}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Open in Builder
+                    </button>
+                    <button
+                      onClick={() => navigate(`/app/curriculum/${currentCurriculum.id}/subjects`)}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <BookMarked className="h-4 w-4" />
+                      Manage Subjects
+                    </button>
                   </div>
                 </div>
               </div>
@@ -414,18 +547,26 @@ const CurriculumDetailPage: React.FC = () => {
                   <div className="bg-white rounded-xl border border-gray-200 p-6">
                     <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                       <BookMarked className="h-5 w-5 text-blue-600 mr-2" />
-                      Associated Subjects
+                      Associated Subjects ({currentCurriculum.subjectNames.length})
                     </h3>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {Array.from(currentCurriculum.subjectNames).map((subject, index) => (
-                        <span
+                        <div
                           key={index}
-                          className="inline-flex items-center px-4 py-2 text-sm font-medium bg-blue-50 text-blue-800 rounded-lg border border-blue-200"
+                          className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
                         >
-                          {subject}
-                        </span>
+                          <BookMarked className="h-4 w-4 text-blue-600 mr-2 flex-shrink-0" />
+                          <span className="text-sm font-medium text-blue-800 truncate" title={subject}>
+                            {subject}
+                          </span>
+                        </div>
                       ))}
                     </div>
+                    {currentCurriculum.subjectIds && currentCurriculum.subjectIds.length > 0 && (
+                      <div className="mt-4 text-sm text-gray-600">
+                        <strong>Subject IDs:</strong> {currentCurriculum.subjectIds.join(', ')}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -531,13 +672,6 @@ const CurriculumDetailPage: React.FC = () => {
                     >
                       <Share2 className="h-4 w-4 mr-2" />
                       Share Curriculum
-                    </button>
-                    <button
-                      onClick={() => navigate(`/app/curriculum/builder/${currentCurriculum.id}`)}
-                      className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Open in Builder
                     </button>
                   </div>
                 </div>

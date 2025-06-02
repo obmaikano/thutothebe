@@ -182,6 +182,15 @@ const curriculumApi = {
   },
 
   /**
+   * Submit a curriculum for review
+   * @param id Curriculum ID
+   * @returns Response with updated curriculum details
+   */
+  submitForReview: async (id: number): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.post(`/curricula/${id}/submit-for-review`);
+  },
+
+  /**
    * Activate a curriculum
    * @param id Curriculum ID
    * @returns Response with activated curriculum details
@@ -216,7 +225,7 @@ const curriculumApi = {
    * @returns Response with duplicated curriculum details
    */
   duplicate: async (id: number, newTitle: string, newAcademicYear: number): Promise<AxiosResponse<CurriculumResponse>> => {
-    return api.post(`/curricula/${id}/duplicate`, { title: newTitle, academicYear: newAcademicYear });
+    return api.post(`/curricula/${id}/duplicate?title=${encodeURIComponent(newTitle)}&academicYear=${newAcademicYear}`);
   },
 
   /**
@@ -254,6 +263,207 @@ const curriculumApi = {
    */
   checkExists: async (title: string, gradeLevel: string, academicYear: number): Promise<AxiosResponse<{ status: string; message: string; data: boolean; timestamp: string | null }>> => {
     return api.get(`/curricula/exists?title=${encodeURIComponent(title)}&gradeLevel=${gradeLevel}&academicYear=${academicYear}`);
+  },
+
+  // Subject association methods
+  addSubject: async (curriculumId: number, subjectId: number, isCore: boolean = true, allocatedHours?: number, weightPercentage?: number): Promise<AxiosResponse<CurriculumResponse>> => {
+    const params = new URLSearchParams();
+    params.append('isCore', isCore.toString());
+    if (allocatedHours !== undefined) params.append('allocatedHours', allocatedHours.toString());
+    if (weightPercentage !== undefined) params.append('weightPercentage', weightPercentage.toString());
+    
+    return api.post(`/curricula/${curriculumId}/subjects/${subjectId}?${params.toString()}`);
+  },
+  removeSubject: async (curriculumId: number, subjectId: number): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.delete(`/curricula/${curriculumId}/subjects/${subjectId}`);
+  },
+  updateSubjects: async (curriculumId: number, subjectIds: number[]): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.put(`/curricula/${curriculumId}/subjects`, { subjectIds });
+  },
+
+  // ==================== CURRICULUM UNITS ====================
+
+  /**
+   * Get all units for a curriculum
+   * @param curriculumId Curriculum ID
+   * @returns Response with curriculum units
+   */
+  getUnits: async (curriculumId: number): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.get(`/curricula/${curriculumId}/units`);
+  },
+
+  /**
+   * Get unit by ID
+   * @param unitId Unit ID
+   * @returns Response with unit details
+   */
+  getUnitById: async (unitId: number): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.get(`/curricula/units/${unitId}`);
+  },
+
+  /**
+   * Update a curriculum unit
+   * @param unitId Unit ID
+   * @param unitData Updated unit data
+   * @returns Response with updated unit details
+   */
+  updateUnit: async (
+    unitId: number,
+    unitData: {
+      title: string;
+      description?: string;
+      unitOrder?: number;
+      durationWeeks?: number;
+      allocatedHours?: number;
+    }
+  ): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.put(`/curricula/units/${unitId}`, unitData);
+  },
+
+  /**
+   * Delete a curriculum unit
+   * @param unitId Unit ID
+   * @returns Response indicating success/failure
+   */
+  deleteUnit: async (unitId: number): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.delete(`/curricula/units/${unitId}`);
+  },
+
+  /**
+   * Create a curriculum unit
+   * @param curriculumId Curriculum ID
+   * @param title Unit title
+   * @param description Unit description
+   * @param unitOrder Unit order
+   * @param durationWeeks Duration in weeks
+   * @param allocatedHours Allocated hours
+   * @returns Response with updated curriculum details
+   */
+  createUnit: async (
+    curriculumId: number, 
+    title: string, 
+    description?: string, 
+    unitOrder?: number, 
+    durationWeeks?: number, 
+    allocatedHours?: number
+  ): Promise<AxiosResponse<CurriculumResponse>> => {
+    const params = new URLSearchParams();
+    params.append('title', title);
+    if (description) params.append('description', description);
+    if (unitOrder !== undefined) params.append('unitOrder', unitOrder.toString());
+    if (durationWeeks !== undefined) params.append('durationWeeks', durationWeeks.toString());
+    if (allocatedHours !== undefined) params.append('allocatedHours', allocatedHours.toString());
+    
+    return api.post(`/curricula/${curriculumId}/units?${params.toString()}`);
+  },
+
+  // ==================== CURRICULUM TOPICS ====================
+
+  /**
+   * Get all topics for a curriculum unit
+   * @param unitId Unit ID
+   * @returns Response with curriculum topics
+   */
+  getTopics: async (unitId: number): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.get(`/curricula/units/${unitId}/topics`);
+  },
+
+  /**
+   * Get topic by ID
+   * @param topicId Topic ID
+   * @returns Response with topic details
+   */
+  getTopicById: async (topicId: number): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.get(`/curricula/topics/${topicId}`);
+  },
+
+  /**
+   * Update a curriculum topic
+   * @param topicId Topic ID
+   * @param topicData Updated topic data
+   * @returns Response with updated topic details
+   */
+  updateTopic: async (
+    topicId: number,
+    topicData: {
+      title: string;
+      description?: string;
+      topicOrder?: number;
+      durationHours?: number;
+    }
+  ): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.put(`/curricula/topics/${topicId}`, topicData);
+  },
+
+  /**
+   * Delete a curriculum topic
+   * @param topicId Topic ID
+   * @returns Response indicating success/failure
+   */
+  deleteTopic: async (topicId: number): Promise<AxiosResponse<CurriculumResponse>> => {
+    return api.delete(`/curricula/topics/${topicId}`);
+  },
+
+  /**
+   * Create a curriculum topic
+   * @param curriculumUnitId Curriculum Unit ID
+   * @param title Topic title
+   * @param description Topic description
+   * @param topicOrder Topic order
+   * @param durationHours Duration in hours
+   * @returns Response with updated curriculum details
+   */
+  createTopic: async (
+    curriculumUnitId: number, 
+    title: string, 
+    description?: string, 
+    topicOrder?: number, 
+    durationHours?: number
+  ): Promise<AxiosResponse<CurriculumResponse>> => {
+    const params = new URLSearchParams();
+    params.append('title', title);
+    if (description) params.append('description', description);
+    if (topicOrder !== undefined) params.append('topicOrder', topicOrder.toString());
+    if (durationHours !== undefined) params.append('durationHours', durationHours.toString());
+    
+    return api.post(`/curricula/units/${curriculumUnitId}/topics?${params.toString()}`);
+  },
+
+  // ==================== CURRICULUM RECOMMENDATIONS ====================
+
+  /**
+   * Get curriculum recommendations
+   * @param gradeLevel Grade level
+   * @param type Curriculum type
+   * @param regionId Region ID (optional)
+   * @returns Response with recommended curricula
+   */
+  getRecommendations: async (
+    gradeLevel: string, 
+    type: string, 
+    regionId?: number
+  ): Promise<AxiosResponse<CurriculumResponse>> => {
+    const params = new URLSearchParams();
+    params.append('gradeLevel', gradeLevel);
+    params.append('type', type);
+    if (regionId !== undefined) params.append('regionId', regionId.toString());
+    
+    return api.get(`/curricula/recommendations?${params.toString()}`);
+  },
+
+  // ==================== CURRICULUM VALIDATION ====================
+
+  /**
+   * Validate curriculum alignment with regional standards
+   * @param curriculumId Curriculum ID
+   * @param regionId Region ID
+   * @returns Response with validation result
+   */
+  validateAlignment: async (
+    curriculumId: number, 
+    regionId: number
+  ): Promise<AxiosResponse<{ status: string; message: string; data: string; timestamp: string | null }>> => {
+    return api.post(`/curricula/${curriculumId}/validate-alignment?regionId=${regionId}`);
   },
 };
 

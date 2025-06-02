@@ -7,6 +7,7 @@ export { default as StandardsManagementPage } from './pages/StandardsManagementP
 export { default as LearningObjectivesPage } from './pages/LearningObjectivesPage';
 export { default as CurriculumTemplatesPage } from './pages/CurriculumTemplatesPage';
 export { default as CurriculumApprovalPage } from './pages/CurriculumApprovalPage';
+export { default as CurriculumWorkflowDashboard } from './pages/CurriculumWorkflowDashboard';
 
 // Modals
 export {

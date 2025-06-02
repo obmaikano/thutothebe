@@ -34,8 +34,9 @@ const CurriculumApprovalPage: React.FC = () => {
   const handleReject = (curriculum: Curriculum) => {
     dispatch(openModal({
       title: 'Reject Curriculum',
-      bodyType: MODAL_BODY_TYPES.CURRICULUM_DELETE_CONFIRMATION, // We'll need to create specific reject modal
-      extraObject: { curriculum, action: 'reject' }
+      bodyType: MODAL_BODY_TYPES.CURRICULUM_REJECT,
+      extraObject: { curriculum },
+      size: 'lg'
     }));
   };
 

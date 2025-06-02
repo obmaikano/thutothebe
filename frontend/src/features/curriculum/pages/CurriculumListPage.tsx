@@ -5,7 +5,8 @@ import { fetchCurricula, clearCurriculumError, activateCurriculum, suspendCurric
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { Curriculum } from '../../../api/services/curriculumApi';
-import { Plus, Search, BookOpen, Edit, Trash2, Eye, CheckCircle, XCircle, Archive, Copy, Play, Pause } from 'lucide-react';
+import { Plus, Search, BookOpen, Edit, Trash2, Eye, CheckCircle, XCircle, Archive, Copy, Play, Pause, ChevronDown, Settings } from 'lucide-react';
+import CurriculumWorkflowControls from '../components/CurriculumWorkflowControls';
 
 const CurriculumListPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -16,6 +17,8 @@ const CurriculumListPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [gradeLevelFilter, setGradeLevelFilter] = useState('');
+  const [showCreateDropdown, setShowCreateDropdown] = useState(false);
+  const [showEditDropdown, setShowEditDropdown] = useState<number | null>(null);
 
   useEffect(() => {
     dispatch(fetchCurricula());
@@ -24,7 +27,24 @@ const CurriculumListPage: React.FC = () => {
     };
   }, [dispatch]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showCreateDropdown && !(event.target as Element).closest('.relative')) {
+        setShowCreateDropdown(false);
+      }
+      if (showEditDropdown && !(event.target as Element).closest('.edit-dropdown')) {
+        setShowEditDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCreateDropdown, showEditDropdown]);
+
   const handleCreateCurriculum = () => {
+    setShowCreateDropdown(false);
     dispatch(openModal({
       title: 'Create New Curriculum',
       bodyType: MODAL_BODY_TYPES.CURRICULUM_ADD_NEW,
@@ -32,13 +52,24 @@ const CurriculumListPage: React.FC = () => {
     }));
   };
 
+  const handleCreateWithBuilder = () => {
+    setShowCreateDropdown(false);
+    navigate('/app/curriculum-builder');
+  };
+
   const handleEdit = (curriculum: Curriculum) => {
+    setShowEditDropdown(null);
     dispatch(openModal({
       title: 'Edit Curriculum',
       bodyType: MODAL_BODY_TYPES.CURRICULUM_EDIT,
       extraObject: { curriculum },
       size: 'lg'
     }));
+  };
+
+  const handleEditWithBuilder = (curriculum: Curriculum) => {
+    setShowEditDropdown(null);
+    navigate(`/app/curriculum-builder/${curriculum.id}`);
   };
 
   const handleView = (curriculum: Curriculum) => {
@@ -223,13 +254,37 @@ const CurriculumListPage: React.FC = () => {
           <p className="text-gray-600 mt-2">Design and manage educational curricula and learning standards</p>
         </div>
         {canCreateCurriculum && (
-          <button 
-            onClick={handleCreateCurriculum} 
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-          >
-            <Plus size={16} />
-            Create New Curriculum
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowCreateDropdown(!showCreateDropdown)} 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <Plus size={16} />
+              Create New Curriculum
+              <ChevronDown size={16} />
+            </button>
+            
+            {showCreateDropdown && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                <div className="py-1">
+                  <button
+                    onClick={handleCreateCurriculum}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Quick Create (Modal)
+                  </button>
+                  <button
+                    onClick={handleCreateWithBuilder}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <Settings size={16} />
+                    Create with Builder
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -412,11 +467,15 @@ const CurriculumListPage: React.FC = () => {
               {filteredCurricula.map((curriculum: Curriculum) => (
                 <tr 
                   key={curriculum.id} 
-                  className="hover:bg-blue-50 hover:shadow-sm cursor-pointer transition-all duration-200 border-l-4 border-transparent hover:border-blue-400"
+                  className={`hover:bg-blue-50 hover:shadow-sm cursor-pointer transition-all duration-200 border-l-4 border-transparent hover:border-blue-400 ${
+                    showEditDropdown === curriculum.id ? 'bg-blue-50 border-blue-400 shadow-md' : ''
+                  }`}
                   onClick={(event) => handleRowClick(curriculum, event)}
                   title="Click to view curriculum details"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className={`px-6 whitespace-nowrap ${
+                    showEditDropdown === curriculum.id ? 'py-8' : 'py-4'
+                  }`}>
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -433,91 +492,46 @@ const CurriculumListPage: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className={`px-6 whitespace-nowrap ${
+                    showEditDropdown === curriculum.id ? 'py-8' : 'py-4'
+                  }`}>
                     {getTypeBadge(curriculum.curriculumType)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className={`px-6 whitespace-nowrap text-sm text-gray-900 ${
+                    showEditDropdown === curriculum.id ? 'py-8' : 'py-4'
+                  }`}>
                     {curriculum.gradeLevel.replace('GRADE_', 'Grade ')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className={`px-6 whitespace-nowrap text-sm text-gray-900 ${
+                    showEditDropdown === curriculum.id ? 'py-8' : 'py-4'
+                  }`}>
                     {curriculum.academicYear}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className={`px-6 whitespace-nowrap ${
+                    showEditDropdown === curriculum.id ? 'py-8' : 'py-4'
+                  }`}>
                     {getStatusBadge(curriculum.status)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className={`px-6 whitespace-nowrap text-sm text-gray-900 ${
+                    showEditDropdown === curriculum.id ? 'py-8' : 'py-4'
+                  }`}>
                     {curriculum.createdByName || 'Unknown'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleView(curriculum);
+                  <td className={`px-6 whitespace-nowrap text-sm font-medium ${
+                    showEditDropdown === curriculum.id ? 'py-8' : 'py-4'
+                  }`}>
+                    <div className="edit-dropdown">
+                      <CurriculumWorkflowControls
+                        curriculum={curriculum}
+                        variant="compact"
+                        onAction={(action, curr) => {
+                          console.log(`Action ${action} performed on curriculum ${curr.id}`);
+                          // Refresh the list after actions
+                          if (['activate', 'suspend', 'archive', 'delete'].includes(action)) {
+                            dispatch(fetchCurricula());
+                          }
                         }}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="View Details"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      {canEditCurriculum(curriculum) && (
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleEdit(curriculum);
-                          }}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </button>
-                      )}
-                      {canApproveCurriculum && curriculum.status === 'UNDER_REVIEW' && (
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleApprove(curriculum);
-                          }}
-                          className="text-green-600 hover:text-green-900"
-                          title="Approve"
-                        >
-                          <CheckCircle size={16} />
-                        </button>
-                      )}
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDuplicate(curriculum);
-                        }}
-                        className="text-purple-600 hover:text-purple-900"
-                        title="Duplicate"
-                      >
-                        <Copy size={16} />
-                      </button>
-                      {canEditCurriculum(curriculum) && (
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleToggleStatus(curriculum);
-                          }}
-                          className={curriculum.active ? "text-orange-600 hover:text-orange-900" : "text-green-600 hover:text-green-900"}
-                          title={curriculum.active ? "Suspend" : "Activate"}
-                        >
-                          {curriculum.active ? <Pause size={16} /> : <Play size={16} />}
-                        </button>
-                      )}
-                      {canEditCurriculum(curriculum) && (
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleDelete(curriculum);
-                          }}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -537,7 +551,7 @@ const CurriculumListPage: React.FC = () => {
               {canCreateCurriculum && !searchTerm && !statusFilter && !typeFilter && !gradeLevelFilter && (
                 <div className="mt-6">
                   <button
-                    onClick={handleCreateCurriculum}
+                    onClick={() => setShowCreateDropdown(true)}
                     className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     <Plus className="-ml-1 mr-2 h-5 w-5" />

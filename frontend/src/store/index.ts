@@ -26,6 +26,7 @@ import contentReducer from '../features/content/contentSlice';
 import curriculumReducer from '../features/curriculum/curriculumSlice';
 import curriculumAdvancedReducer from '../features/curriculum/curriculumAdvancedSlice';
 import curriculumProgressReducer from '../features/curriculum/curriculumProgressSlice';
+import curriculumSubjectReducer from '../features/curriculum/curriculumSubjectSlice';
 
 export const store = configureStore({
   reducer: {
@@ -55,6 +56,7 @@ export const store = configureStore({
     curriculum: curriculumReducer,
     curriculumAdvanced: curriculumAdvancedReducer,
     curriculumProgress: curriculumProgressReducer,
+    curriculumSubject: curriculumSubjectReducer,
   },
 });
 
