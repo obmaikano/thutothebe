@@ -15,10 +15,25 @@
         </resources>
     </cache-template>
 
+    <!-- Access Control Cache Template for fast permission checks -->
+    <cache-template name="accessControlTemplate">
+        <expiry>
+            <ttl unit="minutes">5</ttl>
+        </expiry>
+        <resources>
+            <heap unit="entries">1000</heap>
+            <offheap unit="MB">5</offheap>
+        </resources>
+    </cache-template>
+
+    <!-- Hibernate second-level cache regions -->
     <cache alias="default-query-results-region" uses-template="defaultTemplate"/>
     <cache alias="default-update-timestamps-region" uses-template="defaultTemplate"/>
-    <cache alias="default-query-results-region" uses-template="defaultTemplate"/>
     <cache alias="org.hibernate.cache.internal.StandardQueryCache" uses-template="defaultTemplate"/>
     <cache alias="org.hibernate.cache.spi.UpdateTimestampsCache" uses-template="defaultTemplate"/>
+
+    <!-- Access Control caches for fast permission checking -->
+    <cache alias="accessControl" uses-template="accessControlTemplate"/>
+    <cache alias="accessibleScopes" uses-template="accessControlTemplate"/>
 
 </config> 

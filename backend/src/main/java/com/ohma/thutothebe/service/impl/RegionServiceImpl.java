@@ -85,9 +85,9 @@ public class RegionServiceImpl extends BaseServiceImpl<Region, RegionDTO, Long> 
         if (!regionRepository.existsById(id)) {
             throw new EntityNotFoundException("Region not found with id: " + id);
         }
-        if (regionRepository.existsByCode(regionDTO.code())) {
-            throw new IllegalArgumentException("Region with code " + regionDTO.code() + " already exists");
-        }
+//        if (regionRepository.existsByCode(regionDTO.code())) {
+//            throw new IllegalArgumentException("Region with code " + regionDTO.code() + " already exists");
+//        }
 
         Region region = regionRepository.findById(id)
                 .orElseThrow(() -> notFoundException((long) id));
