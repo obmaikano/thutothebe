@@ -656,17 +656,25 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             }
 
             // Check if user has permission to mark bulk attendance for these students
-            if (!hasAccess(AccessScope.USER, bulkAttendanceDTO.studentIds())) {
+            List<Long> studentIds = bulkAttendanceDTO.studentAttendances().stream()
+                    .map(attendance -> attendance.studentId())
+                    .toList();
+            
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            boolean hasAccessToAllStudents = studentIds.stream()
+                    .allMatch(accessibleUserIds::contains);
+            
+            if (!hasAccessToAllStudents) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
             }
 
             List<AttendanceRecordDTO> records = attendanceRecordService.markBulkAttendance(bulkAttendanceDTO);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new OhmaApiResponse<>("SUCCESS", "Bulk attendance marked successfully", records, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Bulk attendance marked successfully", records, null));
         } catch (Exception e) {
             log.error("Error marking bulk attendance: {}", e.getMessage(), e);
-            throw e;
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
@@ -680,7 +688,15 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             }
 
             // Check if user has permission to update bulk attendance for these students
-            if (!hasAccess(AccessScope.USER, bulkAttendanceDTO.studentIds())) {
+            List<Long> studentIds = bulkAttendanceDTO.studentAttendances().stream()
+                    .map(attendance -> attendance.studentId())
+                    .toList();
+            
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            boolean hasAccessToAllStudents = studentIds.stream()
+                    .allMatch(accessibleUserIds::contains);
+            
+            if (!hasAccessToAllStudents) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
             }
@@ -689,7 +705,8 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Bulk attendance updated successfully", records, null));
         } catch (Exception e) {
             log.error("Error updating bulk attendance: {}", e.getMessage(), e);
-            throw e;
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
@@ -1171,23 +1188,24 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+                        .body(new byte[0]);
             }
 
             // Check if user has access to export attendance for this class
-            if (!hasAccess(AccessScope.USER, classId)) {
+            if (!hasAccess(AccessScope.CLASS, classId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+                        .body(new byte[0]);
             }
 
             byte[] excelData = attendanceRecordService.exportAttendanceToExcel(classId, startDate, endDate);
+            
             return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=attendance_report.xlsx")
                     .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    .header("Content-Disposition", "attachment; filename=attendance-report.xlsx")
                     .body(excelData);
         } catch (Exception e) {
-            log.error("Error exporting attendance to Excel for class {}: {}", classId, e.getMessage(), e);
-            throw e;
+            log.error("Error exporting attendance to Excel: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(new byte[0]);
         }
     }
 
@@ -1200,23 +1218,24 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+                        .body(new byte[0]);
             }
 
             // Check if user has access to export attendance for this class
-            if (!hasAccess(AccessScope.USER, classId)) {
+            if (!hasAccess(AccessScope.CLASS, classId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+                        .body(new byte[0]);
             }
 
             byte[] pdfData = attendanceRecordService.exportAttendanceToPdf(classId, startDate, endDate);
+            
             return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=attendance_report.pdf")
                     .header("Content-Type", "application/pdf")
+                    .header("Content-Disposition", "attachment; filename=attendance-report.pdf")
                     .body(pdfData);
         } catch (Exception e) {
-            log.error("Error exporting attendance to PDF for class {}: {}", classId, e.getMessage(), e);
-            throw e;
+            log.error("Error exporting attendance to PDF: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(new byte[0]);
         }
     }
 
@@ -1229,23 +1248,24 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+                        .body(new byte[0]);
             }
 
             // Check if user has access to export student attendance report for this student
             if (!hasAccess(AccessScope.USER, studentId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                        .body(new byte[0]);
             }
 
             byte[] reportData = attendanceRecordService.exportStudentAttendanceReport(studentId, academicYear, term);
+            
             return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=student_attendance_report.pdf")
                     .header("Content-Type", "application/pdf")
+                    .header("Content-Disposition", "attachment; filename=student-attendance-report.pdf")
                     .body(reportData);
         } catch (Exception e) {
-            log.error("Error exporting student attendance report for student {}: {}", studentId, e.getMessage(), e);
-            throw e;
+            log.error("Error exporting student attendance report: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(new byte[0]);
         }
     }
 } 
