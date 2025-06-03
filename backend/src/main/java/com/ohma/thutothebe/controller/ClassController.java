@@ -2,6 +2,7 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.ClassDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.Class;
 import com.ohma.thutothebe.repository.ClassRepository;
 import com.ohma.thutothebe.service.ClassService;
@@ -11,8 +12,8 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -38,9 +39,20 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/school/{schoolId}")
     @Operation(summary = "Get classes by school ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getBySchoolId(@PathVariable Long schoolId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view this school's data
+            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
+            }
+
             List<ClassDTO> classes = classService.getClassesBySchoolId(schoolId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Classes retrieved successfully", classes, null));
         } catch (Exception e) {
@@ -52,11 +64,27 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/active")
     @Operation(summary = "Get all active classes")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getActiveClasses() {
         try {
-            List<ClassDTO> classes = classService.getActiveClasses();
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active classes retrieved successfully", classes, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Get accessible class IDs and filter active classes
+            List<Long> accessibleClassIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.CLASS);
+            
+            if (accessibleClassIds.isEmpty()) {
+                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible classes", List.of(), null));
+            }
+
+            List<ClassDTO> allActiveClasses = classService.getActiveClasses();
+            List<ClassDTO> accessibleActiveClasses = allActiveClasses.stream()
+                    .filter(classDTO -> accessibleClassIds.contains(classDTO.id()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active classes retrieved successfully", accessibleActiveClasses, null));
         } catch (Exception e) {
             log.error("Error retrieving active classes: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -66,7 +94,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/school/{schoolId}/active")
     @Operation(summary = "Get active classes by school ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getActiveBySchoolId(@PathVariable Long schoolId) {
         try {
             List<ClassDTO> classes = classService.getActiveClassesBySchoolId(schoolId);
@@ -80,7 +107,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/school/{schoolId}/teacher/{teacherId}")
     @Operation(summary = "Get classes by school ID and teacher ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getBySchoolIdAndTeacherId(
             @PathVariable Long schoolId,
             @PathVariable Long teacherId) {
@@ -96,7 +122,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/school/{schoolId}/student/{studentId}")
     @Operation(summary = "Get classes by school ID and student ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getBySchoolIdAndStudentId(
             @PathVariable Long schoolId,
             @PathVariable Long studentId) {
@@ -112,7 +137,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/{id}/with-teachers")
     @Operation(summary = "Get class by ID with teachers")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<ClassDTO>> getClassWithTeachers(@PathVariable Long id) {
         try {
             ClassDTO classDTO = classService.getById(id);
@@ -126,7 +150,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/{id}/with-students")
     @Operation(summary = "Get class by ID with enrolled students")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<ClassDTO>> getClassWithStudents(@PathVariable Long id) {
         try {
             ClassDTO classDTO = classService.getClassWithStudents(id);
@@ -140,7 +163,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @PostMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate a class")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> deactivateClass(@PathVariable Long id) {
         try {
             classService.deactivateClass(id);
@@ -154,7 +176,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @PostMapping("/{id}/activate")
     @Operation(summary = "Activate a class")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> activateClass(@PathVariable Long id) {
         try {
             classService.activateClass(id);
@@ -168,7 +189,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @PostMapping("/{classId}/teacher/{teacherId}")
     @Operation(summary = "Add a teacher to a class")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> addTeacherToClass(
             @PathVariable Long classId,
             @PathVariable Long teacherId) {
@@ -184,7 +204,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @DeleteMapping("/{classId}/teacher/{teacherId}")
     @Operation(summary = "Remove a teacher from a class")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> removeTeacherFromClass(
             @PathVariable Long classId,
             @PathVariable Long teacherId) {
@@ -200,7 +219,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @PostMapping("/{classId}/student/{studentId}")
     @Operation(summary = "Add a student to a class")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> addStudentToClass(
             @PathVariable Long classId,
             @PathVariable Long studentId) {
@@ -216,7 +234,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @DeleteMapping("/{classId}/student/{studentId}")
     @Operation(summary = "Remove a student from a class")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> removeStudentFromClass(
             @PathVariable Long classId,
             @PathVariable Long studentId) {
@@ -232,7 +249,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/teacher/{teacherId}")
     @Operation(summary = "Get classes by teacher ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getByTeacherId(@PathVariable Long teacherId) {
         try {
             List<ClassDTO> classes = classService.getClassesByTeacherId(teacherId);
@@ -246,7 +262,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/teacher/{teacherId}/active")
     @Operation(summary = "Get active classes by teacher ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getActiveByTeacherId(@PathVariable Long teacherId) {
         try {
             List<ClassDTO> activeClasses = classService.getActiveClassesByTeacherId(teacherId);
@@ -260,7 +275,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/with-teachers")
     @Operation(summary = "Get all classes with teachers")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getClassesWithTeachers() {
         try {
             List<ClassDTO> classes = classService.getAll();
@@ -274,7 +288,6 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     @GetMapping("/{id}/debug-teachers")
     @Operation(summary = "Debug: Get teacher assignments for a class")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<Object>> debugTeacherAssignments(@PathVariable Long id) {
         try {
             Class classEntity = classRepository.findByIdWithTeachers(id)
