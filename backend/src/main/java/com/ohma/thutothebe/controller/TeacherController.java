@@ -2,17 +2,18 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.dto.TeacherDTO;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -30,10 +31,20 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
 
     @GetMapping("/staff-id/{staffId}")
     @Operation(summary = "Get teacher by staff ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<TeacherDTO>> getByStaffId(@PathVariable String staffId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
             TeacherDTO teacher = teacherService.getTeacherByStaffId(staffId);
+            
+            // Check if user has access to view this teacher's data
+            if (!hasAccess(AccessScope.USER, teacher.userId())) {
+                return createAccessDeniedResponse();
+            }
+
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher retrieved successfully", teacher, null));
         } catch (Exception e) {
             log.error("Error retrieving teacher: {}", e.getMessage(), e);
@@ -44,10 +55,20 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
 
     @GetMapping("/email/{email}")
     @Operation(summary = "Get teacher by email")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<TeacherDTO>> getByEmail(@PathVariable String email) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
             TeacherDTO teacher = teacherService.getTeacherByEmail(email);
+            
+            // Check if user has access to view this teacher's data
+            if (!hasAccess(AccessScope.USER, teacher.userId())) {
+                return createAccessDeniedResponse();
+            }
+
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher retrieved successfully", teacher, null));
         } catch (Exception e) {
             log.error("Error retrieving teacher: {}", e.getMessage(), e);
@@ -58,9 +79,18 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get teacher by user ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<TeacherDTO>> getByUserId(@PathVariable Long userId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
+            // Check if user has access to view this teacher's data
+            if (!hasAccess(AccessScope.USER, userId)) {
+                return createAccessDeniedResponse();
+            }
+
             TeacherDTO teacher = teacherService.getTeacherByUserId(userId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher retrieved successfully", teacher, null));
         } catch (Exception e) {
@@ -72,11 +102,27 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
 
     @GetMapping("/active")
     @Operation(summary = "Get all active teachers")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<TeacherDTO>>> getActiveTeachers() {
         try {
-            List<TeacherDTO> teachers = teacherService.getActiveTeachers();
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active teachers retrieved successfully", teachers, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Get accessible user IDs and filter for teachers
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            
+            if (accessibleUserIds.isEmpty()) {
+                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible teachers", List.of(), null));
+            }
+
+            List<TeacherDTO> allActiveTeachers = teacherService.getActiveTeachers();
+            List<TeacherDTO> accessibleTeachers = allActiveTeachers.stream()
+                    .filter(teacher -> accessibleUserIds.contains(teacher.userId()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active teachers retrieved successfully", accessibleTeachers, null));
         } catch (Exception e) {
             log.error("Error retrieving active teachers: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -86,11 +132,27 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
 
     @GetMapping("/course/{courseId}")
     @Operation(summary = "Get teachers by course ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<TeacherDTO>>> getTeachersByCourseId(@PathVariable Long courseId) {
         try {
-            List<TeacherDTO> teachers = teacherService.getTeachersByCourseId(courseId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers for course retrieved successfully", teachers, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view teachers in this course context
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            
+            if (accessibleUserIds.isEmpty()) {
+                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible teachers", List.of(), null));
+            }
+
+            List<TeacherDTO> courseTeachers = teacherService.getTeachersByCourseId(courseId);
+            List<TeacherDTO> accessibleTeachers = courseTeachers.stream()
+                    .filter(teacher -> accessibleUserIds.contains(teacher.userId()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers for course retrieved successfully", accessibleTeachers, null));
         } catch (Exception e) {
             log.error("Error retrieving teachers for course: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -100,9 +162,20 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
 
     @GetMapping("/class/{classId}")
     @Operation(summary = "Get teachers by class ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<TeacherDTO>>> getTeachersByClassId(@PathVariable Long classId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view this class
+            if (!hasAccess(AccessScope.CLASS, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this class", null, null));
+            }
+
             List<TeacherDTO> teachers = teacherService.getTeachersByClassId(classId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers for class retrieved successfully", teachers, null));
         } catch (Exception e) {
@@ -114,9 +187,23 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
 
     @PostMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate a teacher")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> deactivateTeacher(@PathVariable Long id) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Get teacher to check access
+            TeacherDTO teacher = teacherService.getById(id);
+            
+            // Check if user has access to manage this teacher (requires access to teacher's school or higher)
+            if (!hasAccess(AccessScope.SCHOOL, teacher.schoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
+            }
+
             teacherService.deactivateTeacher(id);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher deactivated successfully", null, null));
         } catch (Exception e) {
@@ -128,9 +215,23 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
 
     @PostMapping("/{id}/activate")
     @Operation(summary = "Activate a teacher")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> activateTeacher(@PathVariable Long id) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Get teacher to check access
+            TeacherDTO teacher = teacherService.getById(id);
+            
+            // Check if user has access to manage this teacher (requires access to teacher's school or higher)
+            if (!hasAccess(AccessScope.SCHOOL, teacher.schoolId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
+            }
+
             teacherService.activateTeacher(id);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher activated successfully", null, null));
         } catch (Exception e) {
