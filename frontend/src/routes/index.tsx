@@ -111,6 +111,10 @@ const ForumListPage = lazy(() => import('../features/forums/pages/ForumListPage'
 const ForumDetailPage = lazy(() => import('../pages/protected/forums/ForumDetailPage'));
 const ThreadDetailPage = lazy(() => import('../pages/protected/forums/ThreadDetailPage'));
 
+// Analytics pages
+const PerformanceDashboardPage = lazy(() => import('../features/analytics/pages/PerformanceDashboardPage'));
+const StudentPerformancePage = lazy(() => import('../features/analytics/pages/StudentPerformancePage'));
+
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
 
 // App routes - nested under /app path
@@ -478,6 +482,15 @@ export const appRoutes = [
   {
     path: 'thread-detail/:id',
     element: ThreadDetailPage
+  },
+  // Analytics routes
+  {
+    path: 'analytics/dashboard',
+    element: PerformanceDashboardPage
+  },
+  {
+    path: 'analytics/performance',
+    element: StudentPerformancePage
   },
   // Catch all route
   {

@@ -330,6 +330,26 @@ export const teacherMenuItems: MenuItem[] = [
     ]
   },
   {
+    icon: BarChart3,
+    label: 'Student Performance Analytics',
+    path: '/app/analytics/dashboard',
+    description: 'Analyze student performance in your classes',
+    children: [
+      {
+        icon: LayoutGrid,
+        label: 'Performance Dashboard',
+        path: '/app/analytics/dashboard',
+        description: 'Overview of student performance in your classes'
+      },
+      {
+        icon: Users,
+        label: 'Student Performance',
+        path: '/app/analytics/performance',
+        description: 'Individual student performance tracking'
+      }
+    ]
+  },
+  {
     icon: Calendar,
     label: 'Calendar Events',
     path: '/app/teacher-calendar',
@@ -379,7 +399,21 @@ export const parentMenuItems: MenuItem[] = [
     icon: BarChart,
     label: 'Academic Progress',
     path: '/app/parent-academic-progress',
-    description: 'Track academic performance'
+    description: 'Track academic performance',
+    children: [
+      {
+        icon: LayoutGrid,
+        label: 'Performance Dashboard',
+        path: '/app/analytics/dashboard',
+        description: 'Overview of your child\'s academic performance'
+      },
+      {
+        icon: Users,
+        label: 'Detailed Performance',
+        path: '/app/analytics/performance',
+        description: 'Detailed analysis of your child\'s performance'
+      }
+    ]
   },
   {
     icon: CheckSquare,
@@ -815,7 +849,21 @@ export const schoolHeadMenuItems: MenuItem[] = [
     icon: BarChart,
     label: 'Performance Metrics',
     path: '/app/performance',
-    description: 'School performance analytics'
+    description: 'School performance analytics',
+    children: [
+      {
+        icon: LayoutGrid,
+        label: 'Performance Dashboard',
+        path: '/app/analytics/dashboard',
+        description: 'Overview of school student performance metrics'
+      },
+      {
+        icon: Users,
+        label: 'Student Performance',
+        path: '/app/analytics/performance',
+        description: 'Individual student performance in your school'
+      }
+    ]
   },
   {
     icon: Settings,
@@ -1021,7 +1069,21 @@ export const regionalAdminMenuItems: MenuItem[] = [
     icon: BarChart,
     label: 'Regional Analytics',
     path: '/app/analytics',
-    description: 'Performance analytics for your region'
+    description: 'Performance analytics for your region',
+    children: [
+      {
+        icon: LayoutGrid,
+        label: 'Performance Dashboard',
+        path: '/app/analytics/dashboard',
+        description: 'Overview of regional student performance metrics'
+      },
+      {
+        icon: Users,
+        label: 'Student Performance',
+        path: '/app/analytics/performance',
+        description: 'Individual student performance in your region'
+      }
+    ]
   },
   {
     icon: FileText,
@@ -1680,6 +1742,26 @@ export const superAdminMenuItems: MenuItem[] = [
     label: 'Analytics',
     path: '/app/analytics',
     description: 'System-wide analytics'
+  },
+  {
+    icon: BarChart3,
+    label: 'Student Performance Analytics',
+    path: '/app/analytics/dashboard',
+    description: 'Comprehensive student performance analytics and insights',
+    children: [
+      {
+        icon: LayoutGrid,
+        label: 'Performance Dashboard',
+        path: '/app/analytics/dashboard',
+        description: 'Overview of student performance metrics and trends'
+      },
+      {
+        icon: Users,
+        label: 'Student Performance',
+        path: '/app/analytics/performance',
+        description: 'Individual student performance tracking and analysis'
+      }
+    ]
   },
   {
     icon: FileText,

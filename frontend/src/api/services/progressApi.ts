@@ -10,28 +10,19 @@ export interface Progress {
   completed: boolean;
   active: boolean;
   lastActivityAt: string;
-  completedAt?: string;
-}
-
-export interface CreateProgressRequest {
-  studentId: number;
-  courseId: number;
-  completionPercentage: number;
-  grade: number;
-  completed?: boolean;
-  active?: boolean;
-}
-
-export interface UpdateProgressRequest {
-  completionPercentage: number;
-  grade: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProgressResponse {
   status: string;
   message: string;
-  data: Progress | Progress[];
+  data: Progress | Progress[] | null;
+  timestamp: string | null;
 }
+
+export type CreateProgressRequest = Omit<Progress, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateProgressRequest = Partial<Progress>;
 
 /**
  * API service for interacting with progress endpoints
@@ -55,7 +46,7 @@ const progressApi = {
   },
 
   /**
-   * Get progress by student ID
+   * Get progress records by student
    * @param studentId Student ID
    * @returns Response with student's progress records
    */
@@ -64,7 +55,7 @@ const progressApi = {
   },
 
   /**
-   * Get progress by course ID
+   * Get progress records by course
    * @param courseId Course ID
    * @returns Response with course progress records
    */
@@ -73,7 +64,7 @@ const progressApi = {
   },
 
   /**
-   * Get progress for a specific student in a specific course
+   * Get progress for a student in a specific course
    * @param studentId Student ID
    * @param courseId Course ID
    * @returns Response with progress details
@@ -83,7 +74,7 @@ const progressApi = {
   },
 
   /**
-   * Get active progress by student ID
+   * Get active progress records by student
    * @param studentId Student ID
    * @returns Response with active progress records
    */
@@ -92,7 +83,7 @@ const progressApi = {
   },
 
   /**
-   * Get active progress by course ID
+   * Get active progress records by course
    * @param courseId Course ID
    * @returns Response with active progress records
    */
@@ -101,7 +92,7 @@ const progressApi = {
   },
 
   /**
-   * Get completed progress by student ID
+   * Get completed progress records by student
    * @param studentId Student ID
    * @returns Response with completed progress records
    */
@@ -110,7 +101,7 @@ const progressApi = {
   },
 
   /**
-   * Get completed progress by course ID
+   * Get completed progress records by course
    * @param courseId Course ID
    * @returns Response with completed progress records
    */
@@ -119,20 +110,20 @@ const progressApi = {
   },
 
   /**
-   * Get average grade for a course
+   * Get average grade by course
    * @param courseId Course ID
    * @returns Response with average grade
    */
-  getAverageGradeByCourse: async (courseId: number): Promise<AxiosResponse<ProgressResponse>> => {
+  getAverageGradeByCourse: async (courseId: number): Promise<AxiosResponse<{ data: number }>> => {
     return api.get(`/progress/course/${courseId}/average-grade`);
   },
 
   /**
-   * Get average completion for a course
+   * Get average completion percentage by course
    * @param courseId Course ID
    * @returns Response with average completion percentage
    */
-  getAverageCompletionByCourse: async (courseId: number): Promise<AxiosResponse<ProgressResponse>> => {
+  getAverageCompletionByCourse: async (courseId: number): Promise<AxiosResponse<{ data: number }>> => {
     return api.get(`/progress/course/${courseId}/average-completion`);
   },
 
@@ -144,15 +135,8 @@ const progressApi = {
    * @param grade Grade
    * @returns Response with updated progress
    */
-  updateProgress: async (
-    studentId: number, 
-    courseId: number, 
-    completionPercentage: number, 
-    grade: number
-  ): Promise<AxiosResponse<ProgressResponse>> => {
-    return api.put(`/progress/student/${studentId}/course/${courseId}`, null, {
-      params: { completionPercentage, grade }
-    });
+  updateProgress: async (studentId: number, courseId: number, completionPercentage: number, grade: number): Promise<AxiosResponse<ProgressResponse>> => {
+    return api.put(`/progress/student/${studentId}/course/${courseId}?completionPercentage=${completionPercentage}&grade=${grade}`);
   },
 
   /**
@@ -181,7 +165,7 @@ const progressApi = {
    */
   delete: async (id: number): Promise<AxiosResponse<ProgressResponse>> => {
     return api.delete(`/progress/${id}`);
-  }
+  },
 };
 
 export default progressApi; 

@@ -13,29 +13,15 @@ export interface StudentPerformance {
   lastUpdated: string;
 }
 
-export interface CreateStudentPerformanceRequest {
-  studentId: number;
-  courseId: number;
-  averageGrade: number;
-  totalSubmissions: number;
-  forumPosts: number;
-  loginCount: number;
-  timeSpentMinutes: number;
-}
-
-export interface UpdateStudentPerformanceRequest {
-  averageGrade?: number;
-  totalSubmissions?: number;
-  forumPosts?: number;
-  loginCount?: number;
-  timeSpentMinutes?: number;
-}
-
 export interface StudentPerformanceResponse {
   status: string;
   message: string;
-  data: StudentPerformance | StudentPerformance[] | number;
+  data: StudentPerformance | StudentPerformance[] | null;
+  timestamp: string | null;
 }
+
+export type CreateStudentPerformanceRequest = Omit<StudentPerformance, 'id' | 'lastUpdated'>;
+export type UpdateStudentPerformanceRequest = Partial<StudentPerformance>;
 
 /**
  * API service for interacting with student performance endpoints
@@ -43,7 +29,7 @@ export interface StudentPerformanceResponse {
 const studentPerformanceApi = {
   /**
    * Get all student performance records
-   * @returns Response with a list of performance records
+   * @returns Response with a list of student performance records
    */
   getAll: async (): Promise<AxiosResponse<StudentPerformanceResponse>> => {
     return api.get('/analytics/student-performance');
@@ -51,8 +37,8 @@ const studentPerformanceApi = {
 
   /**
    * Get student performance by ID
-   * @param id Performance record ID
-   * @returns Response with performance details
+   * @param id Student performance ID
+   * @returns Response with student performance details
    */
   getById: async (id: number): Promise<AxiosResponse<StudentPerformanceResponse>> => {
     return api.get(`/analytics/student-performance/${id}`);
@@ -62,7 +48,7 @@ const studentPerformanceApi = {
    * Get performance for a student in a specific course
    * @param studentId Student ID
    * @param courseId Course ID
-   * @returns Response with performance details
+   * @returns Response with student performance details
    */
   getStudentPerformance: async (studentId: number, courseId: number): Promise<AxiosResponse<StudentPerformanceResponse>> => {
     return api.get(`/analytics/student-performance/student/${studentId}/course/${courseId}`);
@@ -71,7 +57,7 @@ const studentPerformanceApi = {
   /**
    * Get performance history for a student
    * @param studentId Student ID
-   * @returns Response with student's performance history
+   * @returns Response with student performance history
    */
   getStudentPerformanceHistory: async (studentId: number): Promise<AxiosResponse<StudentPerformanceResponse>> => {
     return api.get(`/analytics/student-performance/student/${studentId}/history`);
@@ -87,21 +73,29 @@ const studentPerformanceApi = {
   },
 
   /**
-   * Get performance by date range
-   * @param startDate Start date in ISO format
-   * @param endDate End date in ISO format
+   * Get performance data by date range
+   * @param startDate Start date
+   * @param endDate End date
    * @returns Response with performance data in date range
    */
   getPerformanceByDateRange: async (startDate: string, endDate: string): Promise<AxiosResponse<StudentPerformanceResponse>> => {
-    return api.get('/analytics/student-performance/date-range', {
-      params: { startDate, endDate }
-    });
+    return api.get(`/analytics/student-performance/date-range?startDate=${startDate}&endDate=${endDate}`);
+  },
+
+  /**
+   * Update student performance for a specific course
+   * @param studentId Student ID
+   * @param courseId Course ID
+   * @returns Response indicating success/failure
+   */
+  updateStudentPerformance: async (studentId: number, courseId: number): Promise<AxiosResponse<void>> => {
+    return api.post(`/analytics/student-performance/student/${studentId}/course/${courseId}/update`);
   },
 
   /**
    * Create a new student performance record
-   * @param performanceData Performance data
-   * @returns Response with created performance details
+   * @param performanceData Student performance data
+   * @returns Response with created student performance details
    */
   create: async (performanceData: CreateStudentPerformanceRequest): Promise<AxiosResponse<StudentPerformanceResponse>> => {
     return api.post('/analytics/student-performance', performanceData);
@@ -109,9 +103,9 @@ const studentPerformanceApi = {
 
   /**
    * Update an existing student performance record
-   * @param id Performance record ID
-   * @param performanceData Updated performance data
-   * @returns Response with updated performance details
+   * @param id Student performance ID
+   * @param performanceData Updated student performance data
+   * @returns Response with updated student performance details
    */
   update: async (id: number, performanceData: UpdateStudentPerformanceRequest): Promise<AxiosResponse<StudentPerformanceResponse>> => {
     return api.put(`/analytics/student-performance/${id}`, performanceData);
@@ -119,12 +113,12 @@ const studentPerformanceApi = {
 
   /**
    * Delete a student performance record
-   * @param id Performance record ID
+   * @param id Student performance ID
    * @returns Response indicating success/failure
    */
   delete: async (id: number): Promise<AxiosResponse<StudentPerformanceResponse>> => {
     return api.delete(`/analytics/student-performance/${id}`);
-  }
+  },
 };
 
 export default studentPerformanceApi; 
