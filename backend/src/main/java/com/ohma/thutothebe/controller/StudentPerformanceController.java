@@ -2,12 +2,14 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.StudentPerformanceDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.service.StudentPerformanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +36,18 @@ public class StudentPerformanceController extends BaseController<StudentPerforma
             @PathVariable Long studentId,
             @PathVariable Long courseId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view performance for this student (self-access, class-level access, or admin access)
+            if (!hasAccess(AccessScope.USER, studentId) && !hasAccess(AccessScope.CLASS, courseId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view student performance", null, null));
+            }
+
             StudentPerformanceDTO performance = studentPerformanceService.getStudentPerformance(studentId, courseId);
             return ResponseEntity.ok(OhmaApiResponse.success(performance));
         } catch (Exception e) {
@@ -48,6 +62,18 @@ public class StudentPerformanceController extends BaseController<StudentPerforma
     public ResponseEntity<OhmaApiResponse<List<StudentPerformanceDTO>>> getStudentPerformanceHistory(
             @PathVariable Long studentId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view performance history for this student (self-access or admin access)
+            if (!hasAccess(AccessScope.USER, studentId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view student performance history", null, null));
+            }
+
             List<StudentPerformanceDTO> performance = studentPerformanceService.getStudentPerformanceHistory(studentId);
             return ResponseEntity.ok(OhmaApiResponse.success(performance));
         } catch (Exception e) {
@@ -62,6 +88,18 @@ public class StudentPerformanceController extends BaseController<StudentPerforma
     public ResponseEntity<OhmaApiResponse<List<StudentPerformanceDTO>>> getCoursePerformance(
             @PathVariable Long courseId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view course performance (class-level access or admin access)
+            if (!hasAccess(AccessScope.CLASS, courseId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view course performance", null, null));
+            }
+
             List<StudentPerformanceDTO> performance = studentPerformanceService.getCoursePerformance(courseId);
             return ResponseEntity.ok(OhmaApiResponse.success(performance));
         } catch (Exception e) {
@@ -77,6 +115,18 @@ public class StudentPerformanceController extends BaseController<StudentPerforma
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view performance analytics by date range (admin access required)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view performance analytics", null, null));
+            }
+
             List<StudentPerformanceDTO> performance = studentPerformanceService.getPerformanceByDateRange(startDate, endDate);
             return ResponseEntity.ok(OhmaApiResponse.success(performance));
         } catch (Exception e) {
@@ -92,6 +142,18 @@ public class StudentPerformanceController extends BaseController<StudentPerforma
             @PathVariable Long studentId,
             @PathVariable Long courseId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to update performance for this student (class-level access or admin access)
+            if (!hasAccess(AccessScope.CLASS, courseId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to update student performance", null, null));
+            }
+
             studentPerformanceService.updateStudentPerformance(studentId, courseId);
             return ResponseEntity.ok(OhmaApiResponse.success(null));
         } catch (Exception e) {

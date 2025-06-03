@@ -6,6 +6,7 @@ import com.ohma.thutothebe.dto.CurriculumUnitDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.dto.SubjectDTO;
 import com.ohma.thutothebe.dto.UpdateCurriculumSubjectRequest;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.CurriculumStatus;
 import com.ohma.thutothebe.entity.CurriculumType;
 import com.ohma.thutothebe.entity.enums.GradeLevel;
@@ -18,8 +19,8 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,9 +47,20 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/active")
     @Operation(summary = "Get all active curricula")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> getAllActive() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view curricula (most authenticated users can view active curricula)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to curricula", null, null));
+            }
+
             List<CurriculumDTO> curricula = curriculumService.findAllActive();
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active curricula retrieved successfully", curricula, null));
         } catch (Exception e) {
@@ -60,7 +72,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/status/{status}")
     @Operation(summary = "Get curricula by status")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> getByStatus(
             @Parameter(description = "Curriculum status") @PathVariable CurriculumStatus status) {
         try {
@@ -75,7 +86,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/type/{type}")
     @Operation(summary = "Get curricula by type")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> getByType(
             @Parameter(description = "Curriculum type") @PathVariable CurriculumType type) {
         try {
@@ -90,7 +100,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/grade-level/{gradeLevel}")
     @Operation(summary = "Get curricula by grade level")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> getByGradeLevel(
             @Parameter(description = "Grade level") @PathVariable GradeLevel gradeLevel) {
         try {
@@ -105,7 +114,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/academic-year/{academicYear}")
     @Operation(summary = "Get curricula by academic year")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> getByAcademicYear(
             @Parameter(description = "Academic year") @PathVariable Integer academicYear) {
         try {
@@ -120,7 +128,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/region/{regionId}")
     @Operation(summary = "Get curricula by region")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> getByRegion(
             @Parameter(description = "Region ID") @PathVariable Long regionId) {
         try {
@@ -135,7 +142,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/school/{schoolId}")
     @Operation(summary = "Get curricula by school")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> getBySchool(
             @Parameter(description = "School ID") @PathVariable Long schoolId) {
         try {
@@ -150,7 +156,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/effective-on/{date}")
     @Operation(summary = "Get curricula effective on a specific date")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> getEffectiveOnDate(
             @Parameter(description = "Date (YYYY-MM-DD)") @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
@@ -165,7 +170,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/search")
     @Operation(summary = "Search curricula by title")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> searchByTitle(
             @Parameter(description = "Title search term") @RequestParam String title) {
         try {
@@ -180,7 +184,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PostMapping("/{curriculumId}/approve")
     @Operation(summary = "Approve a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumDTO>> approveCurriculum(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Approver user ID") @RequestParam Long approvedById) {
@@ -196,7 +199,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PostMapping("/{curriculumId}/activate")
     @Operation(summary = "Activate a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumDTO>> activateCurriculum(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
@@ -211,7 +213,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PostMapping("/{curriculumId}/suspend")
     @Operation(summary = "Suspend a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumDTO>> suspendCurriculum(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
@@ -226,7 +227,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PostMapping("/{curriculumId}/archive")
     @Operation(summary = "Archive a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumDTO>> archiveCurriculum(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
@@ -241,7 +241,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/exists")
     @Operation(summary = "Check if curriculum exists by title, grade level and academic year")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Boolean>> checkCurriculumExists(
             @Parameter(description = "Curriculum title") @RequestParam String title,
             @Parameter(description = "Grade level") @RequestParam GradeLevel gradeLevel,
@@ -260,7 +259,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/{curriculumId}/subjects")
     @Operation(summary = "Get all subjects associated with a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumSubjectDTO>>> getCurriculumSubjects(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
@@ -273,7 +271,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/{curriculumId}/subjects/available")
     @Operation(summary = "Get all subjects available to be added to a curriculum (excluding already associated ones)")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<SubjectDTO>>> getAvailableSubjects(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
@@ -286,7 +283,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PostMapping("/{curriculumId}/subjects/{subjectId}")
     @Operation(summary = "Add a subject to a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumDTO>> addSubjectToCurriculum(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Subject ID") @PathVariable Long subjectId,
@@ -305,7 +301,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @DeleteMapping("/{curriculumId}/subjects/{subjectId}")
     @Operation(summary = "Remove a subject from a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumDTO>> removeSubjectFromCurriculum(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Subject ID") @PathVariable Long subjectId) {
@@ -319,7 +314,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PutMapping("/{curriculumId}/subjects/{subjectId}")
     @Operation(summary = "Update curriculum subject details")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumSubjectDTO>> updateCurriculumSubject(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Subject ID") @PathVariable Long subjectId,
@@ -334,7 +328,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/{curriculumId}/subjects/core")
     @Operation(summary = "Get core subjects for a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumSubjectDTO>>> getCoreSubjects(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
@@ -347,7 +340,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/{curriculumId}/subjects/elective")
     @Operation(summary = "Get elective subjects for a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumSubjectDTO>>> getElectiveSubjects(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
@@ -360,7 +352,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/{curriculumId}/subjects/statistics")
     @Operation(summary = "Get curriculum subject statistics")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<Map<String, Object>>> getCurriculumSubjectStatistics(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
@@ -385,7 +376,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/subjects/core")
     @Operation(summary = "Get all core subjects across all curricula")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumSubjectDTO>>> getAllCoreSubjects() {
         try {
             List<CurriculumSubjectDTO> coreSubjects = curriculumSubjectService.findAllCoreSubjects();
@@ -397,7 +387,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/subjects/elective")
     @Operation(summary = "Get all elective subjects across all curricula")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumSubjectDTO>>> getAllElectiveSubjects() {
         try {
             List<CurriculumSubjectDTO> electiveSubjects = curriculumSubjectService.findAllElectiveSubjects();
@@ -409,7 +398,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/subjects/{subjectId}/curricula")
     @Operation(summary = "Get all curricula that include a specific subject")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumSubjectDTO>>> getCurriculaBySubject(
             @Parameter(description = "Subject ID") @PathVariable Long subjectId) {
         try {
@@ -422,7 +410,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/{curriculumId}/subjects/{subjectId}/exists")
     @Operation(summary = "Check if a subject exists in a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<Boolean>> checkSubjectExistsInCurriculum(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Subject ID") @PathVariable Long subjectId) {
@@ -438,7 +425,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/{curriculumId}/units")
     @Operation(summary = "Get all units for a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumUnitDTO>>> getCurriculumUnits(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
@@ -453,7 +439,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PostMapping("/{curriculumId}/units")
     @Operation(summary = "Create a curriculum unit")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumDTO>> createCurriculumUnit(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Unit title") @RequestParam String title,
@@ -476,7 +461,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PostMapping("/units/{curriculumUnitId}/topics")
     @Operation(summary = "Create a curriculum topic")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumDTO>> createCurriculumTopic(
             @Parameter(description = "Curriculum Unit ID") @PathVariable Long curriculumUnitId,
             @Parameter(description = "Topic title") @RequestParam String title,
@@ -498,7 +482,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @GetMapping("/recommendations")
     @Operation(summary = "Get curriculum recommendations")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumDTO>>> getCurriculumRecommendations(
             @Parameter(description = "Grade level") @RequestParam GradeLevel gradeLevel,
             @Parameter(description = "Curriculum type") @RequestParam CurriculumType type,
@@ -517,7 +500,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PostMapping("/{curriculumId}/validate-alignment")
     @Operation(summary = "Validate curriculum alignment with regional standards")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<String>> validateCurriculumAlignment(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Region ID") @RequestParam Long regionId) {
@@ -533,7 +515,6 @@ public class CurriculumController extends BaseController<CurriculumDTO, Long> {
 
     @PostMapping("/{curriculumId}/submit-for-review")
     @Operation(summary = "Submit a curriculum for review")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumDTO>> submitCurriculumForReview(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {

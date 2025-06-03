@@ -3,6 +3,7 @@ package com.ohma.thutothebe.controller;
 import com.ohma.thutothebe.dto.DocumentDTO;
 import com.ohma.thutothebe.dto.DocumentUploadRequest;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.DocumentAccessLevel;
 import com.ohma.thutothebe.entity.DocumentApprovalStatus;
 import com.ohma.thutothebe.entity.DocumentCategory;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -57,6 +59,31 @@ public class DocumentController extends BaseController<DocumentDTO, Long> {
             @RequestParam(value = "isPublic", defaultValue = "false") boolean isPublic,
             @RequestParam(value = "requiresApproval", defaultValue = "false") boolean requiresApproval) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to upload documents
+            boolean hasUploadPermission = false;
+            if (schoolId != null && hasAccess(AccessScope.SCHOOL, schoolId)) {
+                hasUploadPermission = true;
+            } else if (regionId != null && hasAccess(AccessScope.REGION, regionId)) {
+                hasUploadPermission = true;
+            } else if (classId != null && hasAccess(AccessScope.CLASS, classId)) {
+                hasUploadPermission = true;
+            } else if (hasAccess(AccessScope.GLOBAL, null)) {
+                hasUploadPermission = true;
+            } else if (hasAccess(AccessScope.USER, uploadedById)) {
+                hasUploadPermission = true;
+            }
+
+            if (!hasUploadPermission) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to upload documents", null, null));
+            }
+
             DocumentUploadRequest uploadRequest = new DocumentUploadRequest(
                 title, description, documentCategory, accessLevel, uploadedById,
                 schoolId, regionId, classId, courseId, subjectId, tags,

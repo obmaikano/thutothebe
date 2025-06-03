@@ -2,6 +2,7 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.dto.SchoolMonitoringDTO;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.service.SchoolMonitoringService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,8 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -35,10 +36,21 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/school/{schoolId}")
     @Operation(summary = "Get latest monitoring data by school ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<SchoolMonitoringDTO>> getBySchoolId(
             @Parameter(description = "School ID") @PathVariable Long schoolId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view monitoring data for this school
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school monitoring data", null, null));
+            }
+
             SchoolMonitoringDTO monitoringData = schoolMonitoringService.findLatestMonitoringDataForSchool(schoolId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School monitoring data retrieved successfully", monitoringData, null));
         } catch (Exception e) {
@@ -50,11 +62,22 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/school/{schoolId}/date/{date}")
     @Operation(summary = "Get monitoring data by school ID and date")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<SchoolMonitoringDTO>> getBySchoolIdAndDate(
             @Parameter(description = "School ID") @PathVariable Long schoolId,
             @Parameter(description = "Monitoring date") @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view monitoring data for this school
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school monitoring data", null, null));
+            }
+
             SchoolMonitoringDTO monitoringData = schoolMonitoringService.findBySchoolIdAndDate(schoolId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School monitoring data retrieved successfully", monitoringData, null));
         } catch (Exception e) {
@@ -66,12 +89,23 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/school/{schoolId}/date-range")
     @Operation(summary = "Get monitoring data by school ID and date range")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getBySchoolIdAndDateRange(
             @Parameter(description = "School ID") @PathVariable Long schoolId,
             @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view monitoring data for this school
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school monitoring data", null, null));
+            }
+
             List<SchoolMonitoringDTO> monitoringData = schoolMonitoringService.findBySchoolIdAndDateRange(schoolId, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School monitoring data retrieved successfully", monitoringData, null));
         } catch (Exception e) {
@@ -83,10 +117,21 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/region/{regionId}")
     @Operation(summary = "Get latest monitoring data for all schools in region")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getByRegionId(
             @Parameter(description = "Region ID") @PathVariable Long regionId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view monitoring data for this region
+            if (!hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to regional monitoring data", null, null));
+            }
+
             List<SchoolMonitoringDTO> monitoringData = schoolMonitoringService.findLatestMonitoringDataForAllSchools();
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Regional school monitoring data retrieved successfully", monitoringData, null));
         } catch (Exception e) {
@@ -98,11 +143,22 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/region/{regionId}/date/{date}")
     @Operation(summary = "Get monitoring data by region ID and date")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getByRegionIdAndDate(
             @Parameter(description = "Region ID") @PathVariable Long regionId,
             @Parameter(description = "Monitoring date") @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view monitoring data for this region
+            if (!hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to regional monitoring data", null, null));
+            }
+
             List<SchoolMonitoringDTO> monitoringData = schoolMonitoringService.findByRegionIdAndDate(regionId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Regional school monitoring data retrieved successfully", monitoringData, null));
         } catch (Exception e) {
@@ -114,12 +170,23 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/region/{regionId}/date-range")
     @Operation(summary = "Get monitoring data by region ID and date range")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getByRegionIdAndDateRange(
             @Parameter(description = "Region ID") @PathVariable Long regionId,
             @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view monitoring data for this region
+            if (!hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to regional monitoring data", null, null));
+            }
+
             List<SchoolMonitoringDTO> monitoringData = schoolMonitoringService.findByRegionIdAndDateRange(regionId, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Regional school monitoring data retrieved successfully", monitoringData, null));
         } catch (Exception e) {
@@ -131,10 +198,21 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/date/{date}")
     @Operation(summary = "Get monitoring data by date")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getByDate(
             @Parameter(description = "Monitoring date") @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to view all monitoring data by date
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to system-wide monitoring data", null, null));
+            }
+
             List<SchoolMonitoringDTO> monitoringData = schoolMonitoringService.findByDate(date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Monitoring data retrieved successfully", monitoringData, null));
         } catch (Exception e) {
@@ -146,12 +224,23 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/date-range")
     @Operation(summary = "Get monitoring data by date range")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Page<SchoolMonitoringDTO>>> getByDateRange(
             @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             Pageable pageable) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to view all monitoring data by date range
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to system-wide monitoring data", null, null));
+            }
+
             Page<SchoolMonitoringDTO> monitoringData = schoolMonitoringService.findByDateRange(startDate, endDate, pageable);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Monitoring data retrieved successfully", monitoringData, null));
         } catch (Exception e) {
@@ -163,11 +252,22 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/attendance/below-threshold")
     @Operation(summary = "Get schools with attendance below threshold")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getSchoolsWithAttendanceBelowThreshold(
             @Parameter(description = "Attendance threshold") @RequestParam Double threshold,
             @Parameter(description = "Monitoring date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to view attendance threshold analysis
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to attendance threshold analysis", null, null));
+            }
+
             List<SchoolMonitoringDTO> schools = schoolMonitoringService.findSchoolsWithLowAttendance(threshold, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Schools with low attendance retrieved successfully", schools, null));
         } catch (Exception e) {
@@ -179,11 +279,22 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/usage/below-threshold")
     @Operation(summary = "Get schools with usage below threshold")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getSchoolsWithUsageBelowThreshold(
             @Parameter(description = "Usage threshold") @RequestParam Integer threshold,
             @Parameter(description = "Monitoring date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to view usage threshold analysis
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to usage threshold analysis", null, null));
+            }
+
             List<SchoolMonitoringDTO> schools = schoolMonitoringService.findSchoolsWithLowUsage(threshold, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Schools with low usage retrieved successfully", schools, null));
         } catch (Exception e) {
@@ -195,15 +306,26 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/grading/delayed")
     @Operation(summary = "Get schools with delayed grading")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getSchoolsWithDelayedGrading(
             @Parameter(description = "Grading delay threshold (hours)") @RequestParam Double threshold,
             @Parameter(description = "Monitoring date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to view grading delay analysis
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to grading delay analysis", null, null));
+            }
+
             List<SchoolMonitoringDTO> schools = schoolMonitoringService.findSchoolsWithDelayedGrading(threshold, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Schools with delayed grading retrieved successfully", schools, null));
         } catch (Exception e) {
-            log.error("Error retrieving schools with grading delay above {} on {}: {}", threshold, date, e.getMessage(), e);
+            log.error("Error retrieving schools with grading delay above {} hours on {}: {}", threshold, date, e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
@@ -211,11 +333,22 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/compliance/below-threshold")
     @Operation(summary = "Get schools with compliance below threshold")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getSchoolsWithLowCompliance(
             @Parameter(description = "Compliance threshold") @RequestParam Double threshold,
             @Parameter(description = "Monitoring date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to view compliance threshold analysis
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to compliance threshold analysis", null, null));
+            }
+
             List<SchoolMonitoringDTO> schools = schoolMonitoringService.findSchoolsWithLowCompliance(threshold, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Schools with low compliance retrieved successfully", schools, null));
         } catch (Exception e) {
@@ -227,11 +360,22 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/alerts/high")
     @Operation(summary = "Get schools with high alert count")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getSchoolsWithHighAlerts(
             @Parameter(description = "Alert count threshold") @RequestParam Integer threshold,
             @Parameter(description = "Monitoring date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to view high alert analysis
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to high alert analysis", null, null));
+            }
+
             List<SchoolMonitoringDTO> schools = schoolMonitoringService.findSchoolsWithHighAlerts(threshold, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Schools with high alerts retrieved successfully", schools, null));
         } catch (Exception e) {
@@ -243,9 +387,20 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/latest/all")
     @Operation(summary = "Get latest monitoring data for all schools")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<SchoolMonitoringDTO>>> getLatestMonitoringDataForAllSchools() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to view all schools monitoring data
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to system-wide monitoring data", null, null));
+            }
+
             List<SchoolMonitoringDTO> monitoringData = schoolMonitoringService.findLatestMonitoringDataForAllSchools();
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Latest monitoring data retrieved successfully", monitoringData, null));
         } catch (Exception e) {
@@ -257,11 +412,22 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @GetMapping("/compliance/school/{schoolId}")
     @Operation(summary = "Calculate compliance score for school")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Double>> calculateComplianceScore(
             @Parameter(description = "School ID") @PathVariable Long schoolId,
             @Parameter(description = "Monitoring date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view compliance scores for this school
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school compliance scores", null, null));
+            }
+
             Double complianceScore = schoolMonitoringService.calculateComplianceScore(schoolId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Compliance score calculated successfully", complianceScore, null));
         } catch (Exception e) {
@@ -273,11 +439,22 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @PostMapping("/update/school/{schoolId}")
     @Operation(summary = "Update monitoring data for school")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> updateSchoolMonitoringData(
             @Parameter(description = "School ID") @PathVariable Long schoolId,
             @Parameter(description = "Monitoring date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to update monitoring data
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to update monitoring data", null, null));
+            }
+
             schoolMonitoringService.updateSchoolMonitoringData(schoolId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School monitoring data updated successfully", null, null));
         } catch (Exception e) {
@@ -289,13 +466,24 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @PostMapping("/generate/school/{schoolId}")
     @Operation(summary = "Generate monitoring data for school")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<SchoolMonitoringDTO>> generateMonitoringDataForSchool(
             @Parameter(description = "School ID") @PathVariable Long schoolId,
             @Parameter(description = "Monitoring date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has regional admin access or higher to generate monitoring data
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to generate monitoring data", null, null));
+            }
+
             SchoolMonitoringDTO monitoringData = schoolMonitoringService.generateMonitoringDataForSchool(schoolId, date);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School monitoring data generated successfully", monitoringData, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Monitoring data generated successfully", monitoringData, null));
         } catch (Exception e) {
             log.error("Error generating monitoring data for school {} on {}: {}", schoolId, date, e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -305,10 +493,21 @@ public class SchoolMonitoringController extends BaseController<SchoolMonitoringD
 
     @PostMapping("/generate/all")
     @Operation(summary = "Generate monitoring data for all schools")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> generateMonitoringDataForAllSchools(
             @Parameter(description = "Monitoring date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has global admin access to generate monitoring data for all schools (system operation)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to generate system-wide monitoring data", null, null));
+            }
+
             schoolMonitoringService.generateMonitoringDataForAllSchools(date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Monitoring data generated for all schools successfully", null, null));
         } catch (Exception e) {

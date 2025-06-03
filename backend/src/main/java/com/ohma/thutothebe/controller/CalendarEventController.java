@@ -2,6 +2,8 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.CalendarEventDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
+import com.ohma.thutothebe.entity.CalendarEvent;
 import com.ohma.thutothebe.entity.CalendarEventType;
 import com.ohma.thutothebe.entity.CalendarEventScope;
 import com.ohma.thutothebe.entity.CalendarEventStatus;
@@ -14,8 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -327,11 +329,22 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
     // Event management
     @PostMapping("/{eventId}/attendees/{userId}")
     @Operation(summary = "Add attendee to event")
-    @PreAuthorize("hasRole('TEACHER') or hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> addAttendee(
             @PathVariable Long eventId,
             @PathVariable Long userId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to manage attendees (teacher, school admin, or school head)
+            if (!hasAccess(AccessScope.CLASS, eventId) && !hasAccess(AccessScope.SCHOOL, eventId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to manage event attendees", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.addAttendee(eventId, userId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendee added successfully", event, null));
         } catch (Exception e) {
@@ -343,11 +356,22 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @DeleteMapping("/{eventId}/attendees/{userId}")
     @Operation(summary = "Remove attendee from event")
-    @PreAuthorize("hasRole('TEACHER') or hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> removeAttendee(
             @PathVariable Long eventId,
             @PathVariable Long userId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to manage attendees
+            if (!hasAccess(AccessScope.CLASS, eventId) && !hasAccess(AccessScope.SCHOOL, eventId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to manage event attendees", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.removeAttendee(eventId, userId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendee removed successfully", event, null));
         } catch (Exception e) {
@@ -359,11 +383,22 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @PostMapping("/{eventId}/organizers/{userId}")
     @Operation(summary = "Add organizer to event")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> addOrganizer(
             @PathVariable Long eventId,
             @PathVariable Long userId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to manage organizers (school admin or head)
+            if (!hasAccess(AccessScope.SCHOOL, eventId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to manage event organizers", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.addOrganizer(eventId, userId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Organizer added successfully", event, null));
         } catch (Exception e) {
@@ -375,11 +410,22 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @DeleteMapping("/{eventId}/organizers/{userId}")
     @Operation(summary = "Remove organizer from event")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> removeOrganizer(
             @PathVariable Long eventId,
             @PathVariable Long userId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to manage organizers
+            if (!hasAccess(AccessScope.SCHOOL, eventId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to manage event organizers", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.removeOrganizer(eventId, userId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Organizer removed successfully", event, null));
         } catch (Exception e) {
@@ -392,9 +438,20 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
     // Event status management
     @PutMapping("/{eventId}/status/ongoing")
     @Operation(summary = "Mark event as ongoing")
-    @PreAuthorize("hasRole('TEACHER') or hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> markAsOngoing(@PathVariable Long eventId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to manage event status
+            if (!hasAccess(AccessScope.CLASS, eventId) && !hasAccess(AccessScope.SCHOOL, eventId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to manage event status", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.markAsOngoing(eventId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Event marked as ongoing", event, null));
         } catch (Exception e) {
@@ -406,9 +463,20 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @PutMapping("/{eventId}/status/completed")
     @Operation(summary = "Mark event as completed")
-    @PreAuthorize("hasRole('TEACHER') or hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> markAsCompleted(@PathVariable Long eventId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to manage event status
+            if (!hasAccess(AccessScope.CLASS, eventId) && !hasAccess(AccessScope.SCHOOL, eventId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to manage event status", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.markAsCompleted(eventId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Event marked as completed", event, null));
         } catch (Exception e) {
@@ -420,11 +488,22 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @PutMapping("/{eventId}/cancel")
     @Operation(summary = "Cancel event")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> cancelEvent(
             @PathVariable Long eventId,
             @RequestParam String reason) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to cancel events (school admin or head)
+            if (!hasAccess(AccessScope.SCHOOL, eventId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to cancel events", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.cancelEvent(eventId, reason);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Event cancelled successfully", event, null));
         } catch (Exception e) {
@@ -436,12 +515,23 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @PutMapping("/{eventId}/postpone")
     @Operation(summary = "Postpone event")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> postponeEvent(
             @PathVariable Long eventId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime newStartTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime newEndTime) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to postpone events
+            if (!hasAccess(AccessScope.SCHOOL, eventId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to postpone events", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.postponeEvent(eventId, newStartTime, newEndTime);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Event postponed successfully", event, null));
         } catch (Exception e) {
@@ -453,12 +543,23 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @PutMapping("/{eventId}/reschedule")
     @Operation(summary = "Reschedule event")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> rescheduleEvent(
             @PathVariable Long eventId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime newStartTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime newEndTime) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to reschedule events
+            if (!hasAccess(AccessScope.SCHOOL, eventId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to reschedule events", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.rescheduleEvent(eventId, newStartTime, newEndTime);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Event rescheduled successfully", event, null));
         } catch (Exception e) {
@@ -471,9 +572,20 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
     // Approval workflow
     @GetMapping("/pending-approval")
     @Operation(summary = "Get pending approval events")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD') or hasRole('REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<CalendarEventDTO>>> getPendingApprovalEvents() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to view pending approval events (school admin, head, or regional admin)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to pending approval events", null, null));
+            }
+
             List<CalendarEventDTO> events = calendarEventService.getPendingApprovalEvents();
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Pending approval events retrieved successfully", events, null));
         } catch (Exception e) {
@@ -485,12 +597,24 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @PutMapping("/{eventId}/approve")
     @Operation(summary = "Approve event")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD') or hasRole('REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> approveEvent(
             @PathVariable Long eventId,
             @RequestParam Long approverId,
             @RequestParam(required = false) String approvalNotes) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to approve events and is the specified approver
+            if (!hasAccess(AccessScope.USER, approverId) || 
+                (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to approve events", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.approveEvent(eventId, approverId, approvalNotes);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Event approved successfully", event, null));
         } catch (Exception e) {
@@ -502,12 +626,24 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @PutMapping("/{eventId}/reject")
     @Operation(summary = "Reject event")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD') or hasRole('REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CalendarEventDTO>> rejectEvent(
             @PathVariable Long eventId,
             @RequestParam Long approverId,
             @RequestParam(required = false) String rejectionNotes) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to reject events and is the specified approver
+            if (!hasAccess(AccessScope.USER, approverId) || 
+                (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to reject events", null, null));
+            }
+
             CalendarEventDTO event = calendarEventService.rejectEvent(eventId, approverId, rejectionNotes);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Event rejected successfully", event, null));
         } catch (Exception e) {
@@ -615,10 +751,21 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
     // Bulk operations
     @PostMapping("/bulk")
     @Operation(summary = "Create bulk events")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<List<CalendarEventDTO>>> createBulkEvents(
             @Valid @RequestBody List<CalendarEventDTO> events) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to create bulk events (school admin or head)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to create bulk events", null, null));
+            }
+
             List<CalendarEventDTO> createdEvents = calendarEventService.createBulkEvents(events);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Bulk events created successfully", createdEvents, null));
         } catch (Exception e) {
@@ -630,9 +777,20 @@ public class CalendarEventController extends BaseController<CalendarEventDTO, Lo
 
     @DeleteMapping("/bulk")
     @Operation(summary = "Delete bulk events")
-    @PreAuthorize("hasRole('SCHOOL_ADMIN') or hasRole('SCHOOL_HEAD')")
     public ResponseEntity<OhmaApiResponse<Void>> deleteBulkEvents(@RequestBody List<Long> eventIds) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to delete bulk events
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to delete bulk events", null, null));
+            }
+
             calendarEventService.deleteBulkEvents(eventIds);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Bulk events deleted successfully", null, null));
         } catch (Exception e) {

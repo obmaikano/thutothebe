@@ -2,11 +2,13 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.AnnouncementActivityDto;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.AnnouncementActivityType;
 import com.ohma.thutothebe.service.AnnouncementActivityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +33,18 @@ public class AnnouncementActivityController extends BaseController<AnnouncementA
     public ResponseEntity<OhmaApiResponse<List<AnnouncementActivityDto>>> getActivitiesByAnnouncement(
             @PathVariable Long announcementId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view announcement activities (user-level access required)
+            if (!hasAccess(AccessScope.USER, currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view announcement activities", null, null));
+            }
+
             List<AnnouncementActivityDto> activities = activityService.getActivitiesByAnnouncementId(announcementId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Activities retrieved successfully", activities, null));
         } catch (Exception e) {
@@ -46,6 +60,18 @@ public class AnnouncementActivityController extends BaseController<AnnouncementA
             @PathVariable Long announcementId,
             @PathVariable AnnouncementActivityType type) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view announcement activities by type (user-level access required)
+            if (!hasAccess(AccessScope.USER, currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view announcement activities by type", null, null));
+            }
+
             List<AnnouncementActivityDto> activities = activityService.getActivitiesByAnnouncementIdAndType(announcementId, type);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Activities retrieved successfully", activities, null));
         } catch (Exception e) {
@@ -60,6 +86,18 @@ public class AnnouncementActivityController extends BaseController<AnnouncementA
     public ResponseEntity<OhmaApiResponse<List<AnnouncementActivityDto>>> getActivitiesByUser(
             @PathVariable Long userId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view activities for this user (self-access or admin access)
+            if (!hasAccess(AccessScope.USER, userId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view user activities", null, null));
+            }
+
             List<AnnouncementActivityDto> activities = activityService.getActivitiesByUserId(userId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Activities retrieved successfully", activities, null));
         } catch (Exception e) {
@@ -75,10 +113,22 @@ public class AnnouncementActivityController extends BaseController<AnnouncementA
     public ResponseEntity<OhmaApiResponse<AnnouncementActivityDto>> createActivity(
             @RequestBody Map<String, Object> request) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
             Long announcementId = Long.valueOf(request.get("announcementId").toString());
             Long userId = Long.valueOf(request.get("userId").toString());
             AnnouncementActivityType type = AnnouncementActivityType.valueOf(request.get("type").toString());
             String details = request.get("details") != null ? request.get("details").toString() : null;
+
+            // Check if user has access to create activities as this user (self-access or admin access)
+            if (!hasAccess(AccessScope.USER, userId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to create activity as this user", null, null));
+            }
 
             AnnouncementActivityDto activity = activityService.createActivity(announcementId, userId, type, details);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Activity created successfully", activity, null));
@@ -95,6 +145,18 @@ public class AnnouncementActivityController extends BaseController<AnnouncementA
             @PathVariable Long announcementId,
             @PathVariable AnnouncementActivityType type) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view activity counts (user-level access required)
+            if (!hasAccess(AccessScope.USER, currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view activity counts", null, null));
+            }
+
             long count = activityService.getActivityCount(announcementId, type);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Activity count retrieved successfully", count, null));
         } catch (Exception e) {

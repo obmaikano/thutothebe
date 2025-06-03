@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.*;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.CurriculumAnalytics;
 import com.ohma.thutothebe.service.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,8 +10,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,7 +24,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/curriculum-advanced")
 @Tag(name = "Advanced Curriculum Management", description = "Advanced features for curriculum management including version control, resources, analytics, and integrations")
-public class CurriculumAdvancedController {
+public class CurriculumAdvancedController extends BaseController<CurriculumDTO, Long> {
 
     private final CurriculumVersionService curriculumVersionService;
     private final CurriculumResourceService curriculumResourceService;
@@ -38,6 +39,7 @@ public class CurriculumAdvancedController {
             CurriculumAnalyticsService curriculumAnalyticsService,
             CurriculumIntegrationService curriculumIntegrationService,
             CurriculumAssessmentService curriculumAssessmentService) {
+        super(null); // CurriculumAdvancedController doesn't use standard CRUD operations
         this.curriculumVersionService = curriculumVersionService;
         this.curriculumResourceService = curriculumResourceService;
         this.curriculumAnalyticsService = curriculumAnalyticsService;
@@ -49,7 +51,6 @@ public class CurriculumAdvancedController {
 
     @PostMapping("/{curriculumId}/versions")
     @Operation(summary = "Create a new curriculum version")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumVersionDTO>> createVersion(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Version name") @RequestParam String versionName,
@@ -57,6 +58,18 @@ public class CurriculumAdvancedController {
             @Parameter(description = "Is major version") @RequestParam(defaultValue = "false") boolean isMajorVersion,
             @Parameter(description = "Created by user ID") @RequestParam Long createdById) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to create curriculum versions (regional access or higher)
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to create curriculum versions", null, null));
+            }
+
             CurriculumVersionDTO version = curriculumVersionService.createVersion(curriculumId, versionName, description, isMajorVersion, createdById);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Version created successfully", version, null));
         } catch (Exception e) {
@@ -68,10 +81,21 @@ public class CurriculumAdvancedController {
 
     @GetMapping("/{curriculumId}/versions")
     @Operation(summary = "Get all versions of a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumVersionDTO>>> getVersions(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view curriculum versions (regional access or higher)
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view curriculum versions", null, null));
+            }
+
             List<CurriculumVersionDTO> versions = curriculumVersionService.getVersionsByCurriculumId(curriculumId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Versions retrieved successfully", versions, null));
         } catch (Exception e) {
@@ -83,12 +107,23 @@ public class CurriculumAdvancedController {
 
     @PostMapping("/versions/{sourceVersionId}/compare/{targetVersionId}")
     @Operation(summary = "Compare two curriculum versions")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumComparisonDTO>> compareVersions(
             @Parameter(description = "Source version ID") @PathVariable Long sourceVersionId,
             @Parameter(description = "Target version ID") @PathVariable Long targetVersionId,
             @Parameter(description = "Compared by user ID") @RequestParam Long comparedById) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to compare curriculum versions (regional access or higher)
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to compare curriculum versions", null, null));
+            }
+
             CurriculumComparisonDTO comparison = curriculumVersionService.compareVersions(sourceVersionId, targetVersionId, comparedById);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Version comparison completed", comparison, null));
         } catch (Exception e) {
@@ -102,12 +137,23 @@ public class CurriculumAdvancedController {
 
     @PostMapping("/{curriculumId}/resources")
     @Operation(summary = "Upload a resource to curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<CurriculumResourceDTO>> uploadResource(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Resource file") @RequestParam(required = false) MultipartFile file,
             @Parameter(description = "Resource data") @RequestBody CurriculumResourceDTO resourceData) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to upload curriculum resources (school access or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to upload curriculum resources", null, null));
+            }
+
             CurriculumResourceDTO resource = curriculumResourceService.uploadResource(curriculumId, file, resourceData);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Resource uploaded successfully", resource, null));
         } catch (Exception e) {
@@ -119,13 +165,24 @@ public class CurriculumAdvancedController {
 
     @GetMapping("/{curriculumId}/resources")
     @Operation(summary = "Get all resources for a curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumResourceDTO>>> getResources(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Resource type filter") @RequestParam(required = false) String resourceType,
             @Parameter(description = "Unit ID filter") @RequestParam(required = false) Long unitId,
             @Parameter(description = "Topic ID filter") @RequestParam(required = false) Long topicId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view curriculum resources (school access or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view curriculum resources", null, null));
+            }
+
             List<CurriculumResourceDTO> resources = curriculumResourceService.getResourcesByCurriculum(curriculumId, resourceType, unitId, topicId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Resources retrieved successfully", resources, null));
         } catch (Exception e) {
@@ -137,11 +194,22 @@ public class CurriculumAdvancedController {
 
     @PostMapping("/resources/{resourceId}/access")
     @Operation(summary = "Track resource access")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER', 'STUDENT')")
     public ResponseEntity<OhmaApiResponse<Void>> trackResourceAccess(
             @Parameter(description = "Resource ID") @PathVariable Long resourceId,
             @Parameter(description = "User ID") @RequestParam Long userId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to track resource access (self-access or admin access)
+            if (!hasAccess(AccessScope.USER, userId) && !hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to track resource access", null, null));
+            }
+
             curriculumResourceService.trackAccess(resourceId, userId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Resource access tracked", null, null));
         } catch (Exception e) {
@@ -155,7 +223,6 @@ public class CurriculumAdvancedController {
 
     @PostMapping("/{curriculumId}/analytics/generate")
     @Operation(summary = "Generate curriculum analytics")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<CurriculumAnalyticsDTO>> generateAnalytics(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Analytics type") @RequestParam CurriculumAnalytics.AnalyticsType analyticsType,
@@ -164,6 +231,18 @@ public class CurriculumAdvancedController {
             @Parameter(description = "Region ID (optional)") @RequestParam(required = false) Long regionId,
             @Parameter(description = "Generated by user ID") @RequestParam Long generatedById) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to generate curriculum analytics (school access or higher)
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to generate curriculum analytics", null, null));
+            }
+
             CurriculumAnalyticsDTO analytics;
             switch (analyticsType) {
                 case IMPLEMENTATION_PROGRESS:
@@ -194,13 +273,24 @@ public class CurriculumAdvancedController {
 
     @GetMapping("/{curriculumId}/analytics/dashboard")
     @Operation(summary = "Get dashboard analytics for curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<Map<String, Object>>> getDashboardAnalytics(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Aggregation level") @RequestParam CurriculumAnalytics.AggregationLevel level,
             @Parameter(description = "School ID (optional)") @RequestParam(required = false) Long schoolId,
             @Parameter(description = "Teacher ID (optional)") @RequestParam(required = false) Long teacherId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view dashboard analytics (school access or higher, or teacher self-access)
+            if (!hasAccess(AccessScope.USER, teacherId) && !hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view dashboard analytics", null, null));
+            }
+
             Map<String, Object> dashboardData;
             if (teacherId != null) {
                 dashboardData = curriculumAnalyticsService.getTeacherDashboard(curriculumId, teacherId);
@@ -219,12 +309,23 @@ public class CurriculumAdvancedController {
 
     @GetMapping("/{curriculumId}/analytics/real-time")
     @Operation(summary = "Get real-time analytics for curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Map<String, Object>>> getRealTimeAnalytics(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "School ID (optional)") @RequestParam(required = false) Long schoolId,
             @Parameter(description = "Region ID (optional)") @RequestParam(required = false) Long regionId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view real-time analytics (school access or higher)
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view real-time analytics", null, null));
+            }
+
             Map<String, Object> realTimeData;
             if (schoolId != null) {
                 realTimeData = curriculumAnalyticsService.getRealTimeProgress(curriculumId, schoolId);
@@ -243,13 +344,24 @@ public class CurriculumAdvancedController {
 
     @GetMapping("/{curriculumId}/analytics/trends")
     @Operation(summary = "Get trend analytics for curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<Map<String, Object>>>> getTrendAnalytics(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @Parameter(description = "Metric type") @RequestParam String metric) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view trend analytics (school access or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view trend analytics", null, null));
+            }
+
             Map<String, Object> trendData = curriculumAnalyticsService.getAnalyticsTrends(curriculumId, metric, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Trend analytics retrieved successfully", List.of(trendData), null));
         } catch (Exception e) {
@@ -263,11 +375,22 @@ public class CurriculumAdvancedController {
 
     @PostMapping("/{curriculumId}/assessments/link")
     @Operation(summary = "Link assessment to curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<CurriculumAssessmentDTO>> linkAssessment(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Assessment data") @RequestBody CurriculumAssessmentDTO assessmentData) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to link assessments to curriculum (school access or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to link assessments to curriculum", null, null));
+            }
+
             CurriculumAssessmentDTO linkedAssessment = curriculumAssessmentService.linkAssessment(assessmentData);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Assessment linked successfully", linkedAssessment, null));
         } catch (Exception e) {
@@ -279,12 +402,23 @@ public class CurriculumAdvancedController {
 
     @GetMapping("/{curriculumId}/assessments")
     @Operation(summary = "Get linked assessments for curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumAssessmentDTO>>> getLinkedAssessments(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Unit ID filter") @RequestParam(required = false) Long unitId,
             @Parameter(description = "Topic ID filter") @RequestParam(required = false) Long topicId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view linked assessments (school access or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view linked assessments", null, null));
+            }
+
             List<CurriculumAssessmentDTO> assessments = curriculumAssessmentService.getAssessmentsByCurriculum(curriculumId, unitId, topicId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Linked assessments retrieved successfully", assessments, null));
         } catch (Exception e) {
@@ -298,11 +432,22 @@ public class CurriculumAdvancedController {
 
     @PostMapping("/{curriculumId}/integrations")
     @Operation(summary = "Configure external system integration")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF')")
     public ResponseEntity<OhmaApiResponse<CurriculumIntegrationDTO>> configureIntegration(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId,
             @Parameter(description = "Integration configuration") @RequestBody CurriculumIntegrationDTO integrationData) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to configure external integrations (global access required)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to configure external integrations", null, null));
+            }
+
             CurriculumIntegrationDTO integration = curriculumIntegrationService.configureIntegration(integrationData);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Integration configured successfully", integration, null));
         } catch (Exception e) {
@@ -314,11 +459,22 @@ public class CurriculumAdvancedController {
 
     @PostMapping("/integrations/{integrationId}/sync")
     @Operation(summary = "Trigger manual synchronization")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF')")
     public ResponseEntity<OhmaApiResponse<Map<String, Object>>> triggerSync(
             @Parameter(description = "Integration ID") @PathVariable Long integrationId,
             @Parameter(description = "Triggered by user ID") @RequestParam Long triggeredById) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to trigger synchronization (global access required)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to trigger synchronization", null, null));
+            }
+
             Map<String, Object> syncResult = curriculumIntegrationService.triggerSync(integrationId, triggeredById);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Synchronization triggered successfully", syncResult, null));
         } catch (Exception e) {
@@ -330,10 +486,21 @@ public class CurriculumAdvancedController {
 
     @GetMapping("/{curriculumId}/integrations")
     @Operation(summary = "Get integration configurations for curriculum")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<CurriculumIntegrationDTO>>> getIntegrations(
             @Parameter(description = "Curriculum ID") @PathVariable Long curriculumId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view integration configurations (global access required)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view integration configurations", null, null));
+            }
+
             List<CurriculumIntegrationDTO> integrations = curriculumIntegrationService.getIntegrationsByCurriculum(curriculumId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Integrations retrieved successfully", integrations, null));
         } catch (Exception e) {

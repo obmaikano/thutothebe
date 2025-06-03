@@ -2,12 +2,14 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.SystemUsageDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.service.SystemUsageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +34,18 @@ public class SystemUsageController extends BaseController<SystemUsageDTO, Long> 
     @Operation(summary = "Get current system usage")
     public ResponseEntity<OhmaApiResponse<SystemUsageDTO>> getCurrentUsage() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view system usage (global admin access required)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view system usage", null, null));
+            }
+
             SystemUsageDTO usage = systemUsageService.getCurrentUsage();
             return ResponseEntity.ok(OhmaApiResponse.success(usage));
         } catch (Exception e) {
@@ -47,6 +61,18 @@ public class SystemUsageController extends BaseController<SystemUsageDTO, Long> 
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view system usage analytics (global admin access required)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view system usage analytics", null, null));
+            }
+
             List<SystemUsageDTO> usage = systemUsageService.getUsageByDateRange(startDate, endDate);
             return ResponseEntity.ok(OhmaApiResponse.success(usage));
         } catch (Exception e) {
@@ -62,6 +88,18 @@ public class SystemUsageController extends BaseController<SystemUsageDTO, Long> 
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view peak usage analytics (global admin access required)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view peak usage analytics", null, null));
+            }
+
             List<SystemUsageDTO> usage = systemUsageService.getPeakUsageByDateRange(startDate, endDate);
             return ResponseEntity.ok(OhmaApiResponse.success(usage));
         } catch (Exception e) {
@@ -77,6 +115,18 @@ public class SystemUsageController extends BaseController<SystemUsageDTO, Long> 
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view login trends (global admin access required)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view login trends", null, null));
+            }
+
             List<SystemUsageDTO> trends = systemUsageService.getLoginTrendsByDateRange(startDate, endDate);
             return ResponseEntity.ok(OhmaApiResponse.success(trends));
         } catch (Exception e) {
@@ -90,6 +140,18 @@ public class SystemUsageController extends BaseController<SystemUsageDTO, Long> 
     @Operation(summary = "Update system usage statistics")
     public ResponseEntity<OhmaApiResponse<Void>> updateSystemUsage() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to update system usage (global admin access required)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to update system usage", null, null));
+            }
+
             systemUsageService.updateSystemUsage();
             return ResponseEntity.ok(OhmaApiResponse.success(null));
         } catch (Exception e) {

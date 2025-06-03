@@ -2,6 +2,7 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.AssessmentDto;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.enums.AssessmentStatus;
 import com.ohma.thutothebe.entity.enums.GradingStrategy;
 import com.ohma.thutothebe.service.AssessmentService;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +34,18 @@ public class AssessmentController extends BaseController<AssessmentDto, Long> {
     @GetMapping("/submission/{submissionId}")
     public ResponseEntity<OhmaApiResponse<List<AssessmentDto>>> getAssessmentsBySubmissionId(@PathVariable Long submissionId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view assessments for this submission (teachers, students involved, or admins)
+            if (!hasAccess(AccessScope.CLASS, submissionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to submission assessments", null, null));
+            }
+
             List<AssessmentDto> assessments = assessmentService.getAssessmentsBySubmissionId(submissionId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Assessments retrieved successfully", assessments, null));
         } catch (Exception e) {
@@ -45,6 +59,18 @@ public class AssessmentController extends BaseController<AssessmentDto, Long> {
     @GetMapping("/assessor/{assessorId}")
     public ResponseEntity<OhmaApiResponse<List<AssessmentDto>>> getAssessmentsByAssessorId(@PathVariable Long assessorId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view assessments by this assessor (self-access or admin)
+            if (!hasAccess(AccessScope.USER, assessorId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to assessor assessments", null, null));
+            }
+
             List<AssessmentDto> assessments = assessmentService.getAssessmentsByAssessorId(assessorId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Assessments retrieved successfully", assessments, null));
         } catch (Exception e) {
@@ -58,6 +84,18 @@ public class AssessmentController extends BaseController<AssessmentDto, Long> {
     @GetMapping("/course/{courseId}")
     public ResponseEntity<OhmaApiResponse<List<AssessmentDto>>> getAssessmentsByCourseId(@PathVariable Long courseId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view assessments for this course (teachers or admins)
+            if (!hasAccess(AccessScope.CLASS, courseId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to course assessments", null, null));
+            }
+
             List<AssessmentDto> assessments = assessmentService.getAssessmentsByCourseId(courseId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Assessments retrieved successfully", assessments, null));
         } catch (Exception e) {
@@ -76,6 +114,18 @@ public class AssessmentController extends BaseController<AssessmentDto, Long> {
             @RequestParam(required = false) String rubricScores
     ) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to submit assessments (teachers, peer assessors, or admins)
+            if (!hasAccess(AccessScope.CLASS, id) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to submit assessment", null, null));
+            }
+
             AssessmentDto submittedAssessment = assessmentService.submitAssessment(id, score, feedback, rubricScores);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Assessment submitted successfully", submittedAssessment, null));
         } catch (Exception e) {
@@ -92,6 +142,18 @@ public class AssessmentController extends BaseController<AssessmentDto, Long> {
             @RequestParam AssessmentStatus status
     ) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to update assessment status (teachers or admins)
+            if (!hasAccess(AccessScope.CLASS, id) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to update assessment status", null, null));
+            }
+
             AssessmentDto updatedAssessment = assessmentService.updateAssessmentStatus(id, status);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Assessment status updated successfully", updatedAssessment, null));
         } catch (Exception e) {
@@ -108,6 +170,18 @@ public class AssessmentController extends BaseController<AssessmentDto, Long> {
             @PathVariable AssessmentStatus status
     ) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view assessments for this submission
+            if (!hasAccess(AccessScope.CLASS, submissionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to submission assessments", null, null));
+            }
+
             List<AssessmentDto> assessments = assessmentService.getAssessmentsBySubmissionIdAndStatus(submissionId, status);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Assessments retrieved successfully", assessments, null));
         } catch (Exception e) {
@@ -125,6 +199,18 @@ public class AssessmentController extends BaseController<AssessmentDto, Long> {
             @RequestParam GradingStrategy gradingStrategy
     ) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to assign peer assessments (teachers or admins)
+            if (!hasAccess(AccessScope.CLASS, submissionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to assign peer assessments", null, null));
+            }
+
             List<AssessmentDto> assessments = assessmentService.assignPeerAssessments(submissionId, assessorIds, gradingStrategy);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Peer assessments assigned successfully", assessments, null));
         } catch (Exception e) {

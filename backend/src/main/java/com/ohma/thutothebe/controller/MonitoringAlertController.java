@@ -2,6 +2,7 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.MonitoringAlertDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.MonitoringAlertSeverity;
 import com.ohma.thutothebe.entity.MonitoringAlertType;
 import com.ohma.thutothebe.entity.MonitoringScope;
@@ -14,8 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -38,10 +39,21 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/school/{schoolId}")
     @Operation(summary = "Get alerts by school ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getBySchoolId(
             @Parameter(description = "School ID") @PathVariable Long schoolId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alerts for this school
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school monitoring alerts", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findBySchoolId(schoolId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School alerts retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -53,10 +65,21 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/region/{regionId}")
     @Operation(summary = "Get alerts by region ID")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getByRegionId(
             @Parameter(description = "Region ID") @PathVariable Long regionId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alerts for this region
+            if (!hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to regional monitoring alerts", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findByRegionId(regionId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Regional alerts retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -68,10 +91,21 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/scope/{scope}")
     @Operation(summary = "Get alerts by scope")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getByScope(
             @Parameter(description = "Monitoring scope") @PathVariable MonitoringScope scope) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has appropriate access to view alerts by scope (regional/global admin)
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to monitoring alerts by scope", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findByScope(scope);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alerts by scope retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -83,10 +117,21 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/type/{alertType}")
     @Operation(summary = "Get alerts by alert type")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getByAlertType(
             @Parameter(description = "Alert type") @PathVariable MonitoringAlertType alertType) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alerts by type (school admin or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to monitoring alerts by type", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findByAlertType(alertType);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alerts by type retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -98,10 +143,21 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/severity/{severity}")
     @Operation(summary = "Get alerts by severity")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getBySeverity(
             @Parameter(description = "Alert severity") @PathVariable MonitoringAlertSeverity severity) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alerts by severity (school admin or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to monitoring alerts by severity", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findBySeverity(severity);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alerts by severity retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -113,11 +169,22 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/acknowledged")
     @Operation(summary = "Get alerts by acknowledged status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Page<MonitoringAlertDTO>>> getByAcknowledged(
             @Parameter(description = "Acknowledged status") @RequestParam boolean acknowledged,
             Pageable pageable) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alerts by acknowledged status (school admin or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to monitoring alerts by status", null, null));
+            }
+
             Page<MonitoringAlertDTO> alerts = monitoringAlertService.findByAcknowledged(acknowledged, pageable);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alerts by acknowledged status retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -129,11 +196,22 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/resolved")
     @Operation(summary = "Get alerts by resolved status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Page<MonitoringAlertDTO>>> getByResolved(
             @Parameter(description = "Resolved status") @RequestParam boolean resolved,
             Pageable pageable) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alerts by resolved status (school admin or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to monitoring alerts by status", null, null));
+            }
+
             Page<MonitoringAlertDTO> alerts = monitoringAlertService.findByResolved(resolved, pageable);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alerts by resolved status retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -145,11 +223,22 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/date-range")
     @Operation(summary = "Get alerts by date range")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getByDateRange(
             @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alerts by date range (school admin or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to monitoring alerts by date range", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findByDateRange(startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alerts by date range retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -161,12 +250,23 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/school/{schoolId}/date-range")
     @Operation(summary = "Get school alerts by date range")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getBySchoolIdAndDateRange(
             @Parameter(description = "School ID") @PathVariable Long schoolId,
             @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alerts for this school
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school monitoring alerts", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findBySchoolIdAndDateRange(schoolId, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School alerts by date range retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -178,12 +278,23 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/region/{regionId}/date-range")
     @Operation(summary = "Get regional alerts by date range")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getByRegionIdAndDateRange(
             @Parameter(description = "Region ID") @PathVariable Long regionId,
             @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alerts for this region
+            if (!hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to regional monitoring alerts", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findByRegionIdAndDateRange(regionId, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Regional alerts by date range retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -195,9 +306,20 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/unacknowledged/critical")
     @Operation(summary = "Get unacknowledged critical alerts")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getUnacknowledgedCritical() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view critical alerts (regional admin or higher)
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to critical monitoring alerts", null, null));
+            }
+
             List<MonitoringAlertSeverity> criticalSeverities = List.of(MonitoringAlertSeverity.HIGH, MonitoringAlertSeverity.CRITICAL);
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findUnacknowledgedBySeverities(criticalSeverities);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unacknowledged critical alerts retrieved successfully", alerts, null));
@@ -210,10 +332,21 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/unresolved/severity/{severity}")
     @Operation(summary = "Get unresolved alerts by severity")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getUnresolvedBySeverity(
             @Parameter(description = "Alert severity") @PathVariable MonitoringAlertSeverity severity) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view unresolved alerts (school admin or higher)
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to unresolved monitoring alerts", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findUnresolvedBySeverity(severity);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unresolved alerts by severity retrieved successfully", alerts, null));
         } catch (Exception e) {
@@ -225,12 +358,23 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/count/unacknowledged/school/{schoolId}")
     @Operation(summary = "Count unacknowledged alerts for school")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Long>> countUnacknowledgedBySchool(
             @Parameter(description = "School ID") @PathVariable Long schoolId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view school alert statistics
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school monitoring statistics", null, null));
+            }
+
             Long count = monitoringAlertService.countUnacknowledgedBySchool(schoolId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unacknowledged alert count retrieved successfully", count, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unacknowledged alerts count retrieved successfully", count, null));
         } catch (Exception e) {
             log.error("Error counting unacknowledged alerts for school {}: {}", schoolId, e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -240,12 +384,23 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/count/unacknowledged/region/{regionId}")
     @Operation(summary = "Count unacknowledged alerts for region")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Long>> countUnacknowledgedByRegion(
             @Parameter(description = "Region ID") @PathVariable Long regionId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view regional alert statistics
+            if (!hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to regional monitoring statistics", null, null));
+            }
+
             Long count = monitoringAlertService.countUnacknowledgedByRegion(regionId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unacknowledged alert count retrieved successfully", count, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unacknowledged alerts count retrieved successfully", count, null));
         } catch (Exception e) {
             log.error("Error counting unacknowledged alerts for region {}: {}", regionId, e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -255,12 +410,23 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/count/unresolved/school/{schoolId}")
     @Operation(summary = "Count unresolved alerts for school")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Long>> countUnresolvedBySchool(
             @Parameter(description = "School ID") @PathVariable Long schoolId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view school alert statistics
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school monitoring statistics", null, null));
+            }
+
             Long count = monitoringAlertService.countUnresolvedBySchool(schoolId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unresolved alert count retrieved successfully", count, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unresolved alerts count retrieved successfully", count, null));
         } catch (Exception e) {
             log.error("Error counting unresolved alerts for school {}: {}", schoolId, e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -270,12 +436,23 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/count/unresolved/region/{regionId}")
     @Operation(summary = "Count unresolved alerts for region")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Long>> countUnresolvedByRegion(
             @Parameter(description = "Region ID") @PathVariable Long regionId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view regional alert statistics
+            if (!hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to regional monitoring statistics", null, null));
+            }
+
             Long count = monitoringAlertService.countUnresolvedByRegion(regionId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unresolved alert count retrieved successfully", count, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unresolved alerts count retrieved successfully", count, null));
         } catch (Exception e) {
             log.error("Error counting unresolved alerts for region {}: {}", regionId, e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -285,15 +462,26 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/statistics/type")
     @Operation(summary = "Get alert type statistics")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Map<MonitoringAlertType, Long>>> getAlertTypeStatistics(
             @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alert statistics (regional admin or higher)
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to monitoring statistics", null, null));
+            }
+
             Map<MonitoringAlertType, Long> statistics = monitoringAlertService.getAlertTypeStatistics(startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alert type statistics retrieved successfully", statistics, null));
         } catch (Exception e) {
-            log.error("Error retrieving alert type statistics for date range {} to {}: {}", startDate, endDate, e.getMessage(), e);
+            log.error("Error retrieving alert type statistics: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
@@ -301,15 +489,26 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/statistics/severity")
     @Operation(summary = "Get alert severity statistics")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<Map<MonitoringAlertSeverity, Long>>> getAlertSeverityStatistics(
             @Parameter(description = "Start date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @Parameter(description = "End date") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view alert statistics (regional admin or higher)
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to monitoring statistics", null, null));
+            }
+
             Map<MonitoringAlertSeverity, Long> statistics = monitoringAlertService.getAlertSeverityStatistics(startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alert severity statistics retrieved successfully", statistics, null));
         } catch (Exception e) {
-            log.error("Error retrieving alert severity statistics for date range {} to {}: {}", startDate, endDate, e.getMessage(), e);
+            log.error("Error retrieving alert severity statistics: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
@@ -317,13 +516,24 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/pending-notifications")
     @Operation(summary = "Get alerts with pending notifications")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getPendingNotifications() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view pending notifications (regional admin or higher)
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to pending notifications", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findPendingNotifications();
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Pending notification alerts retrieved successfully", alerts, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Pending notifications retrieved successfully", alerts, null));
         } catch (Exception e) {
-            log.error("Error retrieving pending notification alerts: {}", e.getMessage(), e);
+            log.error("Error retrieving pending notifications: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
@@ -331,13 +541,24 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/active/school/{schoolId}/type/{alertType}")
     @Operation(summary = "Get active alerts by school and type")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'SCHOOL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getActiveAlertsBySchoolAndType(
             @Parameter(description = "School ID") @PathVariable Long schoolId,
             @Parameter(description = "Alert type") @PathVariable MonitoringAlertType alertType) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view active alerts for this school
+            if (!hasAccess(AccessScope.SCHOOL, schoolId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school monitoring alerts", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findActiveAlertsBySchoolAndType(schoolId, alertType);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active school alerts by type retrieved successfully", alerts, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active alerts by school and type retrieved successfully", alerts, null));
         } catch (Exception e) {
             log.error("Error retrieving active alerts for school {} and type {}: {}", schoolId, alertType, e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -347,13 +568,24 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @GetMapping("/active/region/{regionId}/type/{alertType}")
     @Operation(summary = "Get active alerts by region and type")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<List<MonitoringAlertDTO>>> getActiveAlertsByRegionAndType(
             @Parameter(description = "Region ID") @PathVariable Long regionId,
             @Parameter(description = "Alert type") @PathVariable MonitoringAlertType alertType) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view active alerts for this region
+            if (!hasAccess(AccessScope.REGION, regionId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to regional monitoring alerts", null, null));
+            }
+
             List<MonitoringAlertDTO> alerts = monitoringAlertService.findActiveAlertsByRegionAndType(regionId, alertType);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active regional alerts by type retrieved successfully", alerts, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active alerts by region and type retrieved successfully", alerts, null));
         } catch (Exception e) {
             log.error("Error retrieving active alerts for region {} and type {}: {}", regionId, alertType, e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -363,13 +595,25 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @PostMapping("/{alertId}/acknowledge")
     @Operation(summary = "Acknowledge an alert")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<MonitoringAlertDTO>> acknowledgeAlert(
             @Parameter(description = "Alert ID") @PathVariable Long alertId,
             @Parameter(description = "User acknowledging the alert") @RequestParam String acknowledgedBy) {
         try {
-            MonitoringAlertDTO alert = monitoringAlertService.acknowledgeAlert(alertId, acknowledgedBy);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alert acknowledged successfully", alert, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Users can acknowledge alerts within their scope (school level or higher)
+            // This will be further validated in the service based on the specific alert's scope
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to acknowledge monitoring alerts", null, null));
+            }
+
+            MonitoringAlertDTO acknowledgedAlert = monitoringAlertService.acknowledgeAlert(alertId, acknowledgedBy);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alert acknowledged successfully", acknowledgedAlert, null));
         } catch (Exception e) {
             log.error("Error acknowledging alert {}: {}", alertId, e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -379,14 +623,26 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @PostMapping("/{alertId}/resolve")
     @Operation(summary = "Resolve an alert")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN', 'SCHOOL_ADMIN', 'TEACHER')")
     public ResponseEntity<OhmaApiResponse<MonitoringAlertDTO>> resolveAlert(
             @Parameter(description = "Alert ID") @PathVariable Long alertId,
             @Parameter(description = "User resolving the alert") @RequestParam String resolvedBy,
             @Parameter(description = "Resolution notes") @RequestParam(required = false) String resolutionNotes) {
         try {
-            MonitoringAlertDTO alert = monitoringAlertService.resolveAlert(alertId, resolvedBy, resolutionNotes);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alert resolved successfully", alert, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Users can resolve alerts within their scope (school level or higher)
+            // This will be further validated in the service based on the specific alert's scope
+            if (!hasAccess(AccessScope.SCHOOL, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to resolve monitoring alerts", null, null));
+            }
+
+            MonitoringAlertDTO resolvedAlert = monitoringAlertService.resolveAlert(alertId, resolvedBy, resolutionNotes);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alert resolved successfully", resolvedAlert, null));
         } catch (Exception e) {
             log.error("Error resolving alert {}: {}", alertId, e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -396,7 +652,6 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @PostMapping("/create")
     @Operation(summary = "Create a new alert")
-    @PreAuthorize("hasAnyRole('ADMIN', 'REGIONAL_ADMIN')")
     public ResponseEntity<OhmaApiResponse<MonitoringAlertDTO>> createAlert(
             @Parameter(description = "Alert type") @RequestParam MonitoringAlertType alertType,
             @Parameter(description = "Alert severity") @RequestParam MonitoringAlertSeverity severity,
@@ -408,9 +663,22 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
             @Parameter(description = "Actual value") @RequestParam(required = false) Double actualValue,
             @Parameter(description = "Metric name") @RequestParam(required = false) String metricName) {
         try {
-            MonitoringAlertDTO alert = monitoringAlertService.createAlert(
-                alertType, severity, scope, scopeId, title, description, thresholdValue, actualValue, metricName);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alert created successfully", alert, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to create alerts (regional admin or higher)
+            if (!hasAccess(AccessScope.REGION, null) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to create monitoring alerts", null, null));
+            }
+
+            MonitoringAlertDTO createdAlert = monitoringAlertService.createAlert(
+                    alertType, severity, scope, scopeId, title, description, 
+                    thresholdValue, actualValue, metricName);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alert created successfully", createdAlert, null));
         } catch (Exception e) {
             log.error("Error creating alert: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -420,9 +688,20 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @PostMapping("/process")
     @Operation(summary = "Process alerts (check thresholds and send notifications)")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> processAlerts() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has global admin access to process alerts (system operation)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to process monitoring alerts", null, null));
+            }
+
             monitoringAlertService.processAlerts();
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Alerts processed successfully", null, null));
         } catch (Exception e) {
@@ -434,9 +713,20 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @PostMapping("/send-notifications")
     @Operation(summary = "Send notifications for pending alerts")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> sendNotifications() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has global admin access to send notifications (system operation)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to send alert notifications", null, null));
+            }
+
             monitoringAlertService.sendNotifications();
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Notifications sent successfully", null, null));
         } catch (Exception e) {
@@ -448,9 +738,20 @@ public class MonitoringAlertController extends BaseController<MonitoringAlertDTO
 
     @PostMapping("/check-thresholds")
     @Operation(summary = "Check thresholds and generate alerts")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OhmaApiResponse<Void>> checkThresholds() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has global admin access to check thresholds (system operation)
+            if (!hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to check alert thresholds", null, null));
+            }
+
             monitoringAlertService.checkThresholds();
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Thresholds checked successfully", null, null));
         } catch (Exception e) {
