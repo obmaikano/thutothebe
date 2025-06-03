@@ -2,6 +2,7 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.GradeDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.GradeType;
 import com.ohma.thutothebe.entity.Term;
 import com.ohma.thutothebe.service.GradeService;
@@ -11,10 +12,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -29,11 +32,150 @@ public class GradeController extends BaseController<GradeDTO, Long> {
         this.gradeService = gradeService;
     }
 
+    @Override
+    @GetMapping
+    public ResponseEntity<OhmaApiResponse<List<GradeDTO>>> getAll() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Get accessible user IDs and filter grades by student access
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            
+            if (accessibleUserIds.isEmpty()) {
+                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible grades", List.of(), null));
+            }
+
+            List<GradeDTO> allGrades = gradeService.getAll();
+            List<GradeDTO> accessibleGrades = allGrades.stream()
+                    .filter(grade -> accessibleUserIds.contains(grade.studentId()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grades retrieved successfully", accessibleGrades, null));
+        } catch (Exception e) {
+            log.error("Error retrieving grades: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @Override
+    @GetMapping("/{id}")
+    public ResponseEntity<OhmaApiResponse<GradeDTO>> getById(@PathVariable Long id) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
+            GradeDTO grade = gradeService.getById(id);
+            
+            // Check if user has access to view this student's grade
+            if (!hasAccess(AccessScope.USER, grade.studentId())) {
+                return createAccessDeniedResponse();
+            }
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade retrieved successfully", grade, null));
+        } catch (Exception e) {
+            log.error("Error retrieving grade: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @Override
+    @PostMapping
+    public ResponseEntity<OhmaApiResponse<GradeDTO>> create(@RequestBody GradeDTO dto) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
+            // Check if user has permission to create grades for this student
+            if (!hasAccess(AccessScope.USER, dto.studentId())) {
+                return createAccessDeniedResponse();
+            }
+
+            GradeDTO created = gradeService.create(dto);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade created successfully", created, null));
+        } catch (Exception e) {
+            log.error("Error creating grade: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @Override
+    @PutMapping("/{id}")
+    public ResponseEntity<OhmaApiResponse<GradeDTO>> update(@PathVariable Long id, @RequestBody GradeDTO dto) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
+            // Check if user has access to update this grade
+            GradeDTO existingGrade = gradeService.getById(id);
+            if (!hasAccess(AccessScope.USER, existingGrade.studentId())) {
+                return createAccessDeniedResponse();
+            }
+
+            GradeDTO updated = gradeService.update(id, dto);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade updated successfully", updated, null));
+        } catch (Exception e) {
+            log.error("Error updating grade: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @Override
+    @DeleteMapping("/{id}")
+    public ResponseEntity<OhmaApiResponse<Void>> delete(@PathVariable Long id) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to delete this grade
+            GradeDTO grade = gradeService.getById(id);
+            if (!hasAccess(AccessScope.USER, grade.studentId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
+            }
+
+            gradeService.delete(id);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade deleted successfully", null, null));
+        } catch (Exception e) {
+            log.error("Error deleting grade: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/student/{studentId}")
     @Operation(summary = "Get all grades for a student")
     public ResponseEntity<OhmaApiResponse<List<GradeDTO>>> getGradesByStudent(
             @Parameter(description = "Student ID") @PathVariable Long studentId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view this student's grades
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             List<GradeDTO> grades = gradeService.findByStudentId(studentId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student grades retrieved successfully", grades, null));
         } catch (Exception e) {
