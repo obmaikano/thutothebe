@@ -36,6 +36,27 @@ public class AnnouncementController extends BaseController<AnnouncementDTO, Long
         this.announcementService = announcementService;
     }
 
+    @Override
+    @GetMapping
+    public ResponseEntity<OhmaApiResponse<List<AnnouncementDTO>>> getAll() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, LocalDateTime.now()));
+            }
+
+            // ✅ SECURE: Use database-level filtering instead of unsafe memory filtering
+            List<AnnouncementDTO> accessibleAnnouncements = announcementService.getAnnouncementsByAccessibleScopes(currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Announcements retrieved successfully", accessibleAnnouncements, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error retrieving announcements: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
+
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get announcements for a specific user based on their role and context")
     public ResponseEntity<OhmaApiResponse<Page<AnnouncementDTO>>> getAnnouncementsForUser(
@@ -466,6 +487,184 @@ public class AnnouncementController extends BaseController<AnnouncementDTO, Long
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Announcement retrieved successfully", announcement, LocalDateTime.now()));
         } catch (Exception e) {
             log.error("Error retrieving announcement {} for user {}: {}", announcementId, userId, e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
+
+    // ==================== SECURE MULTI-TENANT ENDPOINTS ====================
+
+    @GetMapping("/school/{schoolId}")
+    @Operation(summary = "Get announcements by school ID")
+    public ResponseEntity<OhmaApiResponse<List<AnnouncementDTO>>> getAnnouncementsBySchoolId(@PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, LocalDateTime.now()));
+            }
+
+            // Check if user has access to view this school's data
+            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, LocalDateTime.now()));
+            }
+
+            List<AnnouncementDTO> announcements = announcementService.getAnnouncementsBySchoolId(schoolId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School announcements retrieved successfully", announcements, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error retrieving announcements for school: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
+
+    @GetMapping("/region/{regionId}")
+    @Operation(summary = "Get announcements by region ID")
+    public ResponseEntity<OhmaApiResponse<List<AnnouncementDTO>>> getAnnouncementsByRegionId(@PathVariable Long regionId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, LocalDateTime.now()));
+            }
+
+            // Check if user has access to view this region's data
+            if (!hasAccess(AccessScope.REGION, regionId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this region", null, LocalDateTime.now()));
+            }
+
+            List<AnnouncementDTO> announcements = announcementService.getAnnouncementsByRegionId(regionId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Regional announcements retrieved successfully", announcements, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error retrieving announcements for region: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
+
+    @GetMapping("/active/secure")
+    @Operation(summary = "Get active announcements with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<AnnouncementDTO>>> getActiveAnnouncementsSecure() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, LocalDateTime.now()));
+            }
+
+            // ✅ SECURE: Use database-level filtering for active announcements
+            List<AnnouncementDTO> accessibleAnnouncements = announcementService.getActiveAnnouncementsByAccessibleScopes(currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active announcements retrieved successfully", accessibleAnnouncements, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error retrieving active announcements: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
+
+    @GetMapping("/type/{type}/secure")
+    @Operation(summary = "Get announcements by type with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<AnnouncementDTO>>> getAnnouncementsByTypeSecure(@PathVariable AnnouncementType type) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, LocalDateTime.now()));
+            }
+
+            // ✅ SECURE: Use database-level filtering for type-based announcements
+            List<AnnouncementDTO> accessibleAnnouncements = announcementService.getAnnouncementsByTypeAndAccessibleScopes(type, currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Announcements by type retrieved successfully", accessibleAnnouncements, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error retrieving announcements by type: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
+
+    @GetMapping("/acknowledgment-required/secure")
+    @Operation(summary = "Get announcements requiring acknowledgment with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<AnnouncementDTO>>> getAnnouncementsRequiringAcknowledgmentSecure() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, LocalDateTime.now()));
+            }
+
+            // ✅ SECURE: Use database-level filtering for acknowledgment-required announcements
+            List<AnnouncementDTO> accessibleAnnouncements = announcementService.getAnnouncementsRequiringAcknowledgmentByAccessibleScopes(currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Announcements requiring acknowledgment retrieved successfully", accessibleAnnouncements, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error retrieving announcements requiring acknowledgment: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
+
+    @GetMapping("/search/secure")
+    @Operation(summary = "Search announcements with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<AnnouncementDTO>>> searchAnnouncementsSecure(@RequestParam String searchTerm) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, LocalDateTime.now()));
+            }
+
+            // ✅ SECURE: Use database-level filtering for search
+            List<AnnouncementDTO> accessibleAnnouncements = announcementService.searchAnnouncementsByAccessibleScopes(searchTerm, currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Search results retrieved successfully", accessibleAnnouncements, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error searching announcements: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
+
+    @GetMapping("/tag/{tag}/secure")
+    @Operation(summary = "Get announcements by tag with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<AnnouncementDTO>>> getAnnouncementsByTagSecure(@PathVariable String tag) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, LocalDateTime.now()));
+            }
+
+            // ✅ SECURE: Use database-level filtering for tag-based announcements
+            List<AnnouncementDTO> accessibleAnnouncements = announcementService.getAnnouncementsByTagAndAccessibleScopes(tag, currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Announcements by tag retrieved successfully", accessibleAnnouncements, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error retrieving announcements by tag: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
+        }
+    }
+
+    @GetMapping("/creator/{creatorId}/secure")
+    @Operation(summary = "Get announcements by creator with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<AnnouncementDTO>>> getAnnouncementsByCreatorSecure(@PathVariable Long creatorId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, LocalDateTime.now()));
+            }
+
+            // ✅ SECURE: Use database-level filtering for creator-based announcements
+            List<AnnouncementDTO> accessibleAnnouncements = announcementService.getAnnouncementsByCreatorAndAccessibleScopes(creatorId, currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Announcements by creator retrieved successfully", accessibleAnnouncements, LocalDateTime.now()));
+        } catch (Exception e) {
+            log.error("Error retrieving announcements by creator: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
         }

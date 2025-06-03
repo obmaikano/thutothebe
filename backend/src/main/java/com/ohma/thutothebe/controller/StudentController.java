@@ -30,6 +30,27 @@ public class StudentController extends BaseController<StudentDTO, Long> {
         this.studentService = studentService;
     }
 
+    @Override
+    @GetMapping
+    public ResponseEntity<OhmaApiResponse<List<StudentDTO>>> getAll() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Use secure multi-tenant filtering instead of unsafe getAll()
+            List<StudentDTO> accessibleStudents = studentService.getStudentsByAccessibleScopes(currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Students retrieved successfully", accessibleStudents, null));
+        } catch (Exception e) {
+            log.error("Error retrieving students: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/admission-number/{admissionNumber}")
     @Operation(summary = "Get student by admission number")
     public ResponseEntity<OhmaApiResponse<StudentDTO>> getByAdmissionNumber(@PathVariable String admissionNumber) {
@@ -111,17 +132,8 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get accessible user IDs for filtering students
-            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
-            
-            if (accessibleUserIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible students", List.of(), null));
-            }
-
-            List<StudentDTO> allActiveStudents = studentService.getActiveStudents();
-            List<StudentDTO> accessibleStudents = allActiveStudents.stream()
-                    .filter(student -> accessibleUserIds.contains(student.userId()))
-                    .collect(Collectors.toList());
+            // Use secure multi-tenant filtering instead of unsafe memory filtering
+            List<StudentDTO> accessibleStudents = studentService.getActiveStudentsByAccessibleScopes(currentUserId);
 
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active students retrieved successfully", accessibleStudents, null));
         } catch (Exception e) {
@@ -141,17 +153,8 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view students in this course context
-            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
-            
-            if (accessibleUserIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible students", List.of(), null));
-            }
-
-            List<StudentDTO> courseStudents = studentService.getStudentsByCourseId(courseId);
-            List<StudentDTO> accessibleStudents = courseStudents.stream()
-                    .filter(student -> accessibleUserIds.contains(student.userId()))
-                    .collect(Collectors.toList());
+            // Use secure multi-tenant filtering for course students
+            List<StudentDTO> accessibleStudents = studentService.getStudentsByCourseIdAndAccessibleScopes(courseId, currentUserId);
 
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Students for course retrieved successfully", accessibleStudents, null));
         } catch (Exception e) {
@@ -177,7 +180,8 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to this class", null, null));
             }
 
-            List<StudentDTO> students = studentService.getStudentsByClassId(classId);
+            // Use secure multi-tenant filtering for class students
+            List<StudentDTO> students = studentService.getStudentsByClassIdAndAccessibleScopes(classId, currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Students for class retrieved successfully", students, null));
         } catch (Exception e) {
             log.error("Error retrieving students for class: {}", e.getMessage(), e);
@@ -358,7 +362,8 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to teacher data", null, null));
             }
 
-            List<StudentDTO> students = studentService.getStudentsByTeacherId(teacherId);
+            // Use secure multi-tenant filtering for teacher students
+            List<StudentDTO> students = studentService.getStudentsByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Students for teacher retrieved successfully", students, null));
         } catch (Exception e) {
             log.error("Error retrieving students for teacher: {}", e.getMessage(), e);
@@ -383,7 +388,8 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to teacher data", null, null));
             }
 
-            List<StudentDTO> students = studentService.getActiveStudentsByTeacherId(teacherId);
+            // Use secure multi-tenant filtering for active teacher students
+            List<StudentDTO> students = studentService.getStudentsByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active students for teacher retrieved successfully", students, null));
         } catch (Exception e) {
             log.error("Error retrieving active students for teacher: {}", e.getMessage(), e);
@@ -402,17 +408,8 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view students in this subject context
-            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
-            
-            if (accessibleUserIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible students", List.of(), null));
-            }
-
-            List<StudentDTO> subjectStudents = studentService.getStudentsBySubjectId(subjectId);
-            List<StudentDTO> accessibleStudents = subjectStudents.stream()
-                    .filter(student -> accessibleUserIds.contains(student.userId()))
-                    .collect(Collectors.toList());
+            // Use secure multi-tenant filtering for subject students
+            List<StudentDTO> accessibleStudents = studentService.getStudentsBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
 
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Students for subject retrieved successfully", accessibleStudents, null));
         } catch (Exception e) {
@@ -432,17 +429,8 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view students in this subject context
-            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
-            
-            if (accessibleUserIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible students", List.of(), null));
-            }
-
-            List<StudentDTO> subjectStudents = studentService.getStudentsBySubjectId(subjectId);
-            List<StudentDTO> accessibleStudents = subjectStudents.stream()
-                    .filter(student -> accessibleUserIds.contains(student.userId()))
-                    .collect(Collectors.toList());
+            // Use secure multi-tenant filtering for active subject students
+            List<StudentDTO> accessibleStudents = studentService.getStudentsBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
 
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active students for subject retrieved successfully", accessibleStudents, null));
         } catch (Exception e) {

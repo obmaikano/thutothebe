@@ -104,4 +104,201 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
     boolean existsByStudentIdAndAssignmentIdAndActive(Long studentId, Long assignmentId, boolean active);
 
     boolean existsByStudentIdAndGradeCategoryIdAndActive(Long studentId, Long gradeCategoryId, boolean active);
+
+    // ==================== MULTI-TENANT FILTERING METHODS ====================
+    
+    // School-level filtering (through student → school and course → school relationships)
+    @Query("SELECT g FROM Grade g WHERE g.student.school.id = :schoolId")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findBySchoolId(@Param("schoolId") Long schoolId);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.id = :schoolId AND g.active = :active")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findBySchoolIdAndActive(@Param("schoolId") Long schoolId, @Param("active") boolean active);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.id = :schoolId AND g.gradeType = :gradeType")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findBySchoolIdAndGradeType(@Param("schoolId") Long schoolId, @Param("gradeType") GradeType gradeType);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.id = :schoolId AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findActiveGradesBySchoolId(@Param("schoolId") Long schoolId);
+    
+    // Region-level filtering (through student → school → region relationship)
+    @Query("SELECT g FROM Grade g WHERE g.student.school.region.id = :regionId")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByRegionId(@Param("regionId") Long regionId);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.region.id = :regionId AND g.active = :active")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByRegionIdAndActive(@Param("regionId") Long regionId, @Param("active") boolean active);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.region.id = :regionId AND g.gradeType = :gradeType")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByRegionIdAndGradeType(@Param("regionId") Long regionId, @Param("gradeType") GradeType gradeType);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.region.id = :regionId AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findActiveGradesByRegionId(@Param("regionId") Long regionId);
+    
+    // Multi-scope filtering (school IDs list for class-level access)
+    @Query("SELECT g FROM Grade g WHERE g.student.school.id IN :schoolIds")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findBySchoolIdIn(@Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.id IN :schoolIds AND g.active = :active")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findBySchoolIdInAndActive(@Param("schoolIds") List<Long> schoolIds, @Param("active") boolean active);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.id IN :schoolIds AND g.gradeType = :gradeType")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findBySchoolIdInAndGradeType(@Param("schoolIds") List<Long> schoolIds, @Param("gradeType") GradeType gradeType);
+    
+    // Region IDs list filtering
+    @Query("SELECT g FROM Grade g WHERE g.student.school.region.id IN :regionIds")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByRegionIdIn(@Param("regionIds") List<Long> regionIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.region.id IN :regionIds AND g.active = :active")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByRegionIdInAndActive(@Param("regionIds") List<Long> regionIds, @Param("active") boolean active);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.school.region.id IN :regionIds AND g.gradeType = :gradeType")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByRegionIdInAndGradeType(@Param("regionIds") List<Long> regionIds, @Param("gradeType") GradeType gradeType);
+    
+    // Student IDs list filtering (for user-level access)
+    @Query("SELECT g FROM Grade g WHERE g.student.id IN :studentIds")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByStudentIdIn(@Param("studentIds") List<Long> studentIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.id IN :studentIds AND g.active = :active")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByStudentIdInAndActive(@Param("studentIds") List<Long> studentIds, @Param("active") boolean active);
+    
+    @Query("SELECT g FROM Grade g WHERE g.student.id IN :studentIds AND g.gradeType = :gradeType")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByStudentIdInAndGradeType(@Param("studentIds") List<Long> studentIds, @Param("gradeType") GradeType gradeType);
+    
+    // Combined filtering for complex access patterns
+    @Query("SELECT g FROM Grade g WHERE " +
+           "(g.student.school.id IN :schoolIds OR g.student.school.region.id IN :regionIds OR g.student.id IN :studentIds) " +
+           "AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByMultiScopeAccess(@Param("schoolIds") List<Long> schoolIds, 
+                                      @Param("regionIds") List<Long> regionIds, 
+                                      @Param("studentIds") List<Long> studentIds);
+    
+    @Query("SELECT g FROM Grade g WHERE " +
+           "(g.student.school.id IN :schoolIds OR g.student.school.region.id IN :regionIds OR g.student.id IN :studentIds) " +
+           "AND g.active = :active")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByMultiScopeAccessAndActive(@Param("schoolIds") List<Long> schoolIds, 
+                                               @Param("regionIds") List<Long> regionIds, 
+                                               @Param("studentIds") List<Long> studentIds,
+                                               @Param("active") boolean active);
+    
+    @Query("SELECT g FROM Grade g WHERE " +
+           "(g.student.school.id IN :schoolIds OR g.student.school.region.id IN :regionIds OR g.student.id IN :studentIds) " +
+           "AND g.gradeType = :gradeType")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByMultiScopeAccessAndGradeType(@Param("schoolIds") List<Long> schoolIds, 
+                                                  @Param("regionIds") List<Long> regionIds, 
+                                                  @Param("studentIds") List<Long> studentIds,
+                                                  @Param("gradeType") GradeType gradeType);
+    
+    @Query("SELECT g FROM Grade g WHERE " +
+           "(g.student.school.id IN :schoolIds OR g.student.school.region.id IN :regionIds OR g.student.id IN :studentIds) " +
+           "AND g.active = :active AND g.gradeType = :gradeType")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByMultiScopeAccessAndActiveAndGradeType(@Param("schoolIds") List<Long> schoolIds, 
+                                                           @Param("regionIds") List<Long> regionIds, 
+                                                           @Param("studentIds") List<Long> studentIds,
+                                                           @Param("active") boolean active,
+                                                           @Param("gradeType") GradeType gradeType);
+    
+    // Course-level filtering with multi-tenancy
+    @Query("SELECT g FROM Grade g WHERE g.course.id = :courseId AND g.student.school.id IN :schoolIds")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByCourseIdAndSchoolIdIn(@Param("courseId") Long courseId, @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.course.id = :courseId AND g.student.school.id IN :schoolIds AND g.active = :active")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByCourseIdAndSchoolIdInAndActive(@Param("courseId") Long courseId, @Param("schoolIds") List<Long> schoolIds, @Param("active") boolean active);
+    
+    @Query("SELECT g FROM Grade g WHERE g.course.id = :courseId AND g.student.school.id = :schoolId AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByCourseIdAndSchoolIdAndActive(@Param("courseId") Long courseId, @Param("schoolId") Long schoolId);
+    
+    // Class-level filtering with multi-tenancy (through course → class relationship)
+    @Query("SELECT g FROM Grade g WHERE g.course.studentClass.id = :classId AND g.student.school.id IN :schoolIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByClassIdAndSchoolIdInAndActive(@Param("classId") Long classId, @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.course.studentClass.id = :classId AND g.student.school.id = :schoolId AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByClassIdAndSchoolIdAndActive(@Param("classId") Long classId, @Param("schoolId") Long schoolId);
+    
+    // Teacher-level filtering with multi-tenancy (through gradedBy relationship)
+    @Query("SELECT g FROM Grade g WHERE g.gradedBy.id = :teacherId AND g.student.school.id IN :schoolIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByTeacherIdAndSchoolIdInAndActive(@Param("teacherId") Long teacherId, @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.gradedBy.id = :teacherId AND g.student.school.region.id IN :regionIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByTeacherIdAndRegionIdInAndActive(@Param("teacherId") Long teacherId, @Param("regionIds") List<Long> regionIds);
+    
+    // Assessment-level filtering with multi-tenancy
+    @Query("SELECT g FROM Grade g WHERE g.assessment.id = :assessmentId AND g.student.school.id IN :schoolIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByAssessmentIdAndSchoolIdInAndActive(@Param("assessmentId") Long assessmentId, @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.assessment.id = :assessmentId AND g.student.school.region.id IN :regionIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByAssessmentIdAndRegionIdInAndActive(@Param("assessmentId") Long assessmentId, @Param("regionIds") List<Long> regionIds);
+    
+    // Assignment-level filtering with multi-tenancy
+    @Query("SELECT g FROM Grade g WHERE g.assignment.id = :assignmentId AND g.student.school.id IN :schoolIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByAssignmentIdAndSchoolIdInAndActive(@Param("assignmentId") Long assignmentId, @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.assignment.id = :assignmentId AND g.student.school.region.id IN :regionIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByAssignmentIdAndRegionIdInAndActive(@Param("assignmentId") Long assignmentId, @Param("regionIds") List<Long> regionIds);
+    
+    // Grade category filtering with multi-tenancy
+    @Query("SELECT g FROM Grade g WHERE g.gradeCategory.id = :gradeCategoryId AND g.student.school.id IN :schoolIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByGradeCategoryIdAndSchoolIdInAndActive(@Param("gradeCategoryId") Long gradeCategoryId, @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.gradeCategory.id = :gradeCategoryId AND g.student.school.region.id IN :regionIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByGradeCategoryIdAndRegionIdInAndActive(@Param("gradeCategoryId") Long gradeCategoryId, @Param("regionIds") List<Long> regionIds);
+    
+    // Term filtering with multi-tenancy
+    @Query("SELECT g FROM Grade g WHERE g.course.term = :term AND g.student.school.id IN :schoolIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByTermAndSchoolIdInAndActive(@Param("term") Term term, @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.course.term = :term AND g.student.school.region.id IN :regionIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByTermAndRegionIdInAndActive(@Param("term") Term term, @Param("regionIds") List<Long> regionIds);
+    
+    // Academic year filtering with multi-tenancy
+    @Query("SELECT g FROM Grade g WHERE g.course.year = :academicYear AND g.student.school.id IN :schoolIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByAcademicYearAndSchoolIdInAndActive(@Param("academicYear") Integer academicYear, @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.course.year = :academicYear AND g.student.school.region.id IN :regionIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByAcademicYearAndRegionIdInAndActive(@Param("academicYear") Integer academicYear, @Param("regionIds") List<Long> regionIds);
+    
+    // Moderation filtering with multi-tenancy
+    @Query("SELECT g FROM Grade g WHERE g.isModerated = :isModerated AND g.student.school.id IN :schoolIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByModerationStatusAndSchoolIdInAndActive(@Param("isModerated") boolean isModerated, @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT g FROM Grade g WHERE g.isModerated = :isModerated AND g.student.school.region.id IN :regionIds AND g.active = true")
+    @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
+    List<Grade> findByModerationStatusAndRegionIdInAndActive(@Param("isModerated") boolean isModerated, @Param("regionIds") List<Long> regionIds);
 } 

@@ -29,6 +29,27 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
         this.teacherService = teacherService;
     }
 
+    @Override
+    @GetMapping
+    public ResponseEntity<OhmaApiResponse<List<TeacherDTO>>> getAll() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Use secure multi-tenant filtering instead of unsafe getAll()
+            List<TeacherDTO> accessibleTeachers = teacherService.getTeachersByAccessibleScopes(currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers retrieved successfully", accessibleTeachers, null));
+        } catch (Exception e) {
+            log.error("Error retrieving teachers: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/staff-id/{staffId}")
     @Operation(summary = "Get teacher by staff ID")
     public ResponseEntity<OhmaApiResponse<TeacherDTO>> getByStaffId(@PathVariable String staffId) {
@@ -110,17 +131,8 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get accessible user IDs and filter for teachers
-            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
-            
-            if (accessibleUserIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible teachers", List.of(), null));
-            }
-
-            List<TeacherDTO> allActiveTeachers = teacherService.getActiveTeachers();
-            List<TeacherDTO> accessibleTeachers = allActiveTeachers.stream()
-                    .filter(teacher -> accessibleUserIds.contains(teacher.userId()))
-                    .collect(Collectors.toList());
+            // Use secure multi-tenant filtering instead of unsafe memory filtering
+            List<TeacherDTO> accessibleTeachers = teacherService.getActiveTeachersByAccessibleScopes(currentUserId);
 
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active teachers retrieved successfully", accessibleTeachers, null));
         } catch (Exception e) {
@@ -140,17 +152,8 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view teachers in this course context
-            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
-            
-            if (accessibleUserIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible teachers", List.of(), null));
-            }
-
-            List<TeacherDTO> courseTeachers = teacherService.getTeachersByCourseId(courseId);
-            List<TeacherDTO> accessibleTeachers = courseTeachers.stream()
-                    .filter(teacher -> accessibleUserIds.contains(teacher.userId()))
-                    .collect(Collectors.toList());
+            // Use secure multi-tenant filtering for course teachers
+            List<TeacherDTO> accessibleTeachers = teacherService.getTeachersByCourseIdAndAccessibleScopes(courseId, currentUserId);
 
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers for course retrieved successfully", accessibleTeachers, null));
         } catch (Exception e) {
@@ -176,10 +179,57 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to this class", null, null));
             }
 
-            List<TeacherDTO> teachers = teacherService.getTeachersByClassId(classId);
+            // Use secure multi-tenant filtering for class teachers
+            List<TeacherDTO> teachers = teacherService.getTeachersByClassIdAndAccessibleScopes(classId, currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers for class retrieved successfully", teachers, null));
         } catch (Exception e) {
             log.error("Error retrieving teachers for class: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/school/{schoolId}")
+    @Operation(summary = "Get teachers by school ID")
+    public ResponseEntity<OhmaApiResponse<List<TeacherDTO>>> getTeachersBySchoolId(@PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view this school's data
+            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
+            }
+
+            List<TeacherDTO> teachers = teacherService.getTeachersBySchoolId(schoolId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers for school retrieved successfully", teachers, null));
+        } catch (Exception e) {
+            log.error("Error retrieving teachers for school: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/subject/{subjectId}")
+    @Operation(summary = "Get teachers by subject ID")
+    public ResponseEntity<OhmaApiResponse<List<TeacherDTO>>> getTeachersBySubjectId(@PathVariable Long subjectId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Use secure multi-tenant filtering for subject teachers
+            List<TeacherDTO> accessibleTeachers = teacherService.getTeachersBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teachers for subject retrieved successfully", accessibleTeachers, null));
+        } catch (Exception e) {
+            log.error("Error retrieving teachers for subject: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

@@ -34,6 +34,9 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
     private final RealTimeAnnouncementService realTimeAnnouncementService;
 
     @Autowired
+    private RuleBasedAccessControlServiceImpl accessControlService;
+
+    @Autowired
     public AnnouncementServiceImpl(
             AnnouncementRepository announcementRepository,
             AnnouncementReadReceiptRepository readReceiptRepository,
@@ -443,6 +446,421 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
         AnnouncementDTO updatedDto = announcementMapper.toDto(savedAnnouncement);
         realTimeAnnouncementService.broadcastAnnouncementStatusChanged(updatedDto, !wasActive);
         return updatedDto;
+    }
+
+    // ==================== MULTI-TENANT FILTERING METHODS ====================
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByAccessibleScopes(Long currentUserId) {
+        try {
+            // Get accessible scope IDs from access control service
+            List<Long> accessibleCreatorIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            // Check if user has global access
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                // Global access - return all active announcements
+                return announcementRepository.findByActive(true).stream()
+                        .map(announcementMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            // Use multi-scope access query for database-level filtering
+            return announcementRepository.findByMultiScopeAccess(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleCreatorIds.isEmpty() ? List.of(-1L) : accessibleCreatorIds
+            ).stream()
+                    .map(announcementMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting announcements by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of(); // Return empty list on error for security
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getActiveAnnouncementsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleCreatorIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return announcementRepository.findByActive(true).stream()
+                        .map(announcementMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return announcementRepository.findByMultiScopeAccessAndActive(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleCreatorIds.isEmpty() ? List.of(-1L) : accessibleCreatorIds,
+                    true
+            ).stream()
+                    .map(announcementMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting active announcements by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsBySchoolId(Long schoolId) {
+        return announcementRepository.findBySchoolIdAndActive(schoolId, true).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByRegionId(Long regionId) {
+        return announcementRepository.findByRegionIdAndActive(regionId, true).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getActiveAnnouncementsBySchoolId(Long schoolId) {
+        return announcementRepository.findActiveAnnouncementsBySchoolId(schoolId).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getActiveAnnouncementsByRegionId(Long regionId) {
+        return announcementRepository.findActiveAnnouncementsByRegionId(regionId).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsBySchoolIds(List<Long> schoolIds) {
+        if (schoolIds == null || schoolIds.isEmpty()) {
+            return List.of();
+        }
+        return announcementRepository.findBySchoolIdInAndActive(schoolIds, true).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByRegionIds(List<Long> regionIds) {
+        if (regionIds == null || regionIds.isEmpty()) {
+            return List.of();
+        }
+        return announcementRepository.findByRegionIdInAndActive(regionIds, true).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByCreatorIds(List<Long> creatorIds) {
+        if (creatorIds == null || creatorIds.isEmpty()) {
+            return List.of();
+        }
+        return announcementRepository.findByCreatorIdInAndActive(creatorIds, true).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getActiveAnnouncementsBySchoolIds(List<Long> schoolIds) {
+        if (schoolIds == null || schoolIds.isEmpty()) {
+            return List.of();
+        }
+        return announcementRepository.findBySchoolIdInAndActive(schoolIds, true).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getActiveAnnouncementsByRegionIds(List<Long> regionIds) {
+        if (regionIds == null || regionIds.isEmpty()) {
+            return List.of();
+        }
+        return announcementRepository.findByRegionIdInAndActive(regionIds, true).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getActiveAnnouncementsByCreatorIds(List<Long> creatorIds) {
+        if (creatorIds == null || creatorIds.isEmpty()) {
+            return List.of();
+        }
+        return announcementRepository.findByCreatorIdInAndActive(creatorIds, true).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> creatorIds) {
+        return announcementRepository.findByMultiScopeAccess(
+                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
+                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
+                creatorIds == null || creatorIds.isEmpty() ? List.of(-1L) : creatorIds
+        ).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getActiveAnnouncementsByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> creatorIds) {
+        return announcementRepository.findByMultiScopeAccessAndActive(
+                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
+                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
+                creatorIds == null || creatorIds.isEmpty() ? List.of(-1L) : creatorIds,
+                true
+        ).stream()
+                .map(announcementMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByTypeAndAccessibleScopes(AnnouncementType type, Long currentUserId) {
+        try {
+            List<Long> accessibleCreatorIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return announcementRepository.findByActive(true).stream()
+                        .filter(a -> a.getType() == type)
+                        .map(announcementMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return announcementRepository.findByMultiScopeAccessAndType(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleCreatorIds.isEmpty() ? List.of(-1L) : accessibleCreatorIds,
+                    type
+            ).stream()
+                    .map(announcementMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting announcements by type and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByPriorityAndAccessibleScopes(AnnouncementPriority priority, Long currentUserId) {
+        try {
+            List<Long> accessibleCreatorIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return announcementRepository.findByActive(true).stream()
+                        .filter(a -> a.getPriority() == priority)
+                        .map(announcementMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return announcementRepository.findByMultiScopeAccessAndPriority(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleCreatorIds.isEmpty() ? List.of(-1L) : accessibleCreatorIds,
+                    priority
+            ).stream()
+                    .map(announcementMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting announcements by priority and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByTargetRoleAndAccessibleScopes(UserRole targetRole, Long currentUserId) {
+        try {
+            List<Long> accessibleCreatorIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return announcementRepository.findByActive(true).stream()
+                        .filter(a -> a.getTargetRole() == targetRole || a.getTargetRole() == null)
+                        .map(announcementMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return announcementRepository.findByMultiScopeAccessAndTargetRole(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleCreatorIds.isEmpty() ? List.of(-1L) : accessibleCreatorIds,
+                    targetRole
+            ).stream()
+                    .map(announcementMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting announcements by target role and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsRequiringAcknowledgmentByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleCreatorIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return announcementRepository.findByActive(true).stream()
+                        .filter(Announcement::isAcknowledgmentRequired)
+                        .map(announcementMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return announcementRepository.findByMultiScopeAccessAndAcknowledgmentRequired(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleCreatorIds.isEmpty() ? List.of(-1L) : accessibleCreatorIds,
+                    true
+            ).stream()
+                    .map(announcementMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting announcements requiring acknowledgment by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> searchAnnouncementsByAccessibleScopes(String searchTerm, Long currentUserId) {
+        try {
+            List<Long> accessibleCreatorIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                LocalDateTime now = LocalDateTime.now();
+                return announcementRepository.searchAnnouncements(searchTerm, now, Pageable.unpaged())
+                        .getContent().stream()
+                        .map(announcementMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return announcementRepository.findByMultiScopeAccessAndSearch(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleCreatorIds.isEmpty() ? List.of(-1L) : accessibleCreatorIds,
+                    searchTerm
+            ).stream()
+                    .map(announcementMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error searching announcements by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByTagAndAccessibleScopes(String tag, Long currentUserId) {
+        try {
+            List<Long> accessibleCreatorIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                LocalDateTime now = LocalDateTime.now();
+                return announcementRepository.findByTag(tag, now, Pageable.unpaged())
+                        .getContent().stream()
+                        .map(announcementMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return announcementRepository.findByMultiScopeAccessAndTag(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleCreatorIds.isEmpty() ? List.of(-1L) : accessibleCreatorIds,
+                    tag
+            ).stream()
+                    .map(announcementMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting announcements by tag and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> getAnnouncementsByCreatorAndAccessibleScopes(Long creatorId, Long currentUserId) {
+        try {
+            List<Long> accessibleCreatorIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return announcementRepository.findByCreatorIdInAndActive(List.of(creatorId), true).stream()
+                        .map(announcementMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            // Check if the creator is accessible to the current user
+            if (!accessibleCreatorIds.contains(creatorId)) {
+                return List.of(); // Creator not accessible
+            }
+            
+            return announcementRepository.findByCreatorIdInAndActive(List.of(creatorId), true).stream()
+                    .map(announcementMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting announcements by creator and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
     }
 
     // Helper methods

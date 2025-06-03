@@ -43,6 +43,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
     private final SchoolRepository schoolRepository;
     private final TeacherService teacherService;
     private final StudentService studentService;
+    private final RuleBasedAccessControlServiceImpl accessControlService;
 
     public UserServiceImpl(
             UserRepository userRepository, 
@@ -52,7 +53,8 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
             StudentRepository studentRepository,
             SchoolRepository schoolRepository,
             TeacherService teacherService,
-            StudentService studentService) {
+            StudentService studentService,
+            RuleBasedAccessControlServiceImpl accessControlService) {
         super(userRepository);
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -62,6 +64,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
         this.schoolRepository = schoolRepository;
         this.teacherService = teacherService;
         this.studentService = studentService;
+        this.accessControlService = accessControlService;
     }
 
     @Override
@@ -378,7 +381,243 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
     @Override
     public List<UserDTO> getUsersByRole(UserRole role) {
         return userRepository.findByRole(role).stream()
-                .map(userMapper::toDto)
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    // ==================== MULTI-TENANT FILTERING METHODS ====================
+    
+    @Override
+    public List<UserDTO> getUsersByAccessibleScopes(Long currentUserId) {
+        try {
+            // Get accessible scope IDs from access control service
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            // Check if user has global access
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                // Global access - return all active users
+                return userRepository.findByRoleAndActive(null, true).stream()
+                        .map(this::mapToDto)
+                        .collect(Collectors.toList());
+            }
+            
+            // Use multi-scope access query for database-level filtering
+            return userRepository.findByMultiScopeAccess(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleUserIds.isEmpty() ? List.of(-1L) : accessibleUserIds
+            ).stream()
+                    .map(this::mapToDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting users by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of(); // Return empty list on error for security
+        }
+    }
+    
+    @Override
+    public List<UserDTO> getTeachersByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return userRepository.findByRoleAndActive(UserRole.TEACHER, true).stream()
+                        .map(this::mapToDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return userRepository.findByMultiScopeAccessAndRole(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleUserIds.isEmpty() ? List.of(-1L) : accessibleUserIds,
+                    UserRole.TEACHER
+            ).stream()
+                    .map(this::mapToDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting teachers by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    public List<UserDTO> getStudentsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return userRepository.findByRoleAndActive(UserRole.STUDENT, true).stream()
+                        .map(this::mapToDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return userRepository.findByMultiScopeAccessAndRole(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleUserIds.isEmpty() ? List.of(-1L) : accessibleUserIds,
+                    UserRole.STUDENT
+            ).stream()
+                    .map(this::mapToDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting students by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    public List<UserDTO> getParentsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return userRepository.findByRoleAndActive(UserRole.PARENT, true).stream()
+                        .map(this::mapToDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return userRepository.findByMultiScopeAccessAndRole(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleUserIds.isEmpty() ? List.of(-1L) : accessibleUserIds,
+                    UserRole.PARENT
+            ).stream()
+                    .map(this::mapToDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting parents by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    public List<UserDTO> getUsersBySchoolId(Long schoolId) {
+        return userRepository.findBySchoolIdAndActive(schoolId, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByRegionId(Long regionId) {
+        return userRepository.findByRegionIdAndActive(regionId, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByRoleAndSchoolId(UserRole role, Long schoolId) {
+        return userRepository.findBySchoolIdAndRoleAndActive(schoolId, role, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByRoleAndRegionId(UserRole role, Long regionId) {
+        return userRepository.findByRegionIdAndRoleAndActive(regionId, role, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersBySchoolIds(List<Long> schoolIds) {
+        if (schoolIds == null || schoolIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findBySchoolIdInAndActive(schoolIds, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByRegionIds(List<Long> regionIds) {
+        if (regionIds == null || regionIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findByRegionIdInAndActive(regionIds, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByUserIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findByIdInAndActive(userIds, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByRoleAndSchoolIds(UserRole role, List<Long> schoolIds) {
+        if (schoolIds == null || schoolIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findBySchoolIdInAndRoleAndActive(schoolIds, role, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByRoleAndRegionIds(UserRole role, List<Long> regionIds) {
+        if (regionIds == null || regionIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findByRegionIdInAndRoleAndActive(regionIds, role, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByRoleAndUserIds(UserRole role, List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findByIdInAndRoleAndActive(userIds, role, true).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> userIds) {
+        return userRepository.findByMultiScopeAccess(
+                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
+                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
+                userIds == null || userIds.isEmpty() ? List.of(-1L) : userIds
+        ).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<UserDTO> getUsersByRoleAndMultiScopeAccess(UserRole role, List<Long> schoolIds, List<Long> regionIds, List<Long> userIds) {
+        return userRepository.findByMultiScopeAccessAndRole(
+                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
+                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
+                userIds == null || userIds.isEmpty() ? List.of(-1L) : userIds,
+                role
+        ).stream()
+                .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 } 

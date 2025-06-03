@@ -43,6 +43,9 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
     @Autowired
     private GradeMapper gradeMapper;
 
+    @Autowired
+    private RuleBasedAccessControlServiceImpl accessControlService;
+
     public GradeServiceImpl(GradeRepository gradeRepository) {
         super(gradeRepository);
         this.gradeRepository = gradeRepository;
@@ -462,5 +465,544 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
     @Override
     public Long countPassingGradesByCourse(Long courseId, Double passingGrade) {
         return gradeRepository.countPassingGradesByCourse(courseId, passingGrade);
+    }
+
+    // ==================== MULTI-TENANT FILTERING METHODS ====================
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByAccessibleScopes(Long currentUserId) {
+        try {
+            // Get accessible scope IDs from access control service
+            List<Long> accessibleStudentIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            // Check if user has global access
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                // Global access - return all active grades
+                return gradeRepository.findBySchoolIdInAndActive(List.of(), true).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            // Use multi-scope access query for database-level filtering
+            return gradeRepository.findByMultiScopeAccess(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleStudentIds.isEmpty() ? List.of(-1L) : accessibleStudentIds
+            ).stream()
+                    .map(gradeMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of(); // Return empty list on error for security
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getActiveGradesByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleStudentIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return gradeRepository.findBySchoolIdInAndActive(List.of(), true).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return gradeRepository.findByMultiScopeAccessAndActive(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleStudentIds.isEmpty() ? List.of(-1L) : accessibleStudentIds,
+                    true
+            ).stream()
+                    .map(gradeMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting active grades by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesBySchoolId(Long schoolId) {
+        return gradeRepository.findBySchoolIdAndActive(schoolId, true).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByRegionId(Long regionId) {
+        return gradeRepository.findByRegionIdAndActive(regionId, true).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getActiveGradesBySchoolId(Long schoolId) {
+        return gradeRepository.findActiveGradesBySchoolId(schoolId).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getActiveGradesByRegionId(Long regionId) {
+        return gradeRepository.findActiveGradesByRegionId(regionId).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesBySchoolIds(List<Long> schoolIds) {
+        if (schoolIds == null || schoolIds.isEmpty()) {
+            return List.of();
+        }
+        return gradeRepository.findBySchoolIdInAndActive(schoolIds, true).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByRegionIds(List<Long> regionIds) {
+        if (regionIds == null || regionIds.isEmpty()) {
+            return List.of();
+        }
+        return gradeRepository.findByRegionIdInAndActive(regionIds, true).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByStudentIds(List<Long> studentIds) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            return List.of();
+        }
+        return gradeRepository.findByStudentIdInAndActive(studentIds, true).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getActiveGradesBySchoolIds(List<Long> schoolIds) {
+        if (schoolIds == null || schoolIds.isEmpty()) {
+            return List.of();
+        }
+        return gradeRepository.findBySchoolIdInAndActive(schoolIds, true).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getActiveGradesByRegionIds(List<Long> regionIds) {
+        if (regionIds == null || regionIds.isEmpty()) {
+            return List.of();
+        }
+        return gradeRepository.findByRegionIdInAndActive(regionIds, true).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getActiveGradesByStudentIds(List<Long> studentIds) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            return List.of();
+        }
+        return gradeRepository.findByStudentIdInAndActive(studentIds, true).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> studentIds) {
+        return gradeRepository.findByMultiScopeAccess(
+                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
+                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
+                studentIds == null || studentIds.isEmpty() ? List.of(-1L) : studentIds
+        ).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getActiveGradesByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> studentIds) {
+        return gradeRepository.findByMultiScopeAccessAndActive(
+                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
+                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
+                studentIds == null || studentIds.isEmpty() ? List.of(-1L) : studentIds,
+                true
+        ).stream()
+                .map(gradeMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByCourseIdAndAccessibleScopes(Long courseId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            return gradeRepository.findByCourseIdAndSchoolIdInAndActive(courseId, accessibleSchoolIds, true).stream()
+                    .map(gradeMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by course and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByClassIdAndAccessibleScopes(Long classId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            return gradeRepository.findByClassIdAndSchoolIdInAndActive(classId, accessibleSchoolIds).stream()
+                    .map(gradeMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by class and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByTeacherIdAndAccessibleScopes(Long teacherId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return gradeRepository.findByTeacherIdAndActive(teacherId, true).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                return gradeRepository.findByTeacherIdAndSchoolIdInAndActive(teacherId, accessibleSchoolIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                return gradeRepository.findByTeacherIdAndRegionIdInAndActive(teacherId, accessibleRegionIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by teacher and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByAssessmentIdAndAccessibleScopes(Long assessmentId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return gradeRepository.findByAssessmentIdAndActive(assessmentId, true).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                return gradeRepository.findByAssessmentIdAndSchoolIdInAndActive(assessmentId, accessibleSchoolIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                return gradeRepository.findByAssessmentIdAndRegionIdInAndActive(assessmentId, accessibleRegionIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by assessment and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByAssignmentIdAndAccessibleScopes(Long assignmentId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return gradeRepository.findByAssignmentIdAndActive(assignmentId, true).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                return gradeRepository.findByAssignmentIdAndSchoolIdInAndActive(assignmentId, accessibleSchoolIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                return gradeRepository.findByAssignmentIdAndRegionIdInAndActive(assignmentId, accessibleRegionIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by assignment and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByGradeCategoryIdAndAccessibleScopes(Long gradeCategoryId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return gradeRepository.findByGradeCategoryIdAndActive(gradeCategoryId, true).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                return gradeRepository.findByGradeCategoryIdAndSchoolIdInAndActive(gradeCategoryId, accessibleSchoolIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                return gradeRepository.findByGradeCategoryIdAndRegionIdInAndActive(gradeCategoryId, accessibleRegionIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by grade category and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByGradeTypeAndAccessibleScopes(GradeType gradeType, Long currentUserId) {
+        try {
+            List<Long> accessibleStudentIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return gradeRepository.findByGradeTypeAndActive(gradeType, true).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return gradeRepository.findByMultiScopeAccessAndGradeType(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleStudentIds.isEmpty() ? List.of(-1L) : accessibleStudentIds,
+                    gradeType
+            ).stream()
+                    .map(gradeMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by grade type and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByTermAndAccessibleScopes(Term term, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return gradeRepository.findByStudentIdAndTermAndActive(null, term, true).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                return gradeRepository.findByTermAndSchoolIdInAndActive(term, accessibleSchoolIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                return gradeRepository.findByTermAndRegionIdInAndActive(term, accessibleRegionIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by term and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByAcademicYearAndAccessibleScopes(Integer academicYear, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return gradeRepository.findByStudentIdAndAcademicYearAndActive(null, academicYear, true).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                return gradeRepository.findByAcademicYearAndSchoolIdInAndActive(academicYear, accessibleSchoolIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                return gradeRepository.findByAcademicYearAndRegionIdInAndActive(academicYear, accessibleRegionIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by academic year and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getGradesByModerationStatusAndAccessibleScopes(boolean isModerated, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                if (isModerated) {
+                    return gradeRepository.findModeratedGrades().stream()
+                            .map(gradeMapper::toDto)
+                            .collect(Collectors.toList());
+                } else {
+                    return gradeRepository.findUnmoderatedGrades().stream()
+                            .map(gradeMapper::toDto)
+                            .collect(Collectors.toList());
+                }
+            }
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                return gradeRepository.findByModerationStatusAndSchoolIdInAndActive(isModerated, accessibleSchoolIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                return gradeRepository.findByModerationStatusAndRegionIdInAndActive(isModerated, accessibleRegionIds).stream()
+                        .map(gradeMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting grades by moderation status and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getUnmoderatedGradesByAccessibleScopes(Long currentUserId) {
+        return getGradesByModerationStatusAndAccessibleScopes(false, currentUserId);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<GradeDTO> getModeratedGradesByAccessibleScopes(Long currentUserId) {
+        return getGradesByModerationStatusAndAccessibleScopes(true, currentUserId);
+    }
+    
+    @Override
+    public boolean existsForStudentAndAssessment(Long studentId, Long assessmentId) {
+        return gradeRepository.existsByStudentIdAndAssessmentIdAndActive(studentId, assessmentId, true);
+    }
+    
+    @Override
+    public boolean existsForStudentAndAssignment(Long studentId, Long assignmentId) {
+        return gradeRepository.existsByStudentIdAndAssignmentIdAndActive(studentId, assignmentId, true);
+    }
+    
+    @Override
+    public boolean existsForStudentAndCategory(Long studentId, Long gradeCategoryId) {
+        return gradeRepository.existsByStudentIdAndGradeCategoryIdAndActive(studentId, gradeCategoryId, true);
     }
 } 

@@ -102,4 +102,112 @@ public interface AnnouncementService extends BaseService<AnnouncementDTO, Long> 
      * Activate/deactivate announcement
      */
     AnnouncementDTO toggleAnnouncementStatus(Long id, Long userId);
+
+    // ==================== MULTI-TENANT FILTERING METHODS ====================
+    
+    /**
+     * Get announcements filtered by accessible scope IDs based on user's permissions
+     * This replaces the unsafe getAll() method
+     */
+    List<AnnouncementDTO> getAnnouncementsByAccessibleScopes(Long currentUserId);
+    
+    /**
+     * Get active announcements filtered by accessible scope IDs
+     */
+    List<AnnouncementDTO> getActiveAnnouncementsByAccessibleScopes(Long currentUserId);
+    
+    /**
+     * Get announcements by specific school ID (for school-level access)
+     */
+    List<AnnouncementDTO> getAnnouncementsBySchoolId(Long schoolId);
+    
+    /**
+     * Get announcements by specific region ID (for regional access)
+     */
+    List<AnnouncementDTO> getAnnouncementsByRegionId(Long regionId);
+    
+    /**
+     * Get active announcements by school ID
+     */
+    List<AnnouncementDTO> getActiveAnnouncementsBySchoolId(Long schoolId);
+    
+    /**
+     * Get active announcements by region ID
+     */
+    List<AnnouncementDTO> getActiveAnnouncementsByRegionId(Long regionId);
+    
+    /**
+     * Get announcements by multiple school IDs (for class-level access across schools)
+     */
+    List<AnnouncementDTO> getAnnouncementsBySchoolIds(List<Long> schoolIds);
+    
+    /**
+     * Get announcements by multiple region IDs (for regional access across regions)
+     */
+    List<AnnouncementDTO> getAnnouncementsByRegionIds(List<Long> regionIds);
+    
+    /**
+     * Get announcements by specific creator IDs (for user-level access)
+     */
+    List<AnnouncementDTO> getAnnouncementsByCreatorIds(List<Long> creatorIds);
+    
+    /**
+     * Get active announcements by multiple school IDs
+     */
+    List<AnnouncementDTO> getActiveAnnouncementsBySchoolIds(List<Long> schoolIds);
+    
+    /**
+     * Get active announcements by multiple region IDs
+     */
+    List<AnnouncementDTO> getActiveAnnouncementsByRegionIds(List<Long> regionIds);
+    
+    /**
+     * Get active announcements by specific creator IDs
+     */
+    List<AnnouncementDTO> getActiveAnnouncementsByCreatorIds(List<Long> creatorIds);
+    
+    /**
+     * Get announcements by multi-scope access (combines school, region, and creator level access)
+     */
+    List<AnnouncementDTO> getAnnouncementsByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> creatorIds);
+    
+    /**
+     * Get active announcements by multi-scope access
+     */
+    List<AnnouncementDTO> getActiveAnnouncementsByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> creatorIds);
+    
+    /**
+     * Get announcements by type and accessible scopes (secure type filtering)
+     */
+    List<AnnouncementDTO> getAnnouncementsByTypeAndAccessibleScopes(AnnouncementType type, Long currentUserId);
+    
+    /**
+     * Get announcements by priority and accessible scopes (secure priority filtering)
+     */
+    List<AnnouncementDTO> getAnnouncementsByPriorityAndAccessibleScopes(com.ohma.thutothebe.entity.AnnouncementPriority priority, Long currentUserId);
+    
+    /**
+     * Get announcements by target role and accessible scopes (secure role filtering)
+     */
+    List<AnnouncementDTO> getAnnouncementsByTargetRoleAndAccessibleScopes(UserRole targetRole, Long currentUserId);
+    
+    /**
+     * Get announcements requiring acknowledgment by accessible scopes (secure acknowledgment filtering)
+     */
+    List<AnnouncementDTO> getAnnouncementsRequiringAcknowledgmentByAccessibleScopes(Long currentUserId);
+    
+    /**
+     * Search announcements by accessible scopes (secure search)
+     */
+    List<AnnouncementDTO> searchAnnouncementsByAccessibleScopes(String searchTerm, Long currentUserId);
+    
+    /**
+     * Get announcements by tag and accessible scopes (secure tag filtering)
+     */
+    List<AnnouncementDTO> getAnnouncementsByTagAndAccessibleScopes(String tag, Long currentUserId);
+    
+    /**
+     * Get announcements by creator and accessible scopes (secure creator filtering)
+     */
+    List<AnnouncementDTO> getAnnouncementsByCreatorAndAccessibleScopes(Long creatorId, Long currentUserId);
 } 

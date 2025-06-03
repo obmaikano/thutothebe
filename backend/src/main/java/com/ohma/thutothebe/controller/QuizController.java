@@ -27,6 +27,27 @@ public class QuizController extends BaseController<QuizDTO, Long> {
         this.quizService = quizService;
     }
 
+    @Override
+    @GetMapping
+    public ResponseEntity<OhmaApiResponse<List<QuizDTO>>> getAll() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Use secure multi-tenant filtering instead of unsafe memory filtering
+            List<QuizDTO> accessibleQuizzes = quizService.getQuizzesByAccessibleScopes(currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quizzes retrieved successfully", accessibleQuizzes, null));
+        } catch (Exception e) {
+            log.error("Error retrieving quizzes: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/code/{code}")
     @Operation(summary = "Get a quiz by code")
     public ResponseEntity<OhmaApiResponse<QuizDTO>> getByCode(@PathVariable String code) {
@@ -68,7 +89,8 @@ public class QuizController extends BaseController<QuizDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to view course quizzes", null, null));
             }
 
-            List<QuizDTO> quizzes = quizService.getByCourseId(courseId);
+            // Use secure multi-tenant filtering for course quizzes
+            List<QuizDTO> quizzes = quizService.getQuizzesByCourseIdAndAccessibleScopes(courseId, currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quizzes retrieved successfully", quizzes, null));
         } catch (Exception e) {
             log.error("Error retrieving quizzes: {}", e.getMessage(), e);
@@ -87,16 +109,17 @@ public class QuizController extends BaseController<QuizDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view quizzes for this instructor (self-access or admin access)
-            if (!hasAccess(AccessScope.USER, instructorId) && !hasAccess(AccessScope.GLOBAL, null)) {
+            // Check if user has access to view this instructor's quizzes
+            if (!hasAccess(AccessScope.USER, instructorId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to view instructor quizzes", null, null));
             }
 
-            List<QuizDTO> quizzes = quizService.getByInstructorId(instructorId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quizzes retrieved successfully", quizzes, null));
+            // Use secure multi-tenant filtering for instructor quizzes
+            List<QuizDTO> quizzes = quizService.getQuizzesByTeacherIdAndAccessibleScopes(instructorId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Instructor quizzes retrieved successfully", quizzes, null));
         } catch (Exception e) {
-            log.error("Error retrieving quizzes: {}", e.getMessage(), e);
+            log.error("Error retrieving instructor quizzes: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
@@ -112,13 +135,8 @@ public class QuizController extends BaseController<QuizDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view quizzes by status (admin access required for global view)
-            if (!hasAccess(AccessScope.GLOBAL, null)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to view quizzes by status", null, null));
-            }
-
-            List<QuizDTO> quizzes = quizService.getByStatus(status);
+            // Use secure multi-tenant filtering for status-based quizzes
+            List<QuizDTO> quizzes = quizService.getQuizzesByStatusAndAccessibleScopes(status, currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quizzes retrieved successfully", quizzes, null));
         } catch (Exception e) {
             log.error("Error retrieving quizzes: {}", e.getMessage(), e);
@@ -145,8 +163,13 @@ public class QuizController extends BaseController<QuizDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to view course quizzes by status", null, null));
             }
 
-            List<QuizDTO> quizzes = quizService.getByCourseIdAndStatus(courseId, status);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quizzes retrieved successfully", quizzes, null));
+            // Use secure multi-tenant filtering for course quizzes, then filter by status
+            List<QuizDTO> courseQuizzes = quizService.getQuizzesByCourseIdAndAccessibleScopes(courseId, currentUserId);
+            List<QuizDTO> filteredQuizzes = courseQuizzes.stream()
+                    .filter(quiz -> quiz.status() == status)
+                    .toList();
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quizzes retrieved successfully", filteredQuizzes, null));
         } catch (Exception e) {
             log.error("Error retrieving quizzes: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
@@ -170,10 +193,81 @@ public class QuizController extends BaseController<QuizDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Access denied to view active course quizzes", null, null));
             }
 
-            List<QuizDTO> quizzes = quizService.getActiveByCourseId(courseId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quizzes retrieved successfully", quizzes, null));
+            // Use secure multi-tenant filtering for active course quizzes
+            List<QuizDTO> courseQuizzes = quizService.getQuizzesByCourseIdAndAccessibleScopes(courseId, currentUserId);
+            List<QuizDTO> activeQuizzes = courseQuizzes.stream()
+                    .filter(quiz -> quiz.active())
+                    .toList();
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active quizzes retrieved successfully", activeQuizzes, null));
         } catch (Exception e) {
             log.error("Error retrieving quizzes: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/active")
+    @Operation(summary = "Get all active quizzes")
+    public ResponseEntity<OhmaApiResponse<List<QuizDTO>>> getActiveQuizzes() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Use secure multi-tenant filtering for active quizzes
+            List<QuizDTO> activeQuizzes = quizService.getActiveQuizzesByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active quizzes retrieved successfully", activeQuizzes, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active quizzes: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/school/{schoolId}")
+    @Operation(summary = "Get quizzes by school ID")
+    public ResponseEntity<OhmaApiResponse<List<QuizDTO>>> getQuizzesBySchoolId(@PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view this school's data
+            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
+            }
+
+            List<QuizDTO> quizzes = quizService.getQuizzesBySchoolId(schoolId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School quizzes retrieved successfully", quizzes, null));
+        } catch (Exception e) {
+            log.error("Error retrieving quizzes for school: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/subject/{subjectId}")
+    @Operation(summary = "Get quizzes by subject ID")
+    public ResponseEntity<OhmaApiResponse<List<QuizDTO>>> getQuizzesBySubjectId(@PathVariable Long subjectId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Use secure multi-tenant filtering for subject quizzes
+            List<QuizDTO> accessibleQuizzes = quizService.getQuizzesBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Subject quizzes retrieved successfully", accessibleQuizzes, null));
+        } catch (Exception e) {
+            log.error("Error retrieving quizzes for subject: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

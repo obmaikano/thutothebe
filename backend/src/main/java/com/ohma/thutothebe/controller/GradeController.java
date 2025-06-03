@@ -42,17 +42,8 @@ public class GradeController extends BaseController<GradeDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get accessible user IDs and filter grades by student access
-            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
-            
-            if (accessibleUserIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible grades", List.of(), null));
-            }
-
-            List<GradeDTO> allGrades = gradeService.getAll();
-            List<GradeDTO> accessibleGrades = allGrades.stream()
-                    .filter(grade -> accessibleUserIds.contains(grade.studentId()))
-                    .collect(Collectors.toList());
+            // ✅ SECURE: Use database-level filtering instead of unsafe memory filtering
+            List<GradeDTO> accessibleGrades = gradeService.getGradesByAccessibleScopes(currentUserId);
 
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grades retrieved successfully", accessibleGrades, null));
         } catch (Exception e) {
@@ -190,7 +181,20 @@ public class GradeController extends BaseController<GradeDTO, Long> {
     public ResponseEntity<OhmaApiResponse<List<GradeDTO>>> getGradesByCourse(
             @Parameter(description = "Course ID") @PathVariable Long courseId) {
         try {
-            List<GradeDTO> grades = gradeService.findByCourseId(courseId);
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view grades for this course (class-level access required)
+            if (!hasAccess(AccessScope.CLASS, courseId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to course grades", null, null));
+            }
+
+            // ✅ SECURE: Use database-level filtering for course grades
+            List<GradeDTO> grades = gradeService.getGradesByCourseIdAndAccessibleScopes(courseId, currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course grades retrieved successfully", grades, null));
         } catch (Exception e) {
             log.error("Error retrieving course grades: {}", e.getMessage(), e);
@@ -562,6 +566,54 @@ public class GradeController extends BaseController<GradeDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade existence checked successfully", exists, null));
         } catch (Exception e) {
             log.error("Error checking grade existence: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    // ==================== SECURE MULTI-TENANT ENDPOINTS ====================
+
+    @GetMapping("/school/{schoolId}")
+    @Operation(summary = "Get grades by school ID")
+    public ResponseEntity<OhmaApiResponse<List<GradeDTO>>> getGradesBySchoolId(@PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view this school's data
+            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
+            }
+
+            List<GradeDTO> grades = gradeService.getGradesBySchoolId(schoolId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School grades retrieved successfully", grades, null));
+        } catch (Exception e) {
+            log.error("Error retrieving grades for school: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/unmoderated/secure")
+    @Operation(summary = "Get unmoderated grades with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<GradeDTO>>> getUnmoderatedGradesSecure() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // ✅ SECURE: Use database-level filtering for unmoderated grades
+            List<GradeDTO> accessibleGrades = gradeService.getUnmoderatedGradesByAccessibleScopes(currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Unmoderated grades retrieved successfully", accessibleGrades, null));
+        } catch (Exception e) {
+            log.error("Error retrieving unmoderated grades: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

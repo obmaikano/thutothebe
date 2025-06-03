@@ -9,6 +9,7 @@ import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.StudentMapper;
 import com.ohma.thutothebe.repository.*;
 import com.ohma.thutothebe.service.StudentService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Long> implements StudentService {
 
@@ -31,6 +33,7 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
     private final SubjectRepository subjectRepository;
     private final StudentMapper studentMapper;
     private final CourseRepository courseRepository;
+    private final RuleBasedAccessControlServiceImpl accessControlService;
 
     @Autowired
     public StudentServiceImpl(
@@ -40,7 +43,8 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
             ClassRepository classRepository,
             SubjectRepository subjectRepository,
             StudentMapper studentMapper,
-            CourseRepository courseRepository) {
+            CourseRepository courseRepository,
+            RuleBasedAccessControlServiceImpl accessControlService) {
         super(studentRepository);
         this.studentRepository = studentRepository;
         this.schoolRepository = schoolRepository;
@@ -49,6 +53,7 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         this.subjectRepository = subjectRepository;
         this.studentMapper = studentMapper;
         this.courseRepository = courseRepository;
+        this.accessControlService = accessControlService;
     }
 
     @Override
@@ -910,5 +915,369 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
         long studentCount = studentRepository.countByEnrollmentYear(currentYear);
         // Format with leading zeros to ensure 4 digits
         return String.format("STU-%d-%04d", currentYear, studentCount + 1);
+    }
+
+    // ==================== MULTI-TENANT FILTERING METHODS ====================
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByAccessibleScopes(Long currentUserId) {
+        try {
+            // Get accessible scope IDs from access control service
+            List<Long> accessibleStudentIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            // Check if user has global access
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                // Global access - return all active students
+                return studentRepository.findByActive(true).stream()
+                        .map(studentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            // Use multi-scope access query for database-level filtering
+            return studentRepository.findByMultiScopeAccess(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleStudentIds.isEmpty() ? List.of(-1L) : accessibleStudentIds
+            ).stream()
+                    .map(studentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting students by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of(); // Return empty list on error for security
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getActiveStudentsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleStudentIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return studentRepository.findBySchoolIdAndActiveAndStatus(null, true, StudentStatus.ACTIVE).stream()
+                        .map(studentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return studentRepository.findByMultiScopeAccessAndActiveAndStatus(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleStudentIds.isEmpty() ? List.of(-1L) : accessibleStudentIds,
+                    true,
+                    StudentStatus.ACTIVE
+            ).stream()
+                    .map(studentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting active students by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByStatusAndAccessibleScopes(StudentStatus status, Long currentUserId) {
+        try {
+            List<Long> accessibleStudentIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return studentRepository.findByActive(true).stream()
+                        .filter(student -> status == null || student.getStatus() == status)
+                        .map(studentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return studentRepository.findByMultiScopeAccessAndStatus(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    accessibleStudentIds.isEmpty() ? List.of(-1L) : accessibleStudentIds,
+                    status
+            ).stream()
+                    .map(studentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting students by status and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsBySchoolIdSecure(Long schoolId) {
+        return studentRepository.findBySchoolIdAndActive(schoolId, true).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByRegionId(Long regionId) {
+        return studentRepository.findByRegionIdAndActive(regionId, true).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByStatusAndSchoolId(StudentStatus status, Long schoolId) {
+        return studentRepository.findBySchoolIdAndActiveAndStatus(schoolId, true, status).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByStatusAndRegionId(StudentStatus status, Long regionId) {
+        return studentRepository.findByRegionIdAndActive(regionId, true).stream()
+                .filter(student -> student.getStatus() == status)
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsBySchoolIds(List<Long> schoolIds) {
+        if (schoolIds == null || schoolIds.isEmpty()) {
+            return List.of();
+        }
+        return studentRepository.findBySchoolIdInAndActive(schoolIds, true).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByRegionIds(List<Long> regionIds) {
+        if (regionIds == null || regionIds.isEmpty()) {
+            return List.of();
+        }
+        return studentRepository.findByRegionIdInAndActive(regionIds, true).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByStudentIds(List<Long> studentIds) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            return List.of();
+        }
+        return studentRepository.findByIdInAndActive(studentIds, true).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByStatusAndSchoolIds(StudentStatus status, List<Long> schoolIds) {
+        if (schoolIds == null || schoolIds.isEmpty()) {
+            return List.of();
+        }
+        return studentRepository.findBySchoolIdInAndActiveAndStatus(schoolIds, true, status).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByStatusAndRegionIds(StudentStatus status, List<Long> regionIds) {
+        if (regionIds == null || regionIds.isEmpty()) {
+            return List.of();
+        }
+        return studentRepository.findByRegionIdInAndActiveAndStatus(regionIds, true, status).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByStatusAndStudentIds(StudentStatus status, List<Long> studentIds) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            return List.of();
+        }
+        return studentRepository.findByIdInAndActiveAndStatus(studentIds, true, status).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> studentIds) {
+        return studentRepository.findByMultiScopeAccess(
+                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
+                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
+                studentIds == null || studentIds.isEmpty() ? List.of(-1L) : studentIds
+        ).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByStatusAndMultiScopeAccess(StudentStatus status, List<Long> schoolIds, List<Long> regionIds, List<Long> studentIds) {
+        return studentRepository.findByMultiScopeAccessAndStatus(
+                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
+                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
+                studentIds == null || studentIds.isEmpty() ? List.of(-1L) : studentIds,
+                status
+        ).stream()
+                .map(studentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByClassIdAndAccessibleScopes(Long classId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            // Get class to verify it's in accessible schools
+            Optional<com.ohma.thutothebe.entity.Class> classOpt = classRepository.findById(classId);
+            if (classOpt.isEmpty() || !accessibleSchoolIds.contains(classOpt.get().getSchool().getId())) {
+                return List.of();
+            }
+            
+            return studentRepository.findByClassIdAndSchoolIdAndActive(classId, classOpt.get().getSchool().getId()).stream()
+                    .map(studentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting students by class and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByAcademicYearAndAccessibleScopes(Integer academicYear, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return studentRepository.findByActive(true).stream()
+                        .filter(student -> student.getAcademicYear().equals(academicYear))
+                        .map(studentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                return studentRepository.findByAcademicYearAndSchoolIdInAndActive(academicYear, accessibleSchoolIds).stream()
+                        .map(studentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                return studentRepository.findByAcademicYearAndRegionIdInAndActive(academicYear, accessibleRegionIds).stream()
+                        .map(studentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting students by academic year and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsBySubjectIdAndAccessibleScopes(Long subjectId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            // Get students by subject and filter by accessible schools
+            List<Student> allStudentsBySubject = studentRepository.findBySubjects_Id(subjectId);
+            
+            return allStudentsBySubject.stream()
+                    .filter(student -> student.getSchool() != null && accessibleSchoolIds.contains(student.getSchool().getId()))
+                    .filter(Student::isActive)
+                    .map(studentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting students by subject and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByCourseIdAndAccessibleScopes(Long courseId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            // Get students by course and filter by accessible schools
+            List<Student> allStudentsByCourse = studentRepository.findByCourseId(courseId);
+            
+            return allStudentsByCourse.stream()
+                    .filter(student -> student.getSchool() != null && accessibleSchoolIds.contains(student.getSchool().getId()))
+                    .filter(Student::isActive)
+                    .map(studentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting students by course and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsByTeacherIdAndAccessibleScopes(Long teacherId, Long currentUserId) {
+        try {
+            // Verify current user has access to this teacher's students
+            if (!accessControlService.hasAccess(currentUserId, AccessScope.USER, teacherId) && !currentUserId.equals(teacherId)) {
+                return List.of();
+            }
+            
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            // Get students by teacher through existing method and filter by accessible schools
+            List<StudentDTO> allStudentsByTeacher = getStudentsByTeacherId(teacherId);
+            
+            return allStudentsByTeacher.stream()
+                    .filter(student -> student.schoolId() != null && accessibleSchoolIds.contains(student.schoolId()))
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting students by teacher and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
     }
 } 

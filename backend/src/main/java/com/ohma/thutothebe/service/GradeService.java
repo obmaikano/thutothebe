@@ -85,4 +85,143 @@ public interface GradeService extends BaseService<GradeDTO, Long> {
     boolean existsByStudentIdAndGradeCategoryId(Long studentId, Long gradeCategoryId);
     
     GradeDTO createGradeForCategory(Long studentId, Long gradeCategoryId, Double score, Long gradedById, String feedback);
+    
+    boolean existsForStudentAndAssessment(Long studentId, Long assessmentId);
+    
+    boolean existsForStudentAndAssignment(Long studentId, Long assignmentId);
+    
+    boolean existsForStudentAndCategory(Long studentId, Long gradeCategoryId);
+
+    // ==================== MULTI-TENANT FILTERING METHODS ====================
+    
+    /**
+     * Get grades filtered by accessible scope IDs based on user's permissions
+     * This replaces the unsafe getAll() method
+     */
+    List<GradeDTO> getGradesByAccessibleScopes(Long currentUserId);
+    
+    /**
+     * Get active grades filtered by accessible scope IDs
+     */
+    List<GradeDTO> getActiveGradesByAccessibleScopes(Long currentUserId);
+    
+    /**
+     * Get grades by specific school ID (for school-level access)
+     */
+    List<GradeDTO> getGradesBySchoolId(Long schoolId);
+    
+    /**
+     * Get grades by specific region ID (for regional access)
+     */
+    List<GradeDTO> getGradesByRegionId(Long regionId);
+    
+    /**
+     * Get active grades by school ID
+     */
+    List<GradeDTO> getActiveGradesBySchoolId(Long schoolId);
+    
+    /**
+     * Get active grades by region ID
+     */
+    List<GradeDTO> getActiveGradesByRegionId(Long regionId);
+    
+    /**
+     * Get grades by multiple school IDs (for class-level access across schools)
+     */
+    List<GradeDTO> getGradesBySchoolIds(List<Long> schoolIds);
+    
+    /**
+     * Get grades by multiple region IDs (for regional access across regions)
+     */
+    List<GradeDTO> getGradesByRegionIds(List<Long> regionIds);
+    
+    /**
+     * Get grades by specific student IDs (for user-level access)
+     */
+    List<GradeDTO> getGradesByStudentIds(List<Long> studentIds);
+    
+    /**
+     * Get active grades by multiple school IDs
+     */
+    List<GradeDTO> getActiveGradesBySchoolIds(List<Long> schoolIds);
+    
+    /**
+     * Get active grades by multiple region IDs
+     */
+    List<GradeDTO> getActiveGradesByRegionIds(List<Long> regionIds);
+    
+    /**
+     * Get active grades by specific student IDs
+     */
+    List<GradeDTO> getActiveGradesByStudentIds(List<Long> studentIds);
+    
+    /**
+     * Get grades by multi-scope access (combines school, region, and student level access)
+     */
+    List<GradeDTO> getGradesByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> studentIds);
+    
+    /**
+     * Get active grades by multi-scope access
+     */
+    List<GradeDTO> getActiveGradesByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> studentIds);
+    
+    /**
+     * Get grades by course and accessible scopes (secure course grades)
+     */
+    List<GradeDTO> getGradesByCourseIdAndAccessibleScopes(Long courseId, Long currentUserId);
+    
+    /**
+     * Get grades by class and accessible scopes (secure class grades)
+     */
+    List<GradeDTO> getGradesByClassIdAndAccessibleScopes(Long classId, Long currentUserId);
+    
+    /**
+     * Get grades by teacher and accessible scopes (secure teacher grades)
+     */
+    List<GradeDTO> getGradesByTeacherIdAndAccessibleScopes(Long teacherId, Long currentUserId);
+    
+    /**
+     * Get grades by assessment and accessible scopes (secure assessment grades)
+     */
+    List<GradeDTO> getGradesByAssessmentIdAndAccessibleScopes(Long assessmentId, Long currentUserId);
+    
+    /**
+     * Get grades by assignment and accessible scopes (secure assignment grades)
+     */
+    List<GradeDTO> getGradesByAssignmentIdAndAccessibleScopes(Long assignmentId, Long currentUserId);
+    
+    /**
+     * Get grades by grade category and accessible scopes (secure grade category grades)
+     */
+    List<GradeDTO> getGradesByGradeCategoryIdAndAccessibleScopes(Long gradeCategoryId, Long currentUserId);
+    
+    /**
+     * Get grades by grade type and accessible scopes (secure grade type filtering)
+     */
+    List<GradeDTO> getGradesByGradeTypeAndAccessibleScopes(GradeType gradeType, Long currentUserId);
+    
+    /**
+     * Get grades by term and accessible scopes (secure term filtering)
+     */
+    List<GradeDTO> getGradesByTermAndAccessibleScopes(Term term, Long currentUserId);
+    
+    /**
+     * Get grades by academic year and accessible scopes (secure academic year filtering)
+     */
+    List<GradeDTO> getGradesByAcademicYearAndAccessibleScopes(Integer academicYear, Long currentUserId);
+    
+    /**
+     * Get grades by moderation status and accessible scopes (secure moderation filtering)
+     */
+    List<GradeDTO> getGradesByModerationStatusAndAccessibleScopes(boolean isModerated, Long currentUserId);
+    
+    /**
+     * Get unmoderated grades by accessible scopes (secure unmoderated grades)
+     */
+    List<GradeDTO> getUnmoderatedGradesByAccessibleScopes(Long currentUserId);
+    
+    /**
+     * Get moderated grades by accessible scopes (secure moderated grades)
+     */
+    List<GradeDTO> getModeratedGradesByAccessibleScopes(Long currentUserId);
 } 

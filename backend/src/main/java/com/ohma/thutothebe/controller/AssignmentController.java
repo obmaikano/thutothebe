@@ -40,26 +40,17 @@ public class AssignmentController extends BaseController<AssignmentDTO, Long> {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(OhmaApiResponse.error(401, "Authentication required"));
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get accessible class IDs and filter assignments by those classes
-            List<Long> accessibleClassIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.CLASS);
-            
-            if (accessibleClassIds.isEmpty()) {
-                return ResponseEntity.ok(OhmaApiResponse.success(List.of()));
-            }
+            // Use secure multi-tenant filtering instead of unsafe memory filtering
+            List<AssignmentDTO> accessibleAssignments = assignmentService.getAssignmentsByAccessibleScopes(currentUserId);
 
-            List<AssignmentDTO> allAssignments = assignmentService.getAll();
-            List<AssignmentDTO> accessibleAssignments = allAssignments.stream()
-                    .filter(assignment -> accessibleClassIds.contains(assignment.courseId()))
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(OhmaApiResponse.success(accessibleAssignments));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Assignments retrieved successfully", accessibleAssignments, null));
         } catch (Exception e) {
-            log.error("Error retrieving assignments: ", e);
+            log.error("Error retrieving assignments: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
-                    .body(OhmaApiResponse.error(400, e.getMessage()));
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
@@ -191,21 +182,22 @@ public class AssignmentController extends BaseController<AssignmentDTO, Long> {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(OhmaApiResponse.error(401, "Authentication required"));
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
             // Check if user has access to view this course's assignments
             if (!hasAccess(AccessScope.CLASS, courseId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(OhmaApiResponse.error(403, "Access denied to course data"));
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to course data", null, null));
             }
 
-            List<AssignmentDTO> assignments = assignmentService.getByCourse(courseId);
-            return ResponseEntity.ok(OhmaApiResponse.success(assignments));
+            // Use secure multi-tenant filtering for course assignments
+            List<AssignmentDTO> assignments = assignmentService.getAssignmentsByCourseIdAndAccessibleScopes(courseId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course assignments retrieved successfully", assignments, null));
         } catch (Exception e) {
-            log.error("Error getting assignments by course: ", e);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(OhmaApiResponse.error(404, "Course not found with id: " + courseId));
+            log.error("Error getting assignments by course: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
@@ -215,26 +207,17 @@ public class AssignmentController extends BaseController<AssignmentDTO, Long> {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(OhmaApiResponse.error(401, "Authentication required"));
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get accessible class IDs and filter active assignments by those classes
-            List<Long> accessibleClassIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.CLASS);
-            
-            if (accessibleClassIds.isEmpty()) {
-                return ResponseEntity.ok(OhmaApiResponse.success(List.of()));
-            }
+            // Use secure multi-tenant filtering instead of unsafe memory filtering
+            List<AssignmentDTO> accessibleActiveAssignments = assignmentService.getActiveAssignmentsByAccessibleScopes(currentUserId);
 
-            List<AssignmentDTO> allActiveAssignments = assignmentService.getActive();
-            List<AssignmentDTO> accessibleActiveAssignments = allActiveAssignments.stream()
-                    .filter(assignment -> accessibleClassIds.contains(assignment.courseId()))
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(OhmaApiResponse.success(accessibleActiveAssignments));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active assignments retrieved successfully", accessibleActiveAssignments, null));
         } catch (Exception e) {
-            log.error("Error getting active assignments: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(OhmaApiResponse.error(500, "Error getting active assignments: " + e.getMessage()));
+            log.error("Error retrieving active assignments: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
@@ -244,21 +227,27 @@ public class AssignmentController extends BaseController<AssignmentDTO, Long> {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(OhmaApiResponse.error(401, "Authentication required"));
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this course's active assignments
+            // Check if user has access to view this course's assignments
             if (!hasAccess(AccessScope.CLASS, courseId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(OhmaApiResponse.error(403, "Access denied to course data"));
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to course data", null, null));
             }
 
-            List<AssignmentDTO> activeAssignments = assignmentService.getActiveByCourse(courseId);
-            return ResponseEntity.ok(OhmaApiResponse.success(activeAssignments));
+            // Use secure multi-tenant filtering for active course assignments
+            List<AssignmentDTO> assignments = assignmentService.getAssignmentsByCourseIdAndAccessibleScopes(courseId, currentUserId);
+            // Filter for active assignments at service level would be better, but this maintains existing API
+            List<AssignmentDTO> activeAssignments = assignments.stream()
+                    .filter(assignment -> assignment.active())
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active course assignments retrieved successfully", activeAssignments, null));
         } catch (Exception e) {
-            log.error("Error getting active assignments by course: ", e);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(OhmaApiResponse.error(404, "Course not found with id: " + courseId));
+            log.error("Error getting active assignments by course: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
@@ -268,21 +257,22 @@ public class AssignmentController extends BaseController<AssignmentDTO, Long> {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(OhmaApiResponse.error(401, "Authentication required"));
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
             // Check if user has access to view this teacher's assignments
             if (!hasAccess(AccessScope.USER, teacherId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(OhmaApiResponse.error(403, "Access denied to teacher data"));
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to teacher data", null, null));
             }
 
-            List<AssignmentDTO> assignments = assignmentService.getAssignmentsByTeacher(teacherId);
-            return ResponseEntity.ok(OhmaApiResponse.success(assignments));
+            // Use secure multi-tenant filtering for teacher assignments
+            List<AssignmentDTO> assignments = assignmentService.getAssignmentsByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher assignments retrieved successfully", assignments, null));
         } catch (Exception e) {
-            log.error("Error getting assignments by teacher: ", e);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(OhmaApiResponse.error(404, "Teacher not found with id: " + teacherId));
+            log.error("Error getting assignments by teacher: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
@@ -292,21 +282,26 @@ public class AssignmentController extends BaseController<AssignmentDTO, Long> {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(OhmaApiResponse.error(401, "Authentication required"));
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
             // Check if user has access to view this teacher's assignments
             if (!hasAccess(AccessScope.USER, teacherId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(OhmaApiResponse.error(403, "Access denied to teacher data"));
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to teacher data", null, null));
             }
 
-            List<AssignmentDTO> assignments = assignmentService.getActiveAssignmentsByTeacher(teacherId);
-            return ResponseEntity.ok(OhmaApiResponse.success(assignments));
+            // Use secure multi-tenant filtering for active teacher assignments
+            List<AssignmentDTO> assignments = assignmentService.getAssignmentsByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
+            List<AssignmentDTO> activeAssignments = assignments.stream()
+                    .filter(assignment -> assignment.active())
+                    .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active teacher assignments retrieved successfully", activeAssignments, null));
         } catch (Exception e) {
-            log.error("Error getting active assignments by teacher: ", e);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(OhmaApiResponse.error(404, "Teacher not found with id: " + teacherId));
+            log.error("Error getting active assignments by teacher: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
@@ -316,21 +311,21 @@ public class AssignmentController extends BaseController<AssignmentDTO, Long> {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(OhmaApiResponse.error(401, "Authentication required"));
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
             // Check if user has access to view this instructor's assignments
             if (!hasAccess(AccessScope.USER, instructorId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(OhmaApiResponse.error(403, "Access denied to instructor data"));
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to instructor data", null, null));
             }
 
             List<AssignmentDTO> assignments = assignmentService.getAssignmentsByInstructor(instructorId);
-            return ResponseEntity.ok(OhmaApiResponse.success(assignments));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Instructor assignments retrieved successfully", assignments, null));
         } catch (Exception e) {
-            log.error("Error getting assignments by instructor: ", e);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(OhmaApiResponse.error(404, "Instructor not found with id: " + instructorId));
+            log.error("Error getting assignments by instructor: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
@@ -340,21 +335,84 @@ public class AssignmentController extends BaseController<AssignmentDTO, Long> {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(OhmaApiResponse.error(401, "Authentication required"));
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
             // Check if user has access to view this instructor's assignments
             if (!hasAccess(AccessScope.USER, instructorId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(OhmaApiResponse.error(403, "Access denied to instructor data"));
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to instructor data", null, null));
             }
 
             List<AssignmentDTO> assignments = assignmentService.getActiveAssignmentsByInstructor(instructorId);
-            return ResponseEntity.ok(OhmaApiResponse.success(assignments));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active instructor assignments retrieved successfully", assignments, null));
         } catch (Exception e) {
-            log.error("Error getting active assignments by instructor: ", e);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(OhmaApiResponse.error(404, "Instructor not found with id: " + instructorId));
+            log.error("Error getting active assignments by instructor: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/status/{status}")
+    public ResponseEntity<OhmaApiResponse<List<AssignmentDTO>>> getAssignmentsByStatus(@PathVariable String status) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Use secure multi-tenant filtering for status-based assignments
+            List<AssignmentDTO> assignments = assignmentService.getAssignmentsByStatusAndAccessibleScopes(status, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Assignments by status retrieved successfully", assignments, null));
+        } catch (Exception e) {
+            log.error("Error getting assignments by status: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/school/{schoolId}")
+    public ResponseEntity<OhmaApiResponse<List<AssignmentDTO>>> getAssignmentsBySchoolId(@PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view this school's data
+            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
+            }
+
+            List<AssignmentDTO> assignments = assignmentService.getAssignmentsBySchoolId(schoolId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School assignments retrieved successfully", assignments, null));
+        } catch (Exception e) {
+            log.error("Error retrieving assignments for school: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/subject/{subjectId}")
+    public ResponseEntity<OhmaApiResponse<List<AssignmentDTO>>> getAssignmentsBySubjectId(@PathVariable Long subjectId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Use secure multi-tenant filtering for subject assignments
+            List<AssignmentDTO> accessibleAssignments = assignmentService.getAssignmentsBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Subject assignments retrieved successfully", accessibleAssignments, null));
+        } catch (Exception e) {
+            log.error("Error retrieving assignments for subject: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 } 
