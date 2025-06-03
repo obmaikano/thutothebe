@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAppDispatch } from '../../../app/hooks';
 import { Region, CreateRegionRequest, UpdateRegionRequest } from '../../../api/services/regionApi';
 import { createRegion, updateRegion } from '../regionsSlice';
+import SecurityManager, { ValidationSchemas } from '../../../utils/security';
+import { handleApiError } from '../../../utils/errorHandling';
 
 interface RegionFormProps {
   region?: Region | null;
@@ -17,6 +19,7 @@ export const RegionForm: React.FC<RegionFormProps> = ({
   mode = 'create'
 }) => {
   const dispatch = useAppDispatch();
+  const security = SecurityManager.getInstance();
   const [formData, setFormData] = useState<CreateRegionRequest>({
     code: '',
     name: '',
@@ -25,6 +28,7 @@ export const RegionForm: React.FC<RegionFormProps> = ({
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [originalCode, setOriginalCode] = useState<string>('');
 
   useEffect(() => {
     if (region && mode === 'edit') {
@@ -34,26 +38,50 @@ export const RegionForm: React.FC<RegionFormProps> = ({
         description: region.description || '',
         active: region.active
       });
+      setOriginalCode(region.code);
     }
   }, [region, mode]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // Validate region code
     if (!formData.code.trim()) {
       newErrors.code = 'Region code is required';
-    } else if (formData.code.length < 2 || formData.code.length > 10) {
-      newErrors.code = 'Region code must be between 2 and 10 characters';
+    } else {
+      const sanitizedCode = security.sanitizeTextInput(formData.code.trim().toUpperCase());
+      if (sanitizedCode !== formData.code.trim().toUpperCase()) {
+        newErrors.code = 'Region code contains invalid characters';
+      } else if (!ValidationSchemas.regionName.pattern.test(sanitizedCode)) {
+        newErrors.code = 'Region code can only contain letters, numbers, spaces, hyphens, and periods';
+      } else if (sanitizedCode.length < 2 || sanitizedCode.length > 10) {
+        newErrors.code = 'Region code must be between 2 and 10 characters';
+      }
     }
 
+    // Validate region name
     if (!formData.name.trim()) {
       newErrors.name = 'Region name is required';
-    } else if (formData.name.length < 3 || formData.name.length > 100) {
-      newErrors.name = 'Region name must be between 3 and 100 characters';
+    } else {
+      const sanitizedName = security.sanitizeTextInput(formData.name.trim());
+      if (sanitizedName !== formData.name.trim()) {
+        newErrors.name = 'Region name contains invalid characters';
+      } else if (!ValidationSchemas.regionName.pattern.test(sanitizedName)) {
+        newErrors.name = 'Region name can only contain letters, numbers, spaces, hyphens, apostrophes, and periods';
+      } else if (sanitizedName.length < ValidationSchemas.regionName.minLength || 
+                 sanitizedName.length > ValidationSchemas.regionName.maxLength) {
+        newErrors.name = `Region name must be between ${ValidationSchemas.regionName.minLength} and ${ValidationSchemas.regionName.maxLength} characters`;
+      }
     }
 
-    if (formData.description && formData.description.length > 500) {
-      newErrors.description = 'Description cannot exceed 500 characters';
+    // Validate description
+    if (formData.description) {
+      const sanitizedDescription = security.sanitizeTextInput(formData.description.trim());
+      if (sanitizedDescription !== formData.description.trim()) {
+        newErrors.description = 'Description contains invalid characters';
+      } else if (sanitizedDescription.length > 500) {
+        newErrors.description = 'Description cannot exceed 500 characters';
+      }
     }
 
     setErrors(newErrors);
@@ -64,9 +92,22 @@ export const RegionForm: React.FC<RegionFormProps> = ({
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
+    let processedValue = value;
+    
+    // Sanitize input based on field type
+    if (type !== 'checkbox') {
+      if (name === 'code') {
+        // Convert to uppercase and sanitize
+        processedValue = security.sanitizeTextInput(value.toUpperCase());
+      } else if (name === 'name' || name === 'description') {
+        // Sanitize text input
+        processedValue = security.sanitizeTextInput(value);
+      }
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : processedValue
     }));
 
     // Clear error when user starts typing
@@ -86,14 +127,23 @@ export const RegionForm: React.FC<RegionFormProps> = ({
     }
 
     setIsSubmitting(true);
+    setErrors({}); // Clear any previous errors
+    
     try {
       let result: Region;
+      const processedData = {
+        code: formData.code.trim().toUpperCase(),
+        name: formData.name.trim(),
+        description: formData.description?.trim() || undefined,
+        active: formData.active
+      };
       
       if (mode === 'edit' && region) {
-        const updateData: UpdateRegionRequest = formData;
+        const updateData: UpdateRegionRequest = processedData;
         result = await dispatch(updateRegion({ id: region.id, regionData: updateData })).unwrap() as Region;
       } else {
-        result = await dispatch(createRegion(formData)).unwrap() as Region;
+        const createData: CreateRegionRequest = processedData;
+        result = await dispatch(createRegion(createData)).unwrap() as Region;
       }
 
       if (onSubmit) {
@@ -101,7 +151,30 @@ export const RegionForm: React.FC<RegionFormProps> = ({
       }
     } catch (error: any) {
       console.error('Failed to save region:', error);
-      setErrors({ submit: error.message || 'Failed to save region' });
+      
+      // Use enhanced error handling
+      const processedError = handleApiError(
+        error,
+        mode === 'edit' ? 'update' : 'create',
+        'region',
+        region, // original data
+        formData // new data
+      );
+
+      // Apply field-specific errors
+      const newErrors: Record<string, string> = { ...processedError.fieldErrors };
+      
+      // Add general error message
+      if (processedError.message) {
+        newErrors.submit = processedError.message;
+        
+        // Add suggestions if available
+        if (processedError.suggestions.length > 0) {
+          newErrors.suggestions = processedError.suggestions.join('\n');
+        }
+      }
+
+      setErrors(newErrors);
     } finally {
       setIsSubmitting(false);
     }
@@ -113,6 +186,9 @@ export const RegionForm: React.FC<RegionFormProps> = ({
       <div className="form-control">
         <label className="label">
           <span className="label-text font-medium">Region Code *</span>
+          <span className="label-text-alt text-gray-500">
+            {mode === 'edit' ? 'Current: ' + originalCode : 'Auto-formatted to uppercase'}
+          </span>
         </label>
         <input
           type="text"
@@ -129,6 +205,11 @@ export const RegionForm: React.FC<RegionFormProps> = ({
             <span className="label-text-alt text-error">{errors.code}</span>
           </label>
         )}
+        <label className="label">
+          <span className="label-text-alt text-gray-500">
+            2-10 characters, letters and numbers only
+          </span>
+        </label>
       </div>
 
       {/* Region Name */}
@@ -143,7 +224,7 @@ export const RegionForm: React.FC<RegionFormProps> = ({
           onChange={handleInputChange}
           className={`input input-bordered ${errors.name ? 'input-error' : ''}`}
           placeholder="e.g., Northern Region, Central Province"
-          maxLength={100}
+          maxLength={50}
           disabled={isSubmitting}
         />
         {errors.name && (
@@ -151,6 +232,11 @@ export const RegionForm: React.FC<RegionFormProps> = ({
             <span className="label-text-alt text-error">{errors.name}</span>
           </label>
         )}
+        <label className="label">
+          <span className="label-text-alt text-gray-500">
+            {formData.name.length}/50 characters
+          </span>
+        </label>
       </div>
 
       {/* Description */}
@@ -201,7 +287,20 @@ export const RegionForm: React.FC<RegionFormProps> = ({
       {/* Submit Error */}
       {errors.submit && (
         <div className="alert alert-error">
-          <span>{errors.submit}</span>
+          <div className="flex flex-col">
+            <span className="font-medium">Error saving region:</span>
+            <span>{errors.submit}</span>
+            {errors.suggestions && (
+              <div className="mt-2 text-sm">
+                <strong>Suggestions:</strong>
+                <ul className="list-disc list-inside mt-1">
+                  {errors.suggestions.split('\n').map((suggestion, index) => (
+                    <li key={index}>{suggestion}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

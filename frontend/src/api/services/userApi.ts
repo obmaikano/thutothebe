@@ -124,6 +124,60 @@ const userApi = {
   },
 
   /**
+   * Get users by school ID
+   * @param schoolId School ID
+   * @returns Response with a list of users in the school
+   */
+  getBySchoolId: async (schoolId: number): Promise<AxiosResponse<UserResponse>> => {
+    return api.get(`/users/school/${schoolId}`);
+  },
+
+  /**
+   * Get students by school ID
+   * @param schoolId School ID
+   * @returns Response with a list of students in the school
+   */
+  getStudentsBySchoolId: async (schoolId: number): Promise<AxiosResponse<UserResponse>> => {
+    return api.get(`/users/school/${schoolId}/students`);
+  },
+
+  /**
+   * Get teachers by school ID
+   * @param schoolId School ID
+   * @returns Response with a list of teachers in the school
+   */
+  getTeachersBySchoolId: async (schoolId: number): Promise<AxiosResponse<UserResponse>> => {
+    return api.get(`/users/school/${schoolId}/teachers`);
+  },
+
+  /**
+   * Get staff by school ID (includes all non-student roles)
+   * @param schoolId School ID
+   * @returns Response with a list of staff in the school
+   */
+  getStaffBySchoolId: async (schoolId: number): Promise<AxiosResponse<UserResponse>> => {
+    return api.get(`/users/school/${schoolId}/staff`);
+  },
+
+  /**
+   * Get users by role
+   * @param role User role
+   * @returns Response with a list of users with the specified role
+   */
+  getByRole: async (role: string): Promise<AxiosResponse<UserResponse>> => {
+    return api.get(`/users/role/${role}`);
+  },
+
+  /**
+   * Get active users by school ID
+   * @param schoolId School ID
+   * @returns Response with a list of active users in the school
+   */
+  getActiveBySchoolId: async (schoolId: number): Promise<AxiosResponse<UserResponse>> => {
+    return api.get(`/users/school/${schoolId}/active`);
+  },
+
+  /**
    * Create a new user
    * @param userData User data
    * @returns Response with created user details

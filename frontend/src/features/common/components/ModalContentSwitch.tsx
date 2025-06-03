@@ -22,6 +22,9 @@ const CreateSchoolModal = lazy(() => import('../../schools/modals/CreateSchoolMo
 const EditSchoolModal = lazy(() => import('../../schools/modals/EditSchoolModal'));
 const DeleteSchoolModal = lazy(() => import('../../schools/modals/DeleteSchoolModal'));
 
+// Monitoring modals
+const MonitoringDetailsModal = lazy(() => import('../../schools/modals/MonitoringDetailsModal'));
+
 // Region management modals
 const CreateRegionModal = lazy(() => import('../../regions/modals/CreateRegionModal'));
 const EditRegionModal = lazy(() => import('../../regions/modals/EditRegionModal'));
@@ -246,6 +249,14 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DeleteSchoolModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Monitoring modals
+    case MODAL_BODY_TYPES.MONITORING_DETAILS:
+      return (
+        <Suspense fallback={fallback}>
+          <MonitoringDetailsModal extraObject={contentProps} />
         </Suspense>
       );
 

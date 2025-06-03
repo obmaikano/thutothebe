@@ -8,6 +8,8 @@ import subjectsReducer from '../features/subjects/subjectsSlice';
 import departmentsReducer from '../features/departments/departmentsSlice';
 import schoolsReducer from '../features/schools/schoolsSlice';
 import regionsReducer from '../features/regions/regionsSlice';
+import schoolMonitoringReducer from '../features/schools/schoolMonitoringSlice';
+import regionMonitoringReducer from '../features/regions/regionMonitoringSlice';
 import usersReducer from '../features/users/usersSlice';
 import teachersReducer from '../features/teachers/teachersSlice';
 import assignmentsReducer from '../features/assignments/assignmentsSlice';
@@ -43,6 +45,8 @@ export const store = configureStore({
     departments: departmentsReducer,
     schools: schoolsReducer,
     regions: regionsReducer,
+    schoolMonitoring: schoolMonitoringReducer,
+    regionMonitoring: regionMonitoringReducer,
     users: usersReducer,
     teachers: teachersReducer,
     assignments: assignmentsReducer,

@@ -10,6 +10,15 @@ const DepartmentDetail = lazy(() => import('../pages/protected/DepartmentDetail'
 const Regions = lazy(() => import('../pages/protected/Regions'));
 const RegionDetail = lazy(() => import('../pages/protected/RegionDetail'));
 const Schools = lazy(() => import('../pages/protected/Schools'));
+
+// New Administration pages
+const SchoolListPage = lazy(() => import('../pages/protected/SchoolListPage'));
+const SchoolDetailsPage = lazy(() => import('../pages/protected/SchoolDetailsPage'));
+const RegionListPage = lazy(() => import('../pages/protected/RegionListPage'));
+const RegionDetailsPage = lazy(() => import('../pages/protected/RegionDetailsPage'));
+const SchoolMonitoringPage = lazy(() => import('../pages/protected/SchoolMonitoringPage'));
+const RegionMonitoringPage = lazy(() => import('../pages/protected/RegionMonitoringPage'));
+
 const Users = lazy(() => import('../pages/protected/Users'));
 const Courses = lazy(() => import('../pages/protected/Courses'));
 const CourseDetail = lazy(() => import('../pages/protected/CourseDetail'));
@@ -137,6 +146,31 @@ export const appRoutes = [
   {
     path: 'schools',
     element: Schools
+  },
+  // New Administration routes
+  {
+    path: 'administration/schools',
+    element: SchoolListPage
+  },
+  {
+    path: 'administration/schools/:id',
+    element: SchoolDetailsPage
+  },
+  {
+    path: 'administration/regions',
+    element: RegionListPage
+  },
+  {
+    path: 'administration/regions/:id',
+    element: RegionDetailsPage
+  },
+  {
+    path: 'administration/monitoring/schools',
+    element: SchoolMonitoringPage
+  },
+  {
+    path: 'administration/monitoring/regions',
+    element: RegionMonitoringPage
   },
   {
     path: 'users',

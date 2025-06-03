@@ -918,16 +918,36 @@ export const regionalAdminMenuItems: MenuItem[] = [
     description: 'Manage regional content and resources'
   },
   {
-    icon: School,
-    label: 'Schools',
-    path: '/app/schools',
-    description: 'Manage schools in your region'
-  },
-  {
-    icon: Building2,
-    label: 'Regional Management',
-    path: '/app/regions',
-    description: 'Manage regional configurations'
+    icon: Building,
+    label: 'Administration',
+    path: '/app/administration',
+    description: 'Comprehensive school and region management',
+    children: [
+      {
+        icon: School,
+        label: 'Schools Management',
+        path: '/app/administration/schools',
+        description: 'Manage schools in your region'
+      },
+      {
+        icon: MapPin,
+        label: 'Regions Management',
+        path: '/app/administration/regions',
+        description: 'Manage regional administrative areas'
+      },
+      {
+        icon: Activity,
+        label: 'School Monitoring',
+        path: '/app/administration/monitoring/schools',
+        description: 'Monitor school performance and compliance'
+      },
+      {
+        icon: BarChart3,
+        label: 'Regional Monitoring',
+        path: '/app/administration/monitoring/regions',
+        description: 'Monitor regional education metrics'
+      }
+    ]
   },
   {
     icon: BookOpen,
@@ -1067,16 +1087,36 @@ export const directorMenuItems: MenuItem[] = [
     description: 'Oversee all educational regions'
   },
   {
-    icon: MapPin,
-    label: 'Regional Management',
-    path: '/app/regions',
-    description: 'Configure and manage regional offices'
-  },
-  {
-    icon: School,
-    label: 'Schools',
-    path: '/app/schools',
-    description: 'National school oversight'
+    icon: Building,
+    label: 'Administration',
+    path: '/app/administration',
+    description: 'Comprehensive school and region management',
+    children: [
+      {
+        icon: School,
+        label: 'Schools Management',
+        path: '/app/administration/schools',
+        description: 'Manage all schools in the system'
+      },
+      {
+        icon: MapPin,
+        label: 'Regions Management',
+        path: '/app/administration/regions',
+        description: 'Manage regional administrative areas'
+      },
+      {
+        icon: Activity,
+        label: 'School Monitoring',
+        path: '/app/administration/monitoring/schools',
+        description: 'Monitor school performance and compliance'
+      },
+      {
+        icon: BarChart3,
+        label: 'Regional Monitoring',
+        path: '/app/administration/monitoring/regions',
+        description: 'Monitor regional education metrics'
+      }
+    ]
   },
   {
     icon: CheckSquare,
@@ -1148,10 +1188,36 @@ export const ministryStaffMenuItems: MenuItem[] = [
     description: 'Manage ministry content and resources'
   },
   {
-    icon: MapPin,
-    label: 'Regional Oversight',
-    path: '/app/regions',
-    description: 'Monitor regional education offices'
+    icon: Building,
+    label: 'Administration',
+    path: '/app/administration',
+    description: 'Comprehensive school and region management',
+    children: [
+      {
+        icon: School,
+        label: 'Schools Management',
+        path: '/app/administration/schools',
+        description: 'Manage all schools in the system'
+      },
+      {
+        icon: MapPin,
+        label: 'Regions Management',
+        path: '/app/administration/regions',
+        description: 'Manage regional administrative areas'
+      },
+      {
+        icon: Activity,
+        label: 'School Monitoring',
+        path: '/app/administration/monitoring/schools',
+        description: 'Monitor school performance and compliance'
+      },
+      {
+        icon: BarChart3,
+        label: 'Regional Monitoring',
+        path: '/app/administration/monitoring/regions',
+        description: 'Monitor regional education metrics'
+      }
+    ]
   },
   {
     icon: BookOpen,
@@ -1285,10 +1351,36 @@ export const ministryExecutiveMenuItems: MenuItem[] = [
     description: 'Country-wide education metrics'
   },
   {
-    icon: Building2,
-    label: 'Regional Administration',
-    path: '/app/regions',
-    description: 'Oversee all regional education offices'
+    icon: Building,
+    label: 'Administration',
+    path: '/app/administration',
+    description: 'Comprehensive school and region management',
+    children: [
+      {
+        icon: School,
+        label: 'Schools Management',
+        path: '/app/administration/schools',
+        description: 'Manage all schools in the system'
+      },
+      {
+        icon: MapPin,
+        label: 'Regions Management',
+        path: '/app/administration/regions',
+        description: 'Manage regional administrative areas'
+      },
+      {
+        icon: Activity,
+        label: 'School Monitoring',
+        path: '/app/administration/monitoring/schools',
+        description: 'Monitor school performance and compliance'
+      },
+      {
+        icon: BarChart3,
+        label: 'Regional Monitoring',
+        path: '/app/administration/monitoring/regions',
+        description: 'Monitor regional education metrics'
+      }
+    ]
   },
   {
     icon: BookOpen,
@@ -1331,6 +1423,24 @@ export const ministryExecutiveMenuItems: MenuItem[] = [
         label: 'Approval',
         path: '/app/curriculum-approval',
         description: 'Review and approve curricula'
+      },
+      {
+        icon: BarChart,
+        label: 'Analytics',
+        path: '/app/curriculum-analytics',
+        description: 'View curriculum implementation analytics'
+      },
+      {
+        icon: FolderOpen,
+        label: 'Resources',
+        path: '/app/curriculum-resources',
+        description: 'Manage curriculum resources and materials'
+      },
+      {
+        icon: TrendingUp,
+        label: 'Progress Tracking',
+        path: '/app/curriculum-progress',
+        description: 'Track curriculum implementation progress'
       }
     ]
   },
@@ -1454,10 +1564,36 @@ export const superAdminMenuItems: MenuItem[] = [
     description: 'Configure access controls'
   },
   {
-    icon: School,
-    label: 'Institutions',
-    path: '/app/schools',
-    description: 'Manage educational institutions'
+    icon: Building,
+    label: 'Administration',
+    path: '/app/administration',
+    description: 'Comprehensive school and region management',
+    children: [
+      {
+        icon: School,
+        label: 'Schools Management',
+        path: '/app/administration/schools',
+        description: 'Manage all schools in the system'
+      },
+      {
+        icon: MapPin,
+        label: 'Regions Management',
+        path: '/app/administration/regions',
+        description: 'Manage regional administrative areas'
+      },
+      {
+        icon: Activity,
+        label: 'School Monitoring',
+        path: '/app/administration/monitoring/schools',
+        description: 'Monitor school performance and compliance'
+      },
+      {
+        icon: BarChart3,
+        label: 'Regional Monitoring',
+        path: '/app/administration/monitoring/regions',
+        description: 'Monitor regional education metrics'
+      }
+    ]
   },
   {
     icon: BookOpen,
@@ -1532,12 +1668,6 @@ export const superAdminMenuItems: MenuItem[] = [
         description: 'Track curriculum implementation progress'
       }
     ]
-  },
-  {
-    icon: Building2,
-    label: 'Regional Management',
-    path: '/app/regions',
-    description: 'Oversee all regional education offices'
   },
   {
     icon: Globe,

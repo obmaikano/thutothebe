@@ -7,6 +7,8 @@ import departmentsReducer from '../features/departments/departmentsSlice';
 import classesReducer from '../features/classes/classesSlice';
 import schoolsReducer from '../features/schools/schoolsSlice';
 import regionsReducer from '../features/regions/regionsSlice';
+import schoolMonitoringReducer from '../features/schools/schoolMonitoringSlice';
+import regionMonitoringReducer from '../features/regions/regionMonitoringSlice';
 import usersReducer from '../features/users/usersSlice';
 import teachersReducer from '../features/teachers/teachersSlice';
 import assignmentsReducer from '../features/assignments/assignmentsSlice';
@@ -34,6 +36,7 @@ import documentsReducer from '../features/documents/documentsSlice';
 import forumsReducer from '../features/forums/forumsSlice';
 import threadsReducer from '../features/forums/threadsSlice';
 import commentsReducer from '../features/forums/commentsSlice';
+import userStatsReducer from '../features/schools/userStatsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -45,6 +48,8 @@ export const store = configureStore({
     classes: classesReducer,
     schools: schoolsReducer,
     regions: regionsReducer,
+    schoolMonitoring: schoolMonitoringReducer,
+    regionMonitoring: regionMonitoringReducer,
     users: usersReducer,
     teachers: teachersReducer,
     assignments: assignmentsReducer,
@@ -72,6 +77,7 @@ export const store = configureStore({
     forums: forumsReducer,
     threads: threadsReducer,
     comments: commentsReducer,
+    userStats: userStatsReducer,
   },
 });
 
