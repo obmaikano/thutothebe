@@ -3,6 +3,7 @@ package com.ohma.thutothebe.controller;
 import com.ohma.thutothebe.dto.AttendanceRecordDTO;
 import com.ohma.thutothebe.dto.BulkAttendanceDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.AttendanceStatus;
 import com.ohma.thutothebe.entity.AttendanceType;
 import com.ohma.thutothebe.entity.Term;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -32,10 +34,149 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
         this.attendanceRecordService = attendanceRecordService;
     }
 
+    @Override
+    @GetMapping
+    public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getAll() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Get accessible user IDs and filter attendance by student access
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            
+            if (accessibleUserIds.isEmpty()) {
+                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible attendance records", List.of(), null));
+            }
+
+            List<AttendanceRecordDTO> allRecords = attendanceRecordService.getAll();
+            List<AttendanceRecordDTO> accessibleRecords = allRecords.stream()
+                    .filter(record -> accessibleUserIds.contains(record.studentId()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance records retrieved successfully", accessibleRecords, null));
+        } catch (Exception e) {
+            log.error("Error retrieving attendance records: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @Override
+    @GetMapping("/{id}")
+    public ResponseEntity<OhmaApiResponse<AttendanceRecordDTO>> getById(@PathVariable Long id) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
+            AttendanceRecordDTO record = attendanceRecordService.getById(id);
+            
+            // Check if user has access to view this student's attendance
+            if (!hasAccess(AccessScope.USER, record.studentId())) {
+                return createAccessDeniedResponse();
+            }
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance record retrieved successfully", record, null));
+        } catch (Exception e) {
+            log.error("Error retrieving attendance record: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @Override
+    @PostMapping
+    public ResponseEntity<OhmaApiResponse<AttendanceRecordDTO>> create(@RequestBody AttendanceRecordDTO dto) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
+            // Check if user has permission to create attendance for this student
+            if (!hasAccess(AccessScope.USER, dto.studentId())) {
+                return createAccessDeniedResponse();
+            }
+
+            AttendanceRecordDTO created = attendanceRecordService.create(dto);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance record created successfully", created, null));
+        } catch (Exception e) {
+            log.error("Error creating attendance record: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @Override
+    @PutMapping("/{id}")
+    public ResponseEntity<OhmaApiResponse<AttendanceRecordDTO>> update(@PathVariable Long id, @RequestBody AttendanceRecordDTO dto) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
+            // Check if user has access to update this attendance record
+            AttendanceRecordDTO existingRecord = attendanceRecordService.getById(id);
+            if (!hasAccess(AccessScope.USER, existingRecord.studentId())) {
+                return createAccessDeniedResponse();
+            }
+
+            AttendanceRecordDTO updated = attendanceRecordService.update(id, dto);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance record updated successfully", updated, null));
+        } catch (Exception e) {
+            log.error("Error updating attendance record: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @Override
+    @DeleteMapping("/{id}")
+    public ResponseEntity<OhmaApiResponse<Void>> delete(@PathVariable Long id) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to delete this attendance record
+            AttendanceRecordDTO record = attendanceRecordService.getById(id);
+            if (!hasAccess(AccessScope.USER, record.studentId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
+            }
+
+            attendanceRecordService.delete(id);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance record deleted successfully", null, null));
+        } catch (Exception e) {
+            log.error("Error deleting attendance record: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     // Basic CRUD operations
     @PostMapping("/record")
     public ResponseEntity<OhmaApiResponse<AttendanceRecordDTO>> createAttendanceRecord(@Valid @RequestBody AttendanceRecordDTO attendanceRecordDTO) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to create attendance for this student
+            if (!hasAccess(AccessScope.USER, attendanceRecordDTO.studentId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             AttendanceRecordDTO createdRecord = attendanceRecordService.create(attendanceRecordDTO);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new OhmaApiResponse<>("SUCCESS", "Attendance record created successfully", createdRecord, null));
@@ -48,43 +189,23 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/record/{id}")
     public ResponseEntity<OhmaApiResponse<AttendanceRecordDTO>> getAttendanceRecord(@PathVariable Long id) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
             AttendanceRecordDTO record = attendanceRecordService.findById(id);
+            
+            // Check if user has access to view this student's attendance
+            if (!hasAccess(AccessScope.USER, record.studentId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance record retrieved successfully", record, null));
         } catch (Exception e) {
             log.error("Error retrieving attendance record {}: {}", id, e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    @PutMapping("/record/{id}")
-    public ResponseEntity<OhmaApiResponse<AttendanceRecordDTO>> updateAttendanceRecord(@PathVariable Long id, @Valid @RequestBody AttendanceRecordDTO attendanceRecordDTO) {
-        try {
-            AttendanceRecordDTO updatedRecord = attendanceRecordService.update(id, attendanceRecordDTO);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance record updated successfully", updatedRecord, null));
-        } catch (Exception e) {
-            log.error("Error updating attendance record {}: {}", id, e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    @DeleteMapping("/record/{id}")
-    public ResponseEntity<OhmaApiResponse<Void>> deleteAttendanceRecord(@PathVariable Long id) {
-        try {
-            attendanceRecordService.delete(id);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance record deleted successfully", null, null));
-        } catch (Exception e) {
-            log.error("Error deleting attendance record {}: {}", id, e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    @GetMapping("/records")
-    public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getAllAttendanceRecords() {
-        try {
-            List<AttendanceRecordDTO> records = attendanceRecordService.getAll();
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance records retrieved successfully", records, null));
-        } catch (Exception e) {
-            log.error("Error retrieving all attendance records: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -93,6 +214,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/student/{studentId}")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getAttendanceByStudent(@PathVariable Long studentId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view this student's attendance
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudent(studentId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student attendance records retrieved successfully", records, null));
         } catch (Exception e) {
@@ -106,6 +239,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Long studentId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view this student's attendance on this date
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data on this date", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudentAndDate(studentId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student attendance for date retrieved successfully", records, null));
         } catch (Exception e) {
@@ -120,6 +265,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this student in this date range
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this date range", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudentAndDateRange(studentId, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student attendance for date range retrieved successfully", records, null));
         } catch (Exception e) {
@@ -133,6 +290,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Long studentId,
             @PathVariable Integer academicYear) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this student in this academic year
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudentAndAcademicYear(studentId, academicYear);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student attendance for academic year retrieved successfully", records, null));
         } catch (Exception e) {
@@ -147,6 +316,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Integer academicYear,
             @PathVariable Term term) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this student in this academic year and term
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year and term", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudentAndAcademicYearAndTerm(studentId, academicYear, term);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student attendance for academic year and term retrieved successfully", records, null));
         } catch (Exception e) {
@@ -159,6 +340,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/class/{classId}")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getAttendanceByClass(@PathVariable Long classId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this class
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByClass(classId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Class attendance records retrieved successfully", records, null));
         } catch (Exception e) {
@@ -172,6 +365,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Long classId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this class on this date
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data on this date", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByClassAndDate(classId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Class attendance for date retrieved successfully", records, null));
         } catch (Exception e) {
@@ -186,6 +391,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this class in this date range
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data in this date range", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByClassAndDateRange(classId, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Class attendance for date range retrieved successfully", records, null));
         } catch (Exception e) {
@@ -198,6 +415,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/course/{courseId}")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getAttendanceByCourse(@PathVariable Long courseId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this course
+            if (!hasAccess(AccessScope.USER, courseId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to course data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByCourse(courseId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course attendance records retrieved successfully", records, null));
         } catch (Exception e) {
@@ -211,6 +440,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Long courseId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this course on this date
+            if (!hasAccess(AccessScope.USER, courseId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to course data on this date", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByCourseAndDate(courseId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course attendance for date retrieved successfully", records, null));
         } catch (Exception e) {
@@ -223,6 +464,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/subject/{subjectId}")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getAttendanceBySubject(@PathVariable Long subjectId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this subject
+            if (!hasAccess(AccessScope.USER, subjectId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to subject data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceBySubject(subjectId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Subject attendance records retrieved successfully", records, null));
         } catch (Exception e) {
@@ -235,6 +488,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/teacher/{teacherId}")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getAttendanceByTeacher(@PathVariable Long teacherId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this teacher
+            if (!hasAccess(AccessScope.USER, teacherId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to teacher data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByTeacher(teacherId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher attendance records retrieved successfully", records, null));
         } catch (Exception e) {
@@ -248,6 +513,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Long teacherId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this teacher on this date
+            if (!hasAccess(AccessScope.USER, teacherId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to teacher data on this date", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByTeacherAndDate(teacherId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher attendance for date retrieved successfully", records, null));
         } catch (Exception e) {
@@ -260,10 +537,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/status/{status}")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getAttendanceByStatus(@PathVariable AttendanceStatus status) {
         try {
-            List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStatus(status);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance records by status retrieved successfully", records, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Get accessible user IDs and filter attendance by those students
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            
+            if (accessibleUserIds.isEmpty()) {
+                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible attendance records", List.of(), null));
+            }
+
+            List<AttendanceRecordDTO> allRecords = attendanceRecordService.getAttendanceByStatus(status);
+            List<AttendanceRecordDTO> accessibleRecords = allRecords.stream()
+                    .filter(record -> accessibleUserIds.contains(record.studentId()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance records by status retrieved successfully", accessibleRecords, null));
         } catch (Exception e) {
-            log.error("Error retrieving attendance by status {}: {}", status, e.getMessage(), e);
+            log.error("Error retrieving attendance by status: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -274,10 +568,22 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable AttendanceStatus status,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this class with this status on this date
+            if (!hasAccess(AccessScope.CLASS, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data for this status on this date", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByClassAndStatusAndDate(classId, status, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Class attendance by status and date retrieved successfully", records, null));
         } catch (Exception e) {
-            log.error("Error retrieving attendance for class {} with status {} on date {}: {}", classId, status, date, e.getMessage(), e);
+            log.error("Error retrieving attendance by class, status and date: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -286,10 +592,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/type/{type}")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getAttendanceByType(@PathVariable AttendanceType type) {
         try {
-            List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByType(type);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance records by type retrieved successfully", records, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Get accessible user IDs and filter attendance by those students
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            
+            if (accessibleUserIds.isEmpty()) {
+                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible attendance records", List.of(), null));
+            }
+
+            List<AttendanceRecordDTO> allRecords = attendanceRecordService.getAttendanceByType(type);
+            List<AttendanceRecordDTO> accessibleRecords = allRecords.stream()
+                    .filter(record -> accessibleUserIds.contains(record.studentId()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance records by type retrieved successfully", accessibleRecords, null));
         } catch (Exception e) {
-            log.error("Error retrieving attendance by type {}: {}", type, e.getMessage(), e);
+            log.error("Error retrieving attendance by type: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -302,10 +625,22 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable AttendanceType type,
             @PathVariable Integer periodNumber) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance for this class on this date with this type and period
+            if (!hasAccess(AccessScope.CLASS, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data for this type and period", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByClassAndDateAndTypeAndPeriod(classId, date, type, periodNumber);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Period attendance retrieved successfully", records, null));
         } catch (Exception e) {
-            log.error("Error retrieving period attendance for class {} on {} type {} period {}: {}", classId, date, type, periodNumber, e.getMessage(), e);
+            log.error("Error retrieving attendance by class, date, type and period: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -314,6 +649,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @PostMapping("/bulk/mark")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> markBulkAttendance(@Valid @RequestBody BulkAttendanceDTO bulkAttendanceDTO) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to mark bulk attendance for these students
+            if (!hasAccess(AccessScope.USER, bulkAttendanceDTO.studentIds())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.markBulkAttendance(bulkAttendanceDTO);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new OhmaApiResponse<>("SUCCESS", "Bulk attendance marked successfully", records, null));
@@ -326,6 +673,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @PutMapping("/bulk/update")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> updateBulkAttendance(@Valid @RequestBody BulkAttendanceDTO bulkAttendanceDTO) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to update bulk attendance for these students
+            if (!hasAccess(AccessScope.USER, bulkAttendanceDTO.studentIds())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.updateBulkAttendance(bulkAttendanceDTO);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Bulk attendance updated successfully", records, null));
         } catch (Exception e) {
@@ -342,6 +701,19 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam String reason,
             @RequestParam Long modifiedById) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to modify this attendance record
+            AttendanceRecordDTO existingRecord = attendanceRecordService.getById(attendanceId);
+            if (!hasAccess(AccessScope.USER, existingRecord.studentId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             AttendanceRecordDTO record = attendanceRecordService.modifyAttendance(attendanceId, updatedRecord, reason, modifiedById);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance record modified successfully", record, null));
         } catch (Exception e) {
@@ -356,6 +728,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Long studentId,
             @PathVariable Integer academicYear) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance statistics for this student
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             Map<AttendanceStatus, Long> stats = attendanceRecordService.getAttendanceStatsByStudent(studentId, academicYear);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student attendance statistics retrieved successfully", stats, null));
         } catch (Exception e) {
@@ -370,6 +754,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Integer academicYear,
             @PathVariable Term term) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance statistics for this student in this academic year and term
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year and term", null, null));
+            }
+
             Map<AttendanceStatus, Long> stats = attendanceRecordService.getAttendanceStatsByStudentAndTerm(studentId, academicYear, term);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student attendance statistics for term retrieved successfully", stats, null));
         } catch (Exception e) {
@@ -383,6 +779,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Long classId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance statistics for this class on this date
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data on this date", null, null));
+            }
+
             Map<AttendanceStatus, Long> stats = attendanceRecordService.getAttendanceStatsByClassAndDate(classId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Class attendance statistics for date retrieved successfully", stats, null));
         } catch (Exception e) {
@@ -396,6 +804,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Long studentId,
             @PathVariable Integer academicYear) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance percentage for this student
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             Double percentage = attendanceRecordService.getAttendancePercentageByStudent(studentId, academicYear);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student attendance percentage retrieved successfully", percentage, null));
         } catch (Exception e) {
@@ -410,6 +830,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Integer academicYear,
             @PathVariable Term term) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance percentage for this student in this academic year and term
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year and term", null, null));
+            }
+
             Double percentage = attendanceRecordService.getAttendancePercentageByStudentAndTerm(studentId, academicYear, term);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student attendance percentage for term retrieved successfully", percentage, null));
         } catch (Exception e) {
@@ -424,6 +856,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance percentage for this class
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+            }
+
             Double percentage = attendanceRecordService.getAttendancePercentageByClass(classId, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Class attendance percentage retrieved successfully", percentage, null));
         } catch (Exception e) {
@@ -440,6 +884,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam Double threshold) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view low attendance for this class
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+            }
+
             List<Long> studentIds = attendanceRecordService.getStudentsWithLowAttendance(classId, startDate, endDate, threshold);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Students with low attendance retrieved successfully", studentIds, null));
         } catch (Exception e) {
@@ -455,6 +911,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam Double threshold) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view low attendance details for this class
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getStudentsWithLowAttendanceDetails(classId, startDate, endDate, threshold);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Low attendance details retrieved successfully", records, null));
         } catch (Exception e) {
@@ -472,6 +940,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam(required = false) Long courseId,
             @RequestParam(required = false) Integer periodNumber) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to check existing attendance for this student
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             boolean exists = attendanceRecordService.hasExistingAttendance(studentId, date, type, courseId, periodNumber);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance existence check completed", exists, null));
         } catch (Exception e) {
@@ -488,6 +968,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam(required = false) Long courseId,
             @RequestParam(required = false) Integer periodNumber) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to get existing attendance for this student
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             AttendanceRecordDTO record = attendanceRecordService.getExistingAttendance(studentId, date, type, courseId, periodNumber);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Existing attendance record retrieved", record, null));
         } catch (Exception e) {
@@ -500,6 +992,12 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/modified")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getModifiedRecords() {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getModifiedRecords();
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Modified attendance records retrieved successfully", records, null));
         } catch (Exception e) {
@@ -511,6 +1009,12 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
     @GetMapping("/modified/user/{userId}")
     public ResponseEntity<OhmaApiResponse<List<AttendanceRecordDTO>>> getModifiedRecordsByUser(@PathVariable Long userId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.getModifiedRecordsByUser(userId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Modified attendance records by user retrieved successfully", records, null));
         } catch (Exception e) {
@@ -525,6 +1029,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @PathVariable Long classId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view attendance dashboard data for this class
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+            }
+
             Map<String, Object> dashboard = attendanceRecordService.getAttendanceDashboardData(classId, date);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance dashboard data retrieved successfully", dashboard, null));
         } catch (Exception e) {
@@ -539,6 +1055,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view teacher attendance dashboard for this teacher
+            if (!hasAccess(AccessScope.USER, teacherId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to teacher data", null, null));
+            }
+
             Map<String, Object> dashboard = attendanceRecordService.getTeacherAttendanceDashboard(teacherId, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher attendance dashboard retrieved successfully", dashboard, null));
         } catch (Exception e) {
@@ -553,6 +1081,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to view school attendance dashboard for this school
+            if (!hasAccess(AccessScope.USER, schoolId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to school data", null, null));
+            }
+
             Map<String, Object> dashboard = attendanceRecordService.getSchoolAttendanceDashboard(schoolId, startDate, endDate);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "School attendance dashboard retrieved successfully", dashboard, null));
         } catch (Exception e) {
@@ -570,6 +1110,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam(required = false) Integer periodNumber,
             @RequestParam Long markedById) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to mark all students as present for this class
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.quickMarkAllPresent(classId, date, type, periodNumber, markedById);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new OhmaApiResponse<>("SUCCESS", "All students marked as present successfully", records, null));
@@ -588,6 +1140,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam Long markedById,
             @RequestParam AttendanceStatus absentType) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has permission to mark all students as absent for this class
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+            }
+
             List<AttendanceRecordDTO> records = attendanceRecordService.quickMarkAllAbsent(classId, date, type, periodNumber, markedById, absentType);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new OhmaApiResponse<>("SUCCESS", "All students marked as absent successfully", records, null));
@@ -604,6 +1168,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to export attendance for this class
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+            }
+
             byte[] excelData = attendanceRecordService.exportAttendanceToExcel(classId, startDate, endDate);
             return ResponseEntity.ok()
                     .header("Content-Disposition", "attachment; filename=attendance_report.xlsx")
@@ -621,6 +1197,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to export attendance for this class
+            if (!hasAccess(AccessScope.USER, classId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+            }
+
             byte[] pdfData = attendanceRecordService.exportAttendanceToPdf(classId, startDate, endDate);
             return ResponseEntity.ok()
                     .header("Content-Disposition", "attachment; filename=attendance_report.pdf")
@@ -638,6 +1226,18 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             @RequestParam Integer academicYear,
             @RequestParam(required = false) Term term) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to export student attendance report for this student
+            if (!hasAccess(AccessScope.USER, studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            }
+
             byte[] reportData = attendanceRecordService.exportStudentAttendanceReport(studentId, academicYear, term);
             return ResponseEntity.ok()
                     .header("Content-Disposition", "attachment; filename=student_attendance_report.pdf")
