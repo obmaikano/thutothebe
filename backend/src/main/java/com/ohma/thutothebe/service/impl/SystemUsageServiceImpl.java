@@ -163,4 +163,16 @@ public class SystemUsageServiceImpl extends BaseServiceImpl<SystemUsage, SystemU
             .map(course -> course.getName())
             .orElse("N/A");
     }
+
+    @Override
+    protected Long extractSchoolId(SystemUsage entity) {
+        // SystemUsage is a system-level entity not tied to specific schools
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(SystemUsage entity) {
+        // SystemUsage is a system-level entity not tied to specific regions
+        return null;
+    }
 } 

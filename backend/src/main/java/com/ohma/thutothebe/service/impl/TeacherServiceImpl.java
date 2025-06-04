@@ -509,4 +509,15 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
             return List.of();
         }
     }
+
+    @Override
+    protected Long extractSchoolId(Teacher entity) {
+        return entity.getSchool() != null ? entity.getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Teacher entity) {
+        return entity.getSchool() != null && entity.getSchool().getRegion() != null ? 
+            entity.getSchool().getRegion().getId() : null;
+    }
 } 

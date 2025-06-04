@@ -9,6 +9,8 @@ import com.ohma.thutothebe.repository.*;
 import com.ohma.thutothebe.service.DocumentAccessLogService;
 import com.ohma.thutothebe.service.DocumentPermissionService;
 import com.ohma.thutothebe.service.DocumentService;
+import com.ohma.thutothebe.service.impl.RuleBasedAccessControlServiceImpl;
+import com.ohma.thutothebe.entity.AccessScope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +46,7 @@ public class DocumentServiceImpl extends BaseServiceImpl<Document, DocumentDTO, 
     private final SubjectRepository subjectRepository;
     private final DocumentAccessLogService documentAccessLogService;
     private final DocumentPermissionService documentPermissionService;
+    private final RuleBasedAccessControlServiceImpl accessControlService;
 
     @Value("${app.document.upload.dir:uploads/documents}")
     private String uploadDirectory;
@@ -61,7 +64,8 @@ public class DocumentServiceImpl extends BaseServiceImpl<Document, DocumentDTO, 
                               CourseRepository courseRepository,
                               SubjectRepository subjectRepository,
                               DocumentAccessLogService documentAccessLogService,
-                              DocumentPermissionService documentPermissionService) {
+                              DocumentPermissionService documentPermissionService,
+                              RuleBasedAccessControlServiceImpl accessControlService) {
         super(documentRepository);
         this.documentRepository = documentRepository;
         this.documentMapper = documentMapper;
@@ -73,6 +77,7 @@ public class DocumentServiceImpl extends BaseServiceImpl<Document, DocumentDTO, 
         this.subjectRepository = subjectRepository;
         this.documentAccessLogService = documentAccessLogService;
         this.documentPermissionService = documentPermissionService;
+        this.accessControlService = accessControlService;
     }
 
     @Override
@@ -88,6 +93,798 @@ public class DocumentServiceImpl extends BaseServiceImpl<Document, DocumentDTO, 
     @Override
     protected void updateEntity(Document entity, DocumentDTO dto) {
         documentMapper.updateEntityFromDto(entity, dto);
+    }
+
+    @Override
+    protected Long extractSchoolId(Document entity) {
+        return entity.getSchool() != null ? entity.getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Document entity) {
+        return entity.getRegion() != null ? entity.getRegion().getId() : null;
+    }
+    
+    @Override
+    protected void validateBusinessRules(Document entity, boolean isUpdate) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                throw new SecurityException("Authentication required for document operations");
+            }
+            
+            // Validate file name uniqueness within user scope
+            if (entity.getFileName() != null && entity.getUploadedBy() != null) {
+                List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+                if (!accessibleSchoolIds.isEmpty()) {
+                    boolean exists = documentRepository.existsByFileNameAndUploaderIdAndSchoolIdIn(
+                        entity.getFileName(), entity.getUploadedBy().getId(), accessibleSchoolIds);
+                    if (exists && !isUpdate) {
+                        throw new IllegalArgumentException("Document with filename '" + entity.getFileName() + 
+                            "' already exists for uploader in accessible schools");
+                    }
+                }
+            }
+            
+            // Validate title uniqueness within user scope
+            if (entity.getTitle() != null && entity.getUploadedBy() != null) {
+                List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+                if (!accessibleSchoolIds.isEmpty()) {
+                    boolean exists = documentRepository.existsByTitleAndUploaderIdAndSchoolIdIn(
+                        entity.getTitle(), entity.getUploadedBy().getId(), accessibleSchoolIds);
+                    if (exists && !isUpdate) {
+                        throw new IllegalArgumentException("Document with title '" + entity.getTitle() + 
+                            "' already exists for uploader in accessible schools");
+                    }
+                }
+            }
+            
+            // Validate cross-tenant references
+            if (entity.getCourse() != null) {
+                List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+                if (!accessibleSchoolIds.isEmpty()) {
+                    boolean courseExists = documentRepository.existsByCourseIdAndSchoolIdIn(entity.getCourse().getId(), accessibleSchoolIds);
+                    if (!courseExists) {
+                        throw new IllegalArgumentException("Course " + entity.getCourse().getId() + " not accessible in user's school scope");
+                    }
+                }
+            }
+            
+            if (entity.getClassEntity() != null) {
+                List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+                if (!accessibleSchoolIds.isEmpty()) {
+                    boolean classExists = documentRepository.existsByClassIdAndSchoolIdIn(entity.getClassEntity().getId(), accessibleSchoolIds);
+                    if (!classExists) {
+                        throw new IllegalArgumentException("Class " + entity.getClassEntity().getId() + " not accessible in user's school scope");
+                    }
+                }
+            }
+            
+            if (entity.getSubject() != null) {
+                List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+                if (!accessibleSchoolIds.isEmpty()) {
+                    boolean subjectExists = documentRepository.existsBySubjectIdAndSchoolIdIn(entity.getSubject().getId(), accessibleSchoolIds);
+                    if (!subjectExists) {
+                        throw new IllegalArgumentException("Subject " + entity.getSubject().getId() + " not accessible in user's school scope");
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            log.error("Error validating document business rules: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Document validation failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getAll() {
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            log.warn("No current user found, returning empty list");
+            return List.of();
+        }
+        return getDocumentsByAccessibleScopes(currentUserId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findByActiveTrue().stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return documentRepository.findByMultiScopeAccess(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds
+            ).stream()
+                    .map(documentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getActiveDocumentsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findActiveDocumentsBySchoolId(null).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return documentRepository.findByMultiScopeAccessAndActive(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    true
+            ).stream()
+                    .map(documentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting active documents by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsBySchoolIdAndAccessibleScopes(Long schoolId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (!accessibleSchoolIds.contains(schoolId)) {
+                log.warn("User {} does not have access to school {}", currentUserId, schoolId);
+                return List.of();
+            }
+            
+            return documentRepository.findBySchoolIdSecure(schoolId).stream()
+                    .map(documentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by school and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsByRegionIdAndAccessibleScopes(Long regionId, Long currentUserId) {
+        try {
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            if (!accessibleRegionIds.contains(regionId)) {
+                log.warn("User {} does not have access to region {}", currentUserId, regionId);
+                return List.of();
+            }
+            
+            return documentRepository.findByRegionId(regionId).stream()
+                    .map(documentMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by region and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsByTypeAndAccessibleScopes(DocumentType type, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findByDocumentType(type).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findByDocumentTypeAndSchoolIdInAndActive(type, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findByDocumentTypeAndRegionIdInAndActive(type, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by type and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsByCategoryAndAccessibleScopes(DocumentCategory category, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findByDocumentCategory(category).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findByDocumentCategoryAndSchoolIdInAndActive(category, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findByDocumentCategoryAndRegionIdInAndActive(category, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by category and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsByAccessLevelAndAccessibleScopes(DocumentAccessLevel accessLevel, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findByAccessLevel(accessLevel, null).getContent().stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findByAccessLevelAndSchoolIdInAndActive(accessLevel, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findByAccessLevelAndRegionIdInAndActive(accessLevel, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by access level and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsByApprovalStatusAndAccessibleScopes(DocumentApprovalStatus status, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findByApprovalStatus(status, null).getContent().stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findByApprovalStatusAndSchoolIdInAndActive(status, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findByApprovalStatusAndRegionIdInAndActive(status, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by approval status and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsByUploaderIdAndAccessibleScopes(Long uploaderId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findByUploadedById(uploaderId).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findByUploaderIdAndSchoolIdInAndActive(uploaderId, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findByUploaderIdAndRegionIdInAndActive(uploaderId, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by uploader and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsByCourseIdAndAccessibleScopes(Long courseId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findByCourseId(courseId, null).getContent().stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findByCourseIdAndSchoolIdInAndActive(courseId, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findByCourseIdAndRegionIdInAndActive(courseId, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by course and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsByClassIdAndAccessibleScopes(Long classId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findByClassId(classId, null).getContent().stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findByClassIdAndSchoolIdInAndActive(classId, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findByClassIdAndRegionIdInAndActive(classId, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by class and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getDocumentsBySubjectIdAndAccessibleScopes(Long subjectId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findBySubjectId(subjectId, null).getContent().stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findBySubjectIdAndSchoolIdInAndActive(subjectId, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findBySubjectIdAndRegionIdInAndActive(subjectId, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting documents by subject and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> searchDocumentsByTitleAndAccessibleScopes(String title, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.searchDocuments(title, null).getContent().stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findByTitleContainingAndSchoolIdInAndActive(title, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findByTitleContainingAndRegionIdInAndActive(title, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error searching documents by title and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getPublicDocumentsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findPublicDocuments(null).getContent().stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findPublicDocumentsBySchoolIdInAndActive(accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findPublicDocumentsByRegionIdInAndActive(accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting public documents by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentDTO> getExpiredDocumentsByAccessibleScopes(LocalDateTime currentTime, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return documentRepository.findExpiredDocuments(currentTime).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<DocumentDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(documentRepository.findExpiredDocumentsBySchoolIdInAndActive(currentTime, accessibleSchoolIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(documentRepository.findExpiredDocumentsByRegionIdInAndActive(currentTime, accessibleRegionIds, true).stream()
+                        .map(documentMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting expired documents by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean validateDocumentAccess(Long documentId, Long currentUserId) {
+        try {
+            Document document = documentRepository.findById(documentId).orElse(null);
+            if (document == null) {
+                return false;
+            }
+            
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return true;
+            }
+            
+            if (document.getSchool() != null && accessibleSchoolIds.contains(document.getSchool().getId())) {
+                return true;
+            }
+            
+            if (document.getRegion() != null && accessibleRegionIds.contains(document.getRegion().getId())) {
+                return true;
+            }
+            
+            return false;
+        } catch (Exception e) {
+            log.error("Error validating document access for user {}: {}", currentUserId, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean validateDocumentBusinessRules(DocumentDTO documentDTO, Long currentUserId) {
+        try {
+            // Convert DTO to entity for validation
+            Document entity = documentMapper.toEntity(documentDTO);
+            validateBusinessRules(entity, false); // Call the void method
+            return true; // If no exception thrown, validation passed
+        } catch (Exception e) {
+            log.error("Error validating document business rules from DTO: {}", e.getMessage(), e);
+            return false; // Validation failed
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getDocumentCountByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return (long) documentRepository.findByActiveTrue().size();
+            }
+            
+            Long schoolCount = !accessibleSchoolIds.isEmpty() ? 
+                documentRepository.countBySchoolIdInAndActive(accessibleSchoolIds, true) : 0L;
+            Long regionCount = !accessibleRegionIds.isEmpty() ? 
+                documentRepository.countByRegionIdInAndActive(accessibleRegionIds, true) : 0L;
+            
+            return schoolCount + regionCount;
+        } catch (Exception e) {
+            log.error("Error getting document count by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getDocumentCountByTypeAndAccessibleScopes(DocumentType type, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return documentRepository.countByDocumentTypeAndSchoolIdInAndActive(type, accessibleSchoolIds, true);
+        } catch (Exception e) {
+            log.error("Error getting document count by type and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getDocumentCountByApprovalStatusAndAccessibleScopes(DocumentApprovalStatus status, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return documentRepository.countByApprovalStatusAndSchoolIdInAndActive(status, accessibleSchoolIds, true);
+        } catch (Exception e) {
+            log.error("Error getting document count by approval status and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getPublicDocumentCountByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return documentRepository.countPublicDocumentsBySchoolIdInAndActive(accessibleSchoolIds, true);
+        } catch (Exception e) {
+            log.error("Error getting public document count by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getDocumentCountByUploaderIdAndAccessibleScopes(Long uploaderId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return documentRepository.countByUploaderIdAndSchoolIdInAndActive(uploaderId, accessibleSchoolIds, true);
+        } catch (Exception e) {
+            log.error("Error getting document count by uploader and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getTotalFileSizeByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            Long totalSize = documentRepository.sumFileSizeBySchoolIdInAndActive(accessibleSchoolIds, true);
+            return totalSize != null ? totalSize : 0L;
+        } catch (Exception e) {
+            log.error("Error getting total file size by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getTotalDownloadCountByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            Long totalDownloads = documentRepository.sumDownloadCountBySchoolIdInAndActive(accessibleSchoolIds, true);
+            return totalDownloads != null ? totalDownloads : 0L;
+        } catch (Exception e) {
+            log.error("Error getting total download count by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getTotalViewCountByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            Long totalViews = documentRepository.sumViewCountBySchoolIdInAndActive(accessibleSchoolIds, true);
+            return totalViews != null ? totalViews : 0L;
+        } catch (Exception e) {
+            log.error("Error getting total view count by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
     }
 
     @Override

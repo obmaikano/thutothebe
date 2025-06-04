@@ -95,4 +95,16 @@ public class ThreadServiceImpl extends BaseServiceImpl<Thread, ThreadDTO, Long> 
         return threadRepository.findByForumIdOrderByPinnedAndLastActivity(forumId, pageable)
             .map(threadMapper::toDto);
     }
+    
+    @Override
+    protected Long extractSchoolId(Thread entity) {
+        return entity.getForum() != null && entity.getForum().getCourse() != null && entity.getForum().getCourse().getClassEntity() != null && entity.getForum().getCourse().getClassEntity().getSchool() != null 
+            ? entity.getForum().getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Thread entity) {
+        return entity.getForum() != null && entity.getForum().getCourse() != null && entity.getForum().getCourse().getClassEntity() != null && entity.getForum().getCourse().getClassEntity().getSchool() != null && entity.getForum().getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getForum().getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

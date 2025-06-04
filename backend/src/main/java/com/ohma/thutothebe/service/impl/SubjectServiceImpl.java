@@ -116,4 +116,16 @@ public class SubjectServiceImpl extends BaseServiceImpl<Subject, SubjectDTO, Lon
     public boolean existsByCode(String code) {
         return subjectRepository.existsByCode(code);
     }
+
+    @Override
+    protected Long extractSchoolId(Subject entity) {
+        return entity.getDepartment() != null && entity.getDepartment().getSchool() != null 
+            ? entity.getDepartment().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Subject entity) {
+        return entity.getDepartment() != null && entity.getDepartment().getSchool() != null && entity.getDepartment().getSchool().getRegion() != null 
+            ? entity.getDepartment().getSchool().getRegion().getId() : null;
+    }
 } 

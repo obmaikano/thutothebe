@@ -242,4 +242,18 @@ public class RolePermissionServiceImpl extends BaseServiceImpl<RolePermission, R
                 return false;
         }
     }
+
+    @Override
+    protected Long extractSchoolId(RolePermission entity) {
+        // RolePermissions are system-level configurations for roles
+        // They can have scope but are not directly tied to specific schools
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(RolePermission entity) {
+        // RolePermissions are system-level configurations for roles
+        // They can have scope but are not directly tied to specific regions
+        return null;
+    }
 } 

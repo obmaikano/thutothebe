@@ -67,4 +67,16 @@ public class ForumServiceImpl extends BaseServiceImpl<Forum, ForumDTO, Long> imp
         List<Forum> forums = forumRepository.findByCourseIdWithThreads(courseId);
         return forums.isEmpty() ? null : forumMapper.toDto(forums.get(0));
     }
+
+    @Override
+    protected Long extractSchoolId(Forum entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Forum entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null && entity.getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

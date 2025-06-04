@@ -54,4 +54,16 @@ public class QuestionOptionServiceImpl extends BaseServiceImpl<QuestionOption, Q
             .map(this::mapToDto)
             .collect(Collectors.toList());
     }
+
+    @Override
+    protected Long extractSchoolId(QuestionOption entity) {
+        return entity.getQuestion() != null && entity.getQuestion().getQuiz() != null && entity.getQuestion().getQuiz().getCourse() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool() != null 
+            ? entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(QuestionOption entity) {
+        return entity.getQuestion() != null && entity.getQuestion().getQuiz() != null && entity.getQuestion().getQuiz().getCourse() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

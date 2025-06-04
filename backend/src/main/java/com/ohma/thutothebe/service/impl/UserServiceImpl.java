@@ -620,4 +620,15 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    protected Long extractSchoolId(User entity) {
+        return entity.getSchool() != null ? entity.getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(User entity) {
+        return entity.getSchool() != null && entity.getSchool().getRegion() != null 
+            ? entity.getSchool().getRegion().getId() : null;
+    }
 } 

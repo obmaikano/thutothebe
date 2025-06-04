@@ -150,4 +150,16 @@ public class QuizSubmissionServiceImpl extends BaseServiceImpl<QuizSubmission, Q
 
         return mapToDto(quizSubmissionRepository.save(submission));
     }
+
+    @Override
+    protected Long extractSchoolId(QuizSubmission entity) {
+        return entity.getQuiz() != null && entity.getQuiz().getCourse() != null && entity.getQuiz().getCourse().getClassEntity() != null && entity.getQuiz().getCourse().getClassEntity().getSchool() != null 
+            ? entity.getQuiz().getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(QuizSubmission entity) {
+        return entity.getQuiz() != null && entity.getQuiz().getCourse() != null && entity.getQuiz().getCourse().getClassEntity() != null && entity.getQuiz().getCourse().getClassEntity().getSchool() != null && entity.getQuiz().getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getQuiz().getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

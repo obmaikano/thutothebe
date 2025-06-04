@@ -98,17 +98,31 @@ public class RuleBasedAccessControlController {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        return switch (user.getRole()) {
-            case SUPER_ADMIN, MINISTRY_EXECUTIVE -> true; // Global access
-            case MINISTRY_STAFF -> hasMinistryAccess(targetScope);
-            case DIRECTOR, REGIONAL_ADMIN, REGIONAL_OFFICER -> hasRegionalAccess(user, targetScope, targetScopeId);
-            case SCHOOL_ADMIN, SCHOOL_HEAD -> hasSchoolAccess(user, targetScope, targetScopeId);
-            case DEPARTMENT_HEAD -> hasDepartmentAccess(user, targetScope, targetScopeId);
-            case SENIOR_TEACHER, TEACHER -> hasTeacherAccess(user, targetScope, targetScopeId);
-            case STUDENT -> hasStudentAccess(user, targetScope, targetScopeId);
-            case PARENT -> hasParentAccess(user, targetScope, targetScopeId);
-            default -> false;
-        };
+        switch (user.getRole()) {
+            case SUPER_ADMIN:
+            case MINISTRY_EXECUTIVE:
+                return true; // Global access
+            case MINISTRY_STAFF:
+                return hasMinistryAccess(targetScope);
+            case DIRECTOR:
+            case REGIONAL_ADMIN:
+            case REGIONAL_OFFICER:
+                return hasRegionalAccess(user, targetScope, targetScopeId);
+            case SCHOOL_ADMIN:
+            case SCHOOL_HEAD:
+                return hasSchoolAccess(user, targetScope, targetScopeId);
+            case DEPARTMENT_HEAD:
+                return hasDepartmentAccess(user, targetScope, targetScopeId);
+            case SENIOR_TEACHER:
+            case TEACHER:
+                return hasTeacherAccess(user, targetScope, targetScopeId);
+            case STUDENT:
+                return hasStudentAccess(user, targetScope, targetScopeId);
+            case PARENT:
+                return hasParentAccess(user, targetScope, targetScopeId);
+            default:
+                return false;
+        }
     }
 
     private boolean canPerformActionAtScope(Long userId, AccessScope targetScope, Long targetScopeId, String action) {
@@ -121,30 +135,49 @@ public class RuleBasedAccessControlController {
             .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
         // Then check role-based action permissions
-        return switch (action.toUpperCase()) {
-            case "READ" -> hasReadPermission(user, targetScope);
-            case "CREATE" -> hasCreatePermission(user, targetScope);
-            case "UPDATE" -> hasUpdatePermission(user, targetScope, targetScopeId);
-            case "DELETE" -> hasDeletePermission(user, targetScope, targetScopeId);
-            default -> false;
-        };
+        switch (action.toUpperCase()) {
+            case "READ":
+                return hasReadPermission(user, targetScope);
+            case "CREATE":
+                return hasCreatePermission(user, targetScope);
+            case "UPDATE":
+                return hasUpdatePermission(user, targetScope, targetScopeId);
+            case "DELETE":
+                return hasDeletePermission(user, targetScope, targetScopeId);
+            default:
+                return false;
+        }
     }
 
     private List<Long> getAccessibleScopeIds(Long userId, AccessScope scopeType) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        return switch (user.getRole()) {
-            case SUPER_ADMIN, MINISTRY_EXECUTIVE -> getAllScopeIdsForType(scopeType);
-            case MINISTRY_STAFF -> getMinistryAccessibleScopes(scopeType);
-            case DIRECTOR, REGIONAL_ADMIN, REGIONAL_OFFICER -> getRegionalAccessibleScopes(user, scopeType);
-            case SCHOOL_ADMIN, SCHOOL_HEAD -> getSchoolAccessibleScopes(user, scopeType);
-            case DEPARTMENT_HEAD -> getDepartmentAccessibleScopes(user, scopeType);
-            case SENIOR_TEACHER, TEACHER -> getTeacherAccessibleScopes(user, scopeType);
-            case STUDENT -> getStudentAccessibleScopes(user, scopeType);
-            case PARENT -> getParentAccessibleScopes(user, scopeType);
-            default -> List.of();
-        };
+        switch (user.getRole()) {
+            case SUPER_ADMIN:
+            case MINISTRY_EXECUTIVE:
+                return getAllScopeIdsForType(scopeType);
+            case MINISTRY_STAFF:
+                return getMinistryAccessibleScopes(scopeType);
+            case DIRECTOR:
+            case REGIONAL_ADMIN:
+            case REGIONAL_OFFICER:
+                return getRegionalAccessibleScopes(user, scopeType);
+            case SCHOOL_ADMIN:
+            case SCHOOL_HEAD:
+                return getSchoolAccessibleScopes(user, scopeType);
+            case DEPARTMENT_HEAD:
+                return getDepartmentAccessibleScopes(user, scopeType);
+            case SENIOR_TEACHER:
+            case TEACHER:
+                return getTeacherAccessibleScopes(user, scopeType);
+            case STUDENT:
+                return getStudentAccessibleScopes(user, scopeType);
+            case PARENT:
+                return getParentAccessibleScopes(user, scopeType);
+            default:
+                return List.of();
+        }
     }
 
     // Role-specific access logic
@@ -178,13 +211,18 @@ public class RuleBasedAccessControlController {
         
         Long userSchoolId = user.getSchool().getId();
 
-        return switch (targetScope) {
-            case SCHOOL -> targetScopeId.equals(userSchoolId);
-            case DEPARTMENT -> isDepartmentInUserSchool(targetScopeId, userSchoolId);
-            case CLASS -> isClassInUserSchool(targetScopeId, userSchoolId);
-            case USER -> isUserInUserSchool(targetScopeId, userSchoolId);
-            default -> false;
-        };
+        switch (targetScope) {
+            case SCHOOL:
+                return targetScopeId.equals(userSchoolId);
+            case DEPARTMENT:
+                return isDepartmentInUserSchool(targetScopeId, userSchoolId);
+            case CLASS:
+                return isClassInUserSchool(targetScopeId, userSchoolId);
+            case USER:
+                return isUserInUserSchool(targetScopeId, userSchoolId);
+            default:
+                return false;
+        }
     }
 
     private boolean hasDepartmentAccess(User user, AccessScope targetScope, Long targetScopeId) {
@@ -193,25 +231,31 @@ public class RuleBasedAccessControlController {
     }
 
     private boolean hasTeacherAccess(User user, AccessScope targetScope, Long targetScopeId) {
-        return switch (targetScope) {
-            case CLASS -> isTeacherAssignedToClass(user.getId(), targetScopeId);
-            case USER -> {
-                if (targetScopeId.equals(user.getId())) yield true; // Self access
-                yield isStudentInTeacherClass(user.getId(), targetScopeId);
-            }
-            default -> false;
-        };
+        switch (targetScope) {
+            case CLASS:
+                return isTeacherAssignedToClass(user.getId(), targetScopeId);
+            case USER:
+                if (targetScopeId.equals(user.getId())) {
+                    return true; // Self access
+                }
+                return isStudentInTeacherClass(user.getId(), targetScopeId);
+            default:
+                return false;
+        }
     }
 
     private boolean hasStudentAccess(User user, AccessScope targetScope, Long targetScopeId) {
-        return switch (targetScope) {
-            case CLASS -> isStudentInClass(user.getId(), targetScopeId);
-            case USER -> {
-                if (targetScopeId.equals(user.getId())) yield true; // Self access
-                yield areInSameClass(user.getId(), targetScopeId);
-            }
-            default -> false;
-        };
+        switch (targetScope) {
+            case CLASS:
+                return isStudentInClass(user.getId(), targetScopeId);
+            case USER:
+                if (targetScopeId.equals(user.getId())) {
+                    return true; // Self access
+                }
+                return areInSameClass(user.getId(), targetScopeId);
+            default:
+                return false;
+        }
     }
 
     private boolean hasParentAccess(User user, AccessScope targetScope, Long targetScopeId) {
@@ -220,36 +264,54 @@ public class RuleBasedAccessControlController {
             .map(User::getId)
             .collect(Collectors.toList());
 
-        return switch (targetScope) {
-            case USER -> childrenIds.contains(targetScopeId);
-            case CLASS -> childrenIds.stream().anyMatch(childId -> isStudentInClass(childId, targetScopeId));
-            case SCHOOL -> childrenIds.stream().anyMatch(childId -> isUserInUserSchool(childId, targetScopeId));
-            default -> false;
-        };
+        switch (targetScope) {
+            case USER:
+                return childrenIds.contains(targetScopeId);
+            case CLASS:
+                return childrenIds.stream().anyMatch(childId -> isStudentInClass(childId, targetScopeId));
+            case SCHOOL:
+                return childrenIds.stream().anyMatch(childId -> isUserInUserSchool(childId, targetScopeId));
+            default:
+                return false;
+        }
     }
 
     // Action permission checks
 
     private boolean hasReadPermission(User user, AccessScope targetScope) {
         // Most roles can read within their scope
-        return switch (user.getRole()) {
-            case STUDENT -> targetScope == AccessScope.CLASS || targetScope == AccessScope.USER;
-            default -> true;
-        };
+        switch (user.getRole()) {
+            case STUDENT:
+                return targetScope == AccessScope.CLASS || targetScope == AccessScope.USER;
+            default:
+                return true;
+        }
     }
 
     private boolean hasCreatePermission(User user, AccessScope targetScope) {
-        return switch (user.getRole()) {
-            case SUPER_ADMIN, MINISTRY_EXECUTIVE -> true;
-            case MINISTRY_STAFF, DIRECTOR, REGIONAL_ADMIN, REGIONAL_OFFICER -> 
-                targetScope != AccessScope.USER;
-            case SCHOOL_ADMIN, SCHOOL_HEAD, DEPARTMENT_HEAD -> 
-                targetScope == AccessScope.CLASS || targetScope == AccessScope.USER;
-            case SENIOR_TEACHER, TEACHER -> targetScope == AccessScope.USER; // Can create content for students
-            case STUDENT -> false; // Students typically can't create organizational entities
-            case PARENT -> false;
-            default -> false;
-        };
+        switch (user.getRole()) {
+            case SUPER_ADMIN:
+            case MINISTRY_EXECUTIVE:
+                return true;
+            case MINISTRY_STAFF:
+            case DIRECTOR:
+            case REGIONAL_ADMIN:
+            case REGIONAL_OFFICER:
+                return targetScope != AccessScope.USER;
+            case SCHOOL_ADMIN:
+            case SCHOOL_HEAD:
+            case DEPARTMENT_HEAD:
+                return targetScope == AccessScope.CLASS || targetScope == AccessScope.USER;
+            case SENIOR_TEACHER:
+            case TEACHER:
+                return targetScope == AccessScope.USER; // Can create content for students
+            case STUDENT:
+                return false; // Students typically can't create organizational entities
+            case PARENT:
+                return false;
+            default:
+                return false;
+        }
     }
 
     private boolean hasUpdatePermission(User user, AccessScope targetScope, Long targetScopeId) {
@@ -263,18 +325,30 @@ public class RuleBasedAccessControlController {
 
     private boolean hasDeletePermission(User user, AccessScope targetScope, Long targetScopeId) {
         // Delete is more restricted
-        return switch (user.getRole()) {
-            case SUPER_ADMIN, MINISTRY_EXECUTIVE -> true;
-            case MINISTRY_STAFF, DIRECTOR, REGIONAL_ADMIN, REGIONAL_OFFICER -> 
-                targetScope != AccessScope.USER;
-            case SCHOOL_ADMIN, SCHOOL_HEAD -> 
-                targetScope == AccessScope.CLASS || 
-                (targetScope == AccessScope.USER && !targetScopeId.equals(user.getId()));
-            case DEPARTMENT_HEAD -> targetScope == AccessScope.CLASS;
-            case SENIOR_TEACHER, TEACHER -> false; // Teachers typically can't delete
-            case STUDENT, PARENT -> false;
-            default -> false;
-        };
+        switch (user.getRole()) {
+            case SUPER_ADMIN:
+            case MINISTRY_EXECUTIVE:
+                return true;
+            case MINISTRY_STAFF:
+            case DIRECTOR:
+            case REGIONAL_ADMIN:
+            case REGIONAL_OFFICER:
+                return targetScope != AccessScope.USER;
+            case SCHOOL_ADMIN:
+            case SCHOOL_HEAD:
+                return targetScope == AccessScope.CLASS || 
+                       (targetScope == AccessScope.USER && !targetScopeId.equals(user.getId()));
+            case DEPARTMENT_HEAD:
+                return targetScope == AccessScope.CLASS;
+            case SENIOR_TEACHER:
+            case TEACHER:
+                return false; // Teachers typically can't delete
+            case STUDENT:
+            case PARENT:
+                return false;
+            default:
+                return false;
+        }
     }
 
     // Helper methods (simplified versions - in real implementation would use proper repository queries)
@@ -376,41 +450,47 @@ public class RuleBasedAccessControlController {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        return switch (user.getRole()) {
-            case SUPER_ADMIN, MINISTRY_EXECUTIVE -> 
-                new PrimaryScopeInfo(AccessScope.GLOBAL, null, "Global System Access");
-            case MINISTRY_STAFF, DIRECTOR -> 
-                new PrimaryScopeInfo(AccessScope.GLOBAL, null, "Ministry Level Access");
-            case REGIONAL_ADMIN, REGIONAL_OFFICER -> {
+        switch (user.getRole()) {
+            case SUPER_ADMIN:
+            case MINISTRY_EXECUTIVE:
+                return new PrimaryScopeInfo(AccessScope.GLOBAL, null, "Global System Access");
+            case MINISTRY_STAFF:
+            case DIRECTOR:
+                return new PrimaryScopeInfo(AccessScope.GLOBAL, null, "Ministry Level Access");
+            case REGIONAL_ADMIN:
+            case REGIONAL_OFFICER:
                 if (user.getRegion() != null) {
-                    yield new PrimaryScopeInfo(AccessScope.REGION, user.getRegion().getId(), 
+                    return new PrimaryScopeInfo(AccessScope.REGION, user.getRegion().getId(), 
                         user.getRegion().getName());
                 } else if (user.getSchool() != null) {
-                    yield new PrimaryScopeInfo(AccessScope.REGION, user.getSchool().getRegion().getId(),
+                    return new PrimaryScopeInfo(AccessScope.REGION, user.getSchool().getRegion().getId(),
                         user.getSchool().getRegion().getName());
                 } else {
-                    yield new PrimaryScopeInfo(AccessScope.GLOBAL, null, "Unassigned Regional Role");
+                    return new PrimaryScopeInfo(AccessScope.GLOBAL, null, "Unassigned Regional Role");
                 }
-            }
-            case SCHOOL_ADMIN, SCHOOL_HEAD, DEPARTMENT_HEAD, SENIOR_TEACHER, TEACHER -> {
+            case SCHOOL_ADMIN:
+            case SCHOOL_HEAD:
+            case DEPARTMENT_HEAD:
+            case SENIOR_TEACHER:
+            case TEACHER:
                 if (user.getSchool() != null) {
-                    yield new PrimaryScopeInfo(AccessScope.SCHOOL, user.getSchool().getId(),
+                    return new PrimaryScopeInfo(AccessScope.SCHOOL, user.getSchool().getId(),
                         user.getSchool().getName());
                 } else {
-                    yield new PrimaryScopeInfo(AccessScope.GLOBAL, null, "Unassigned School Role");
+                    return new PrimaryScopeInfo(AccessScope.GLOBAL, null, "Unassigned School Role");
                 }
-            }
-            case STUDENT -> {
+            case STUDENT:
                 if (user.getSchool() != null) {
-                    yield new PrimaryScopeInfo(AccessScope.SCHOOL, user.getSchool().getId(),
+                    return new PrimaryScopeInfo(AccessScope.SCHOOL, user.getSchool().getId(),
                         user.getSchool().getName() + " (Student)");
                 } else {
-                    yield new PrimaryScopeInfo(AccessScope.USER, user.getId(), "Individual Student");
+                    return new PrimaryScopeInfo(AccessScope.USER, user.getId(), "Individual Student");
                 }
-            }
-            case PARENT -> new PrimaryScopeInfo(AccessScope.PARENT, user.getId(), "Parent Access");
-            default -> new PrimaryScopeInfo(AccessScope.USER, user.getId(), "Individual User");
-        };
+            case PARENT:
+                return new PrimaryScopeInfo(AccessScope.PARENT, user.getId(), "Parent Access");
+            default:
+                return new PrimaryScopeInfo(AccessScope.USER, user.getId(), "Individual User");
+        }
     }
 
     // Response DTOs

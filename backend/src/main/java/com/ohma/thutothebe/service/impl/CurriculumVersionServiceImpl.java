@@ -1004,4 +1004,23 @@ public class CurriculumVersionServiceImpl extends BaseServiceImpl<CurriculumVers
             this.similarityScore = similarityScore;
         }
     }
+
+    @Override
+    protected Long extractSchoolId(CurriculumVersion entity) {
+        // Extract school from curriculum's school
+        return entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null 
+            ? entity.getCurriculum().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(CurriculumVersion entity) {
+        // Extract region from curriculum's region or school's region
+        if (entity.getCurriculum() != null && entity.getCurriculum().getRegion() != null) {
+            return entity.getCurriculum().getRegion().getId();
+        }
+        if (entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null && entity.getCurriculum().getSchool().getRegion() != null) {
+            return entity.getCurriculum().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

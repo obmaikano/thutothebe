@@ -231,11 +231,11 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
     List<Grade> findByCourseIdAndSchoolIdAndActive(@Param("courseId") Long courseId, @Param("schoolId") Long schoolId);
     
     // Class-level filtering with multi-tenancy (through course → class relationship)
-    @Query("SELECT g FROM Grade g WHERE g.course.studentClass.id = :classId AND g.student.school.id IN :schoolIds AND g.active = true")
+    @Query("SELECT g FROM Grade g WHERE g.course.classEntity.id = :classId AND g.student.school.id IN :schoolIds AND g.active = true")
     @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
     List<Grade> findByClassIdAndSchoolIdInAndActive(@Param("classId") Long classId, @Param("schoolIds") List<Long> schoolIds);
     
-    @Query("SELECT g FROM Grade g WHERE g.course.studentClass.id = :classId AND g.student.school.id = :schoolId AND g.active = true")
+    @Query("SELECT g FROM Grade g WHERE g.course.classEntity.id = :classId AND g.student.school.id = :schoolId AND g.active = true")
     @EntityGraph(attributePaths = {"student", "course", "gradeCategory", "gradedBy", "moderatedBy"})
     List<Grade> findByClassIdAndSchoolIdAndActive(@Param("classId") Long classId, @Param("schoolId") Long schoolId);
     

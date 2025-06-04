@@ -110,4 +110,16 @@ public class CommentServiceImpl extends BaseServiceImpl<Comment, CommentDTO, Lon
             .map(commentMapper::toDto)
             .collect(Collectors.toList());
     }
+    
+    @Override
+    protected Long extractSchoolId(Comment entity) {
+        return entity.getThread() != null && entity.getThread().getForum() != null && entity.getThread().getForum().getCourse() != null && entity.getThread().getForum().getCourse().getClassEntity() != null && entity.getThread().getForum().getCourse().getClassEntity().getSchool() != null 
+            ? entity.getThread().getForum().getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Comment entity) {
+        return entity.getThread() != null && entity.getThread().getForum() != null && entity.getThread().getForum().getCourse() != null && entity.getThread().getForum().getCourse().getClassEntity() != null && entity.getThread().getForum().getCourse().getClassEntity().getSchool() != null && entity.getThread().getForum().getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getThread().getForum().getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

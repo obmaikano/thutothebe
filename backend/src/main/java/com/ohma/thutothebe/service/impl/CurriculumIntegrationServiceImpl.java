@@ -980,4 +980,23 @@ public class CurriculumIntegrationServiceImpl extends BaseServiceImpl<Curriculum
     public List<Map<String, Object>> getIntegrationAlerts(@NotNull @Positive Long curriculumId) {
         return Collections.emptyList();
     }
+
+    @Override
+    protected Long extractSchoolId(CurriculumIntegration entity) {
+        // Extract school from curriculum's school
+        return entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null 
+            ? entity.getCurriculum().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(CurriculumIntegration entity) {
+        // Extract region from curriculum's region or school's region
+        if (entity.getCurriculum() != null && entity.getCurriculum().getRegion() != null) {
+            return entity.getCurriculum().getRegion().getId();
+        }
+        if (entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null && entity.getCurriculum().getSchool().getRegion() != null) {
+            return entity.getCurriculum().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

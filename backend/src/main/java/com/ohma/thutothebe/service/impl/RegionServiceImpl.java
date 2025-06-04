@@ -126,4 +126,16 @@ public class RegionServiceImpl extends BaseServiceImpl<Region, RegionDTO, Long> 
     public boolean existsByCode(String code) {
         return regionRepository.existsByCode(code);
     }
+
+    @Override
+    protected Long extractSchoolId(Region entity) {
+        // Regions are at the top of the hierarchy and don't belong to schools
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Region entity) {
+        // Regions are themselves the region entity
+        return entity.getId();
+    }
 } 

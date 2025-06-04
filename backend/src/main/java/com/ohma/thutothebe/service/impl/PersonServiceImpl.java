@@ -90,4 +90,18 @@ public class PersonServiceImpl extends BaseServiceImpl<Person, PersonDTO, Long> 
     public boolean existsByBirthCertificateNumber(String birthCertificateNumber) {
         return personRepository.existsByBirthCertificateNumber(birthCertificateNumber);
     }
+
+    @Override
+    protected Long extractSchoolId(Person entity) {
+        // Person entities are not directly tied to schools, but through User relationships
+        // This would need to be determined through the User entity that references this Person
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Person entity) {
+        // Person entities are not directly tied to regions, but through User relationships
+        // This would need to be determined through the User entity that references this Person
+        return null;
+    }
 } 

@@ -1054,4 +1054,43 @@ public class DocumentPermissionServiceImpl extends BaseServiceImpl<DocumentPermi
                 .map(documentPermissionMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    protected Long extractSchoolId(DocumentPermission entity) {
+        // Extract school from document, specific scoped school, or user's school
+        if (entity.getSchool() != null) {
+            return entity.getSchool().getId();
+        }
+        if (entity.getDocument() != null && entity.getDocument().getSchool() != null) {
+            return entity.getDocument().getSchool().getId();
+        }
+        if (entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null) {
+            return entity.getClassEntity().getSchool().getId();
+        }
+        if (entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null) {
+            return entity.getCourse().getClassEntity().getSchool().getId();
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(DocumentPermission entity) {
+        // Extract region from document's school, scoped region, or derived relationships
+        if (entity.getRegion() != null) {
+            return entity.getRegion().getId();
+        }
+        if (entity.getSchool() != null && entity.getSchool().getRegion() != null) {
+            return entity.getSchool().getRegion().getId();
+        }
+        if (entity.getDocument() != null && entity.getDocument().getSchool() != null && entity.getDocument().getSchool().getRegion() != null) {
+            return entity.getDocument().getSchool().getRegion().getId();
+        }
+        if (entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null && entity.getClassEntity().getSchool().getRegion() != null) {
+            return entity.getClassEntity().getSchool().getRegion().getId();
+        }
+        if (entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null && entity.getCourse().getClassEntity().getSchool().getRegion() != null) {
+            return entity.getCourse().getClassEntity().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

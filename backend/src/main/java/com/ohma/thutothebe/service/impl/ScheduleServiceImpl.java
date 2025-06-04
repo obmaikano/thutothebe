@@ -463,4 +463,15 @@ public class ScheduleServiceImpl extends BaseServiceImpl<Schedule, ScheduleDTO, 
             return "Serialization failed: " + e.getMessage();
         }
     }
+
+    @Override
+    protected Long extractSchoolId(Schedule entity) {
+        return entity.getSchool() != null ? entity.getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Schedule entity) {
+        return entity.getSchool() != null && entity.getSchool().getRegion() != null 
+            ? entity.getSchool().getRegion().getId() : null;
+    }
 } 

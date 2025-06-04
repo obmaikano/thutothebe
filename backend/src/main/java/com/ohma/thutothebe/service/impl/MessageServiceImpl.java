@@ -422,4 +422,18 @@ public class MessageServiceImpl extends BaseServiceImpl<Message, MessageDTO, Lon
             return days + " days ago";
         }
     }
+
+    @Override
+    protected Long extractSchoolId(Message entity) {
+        // Messages can be between users from different schools, so we extract from sender's school
+        return entity.getSender() != null && entity.getSender().getSchool() != null 
+            ? entity.getSender().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Message entity) {
+        // Messages can be between users from different regions, so we extract from sender's region
+        return entity.getSender() != null && entity.getSender().getSchool() != null && entity.getSender().getSchool().getRegion() != null 
+            ? entity.getSender().getSchool().getRegion().getId() : null;
+    }
 } 

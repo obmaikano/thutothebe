@@ -122,4 +122,16 @@ public class QuestionResponseServiceImpl extends BaseServiceImpl<QuestionRespons
 
         return mapToDto(questionResponseRepository.save(response));
     }
+
+    @Override
+    protected Long extractSchoolId(QuestionResponse entity) {
+        return entity.getQuestion() != null && entity.getQuestion().getQuiz() != null && entity.getQuestion().getQuiz().getCourse() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool() != null 
+            ? entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(QuestionResponse entity) {
+        return entity.getQuestion() != null && entity.getQuestion().getQuiz() != null && entity.getQuestion().getQuiz().getCourse() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool() != null && entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getQuestion().getQuiz().getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

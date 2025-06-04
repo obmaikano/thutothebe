@@ -460,4 +460,16 @@ public class QuizServiceImpl extends BaseServiceImpl<Quiz, QuizDTO, Long> implem
             return List.of();
         }
     }
+
+    @Override
+    protected Long extractSchoolId(Quiz entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Quiz entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null && entity.getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

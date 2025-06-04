@@ -180,4 +180,31 @@ public class AnnouncementCommentServiceImpl extends BaseServiceImpl<Announcement
                 .map(mapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    protected Long extractSchoolId(AnnouncementComment entity) {
+        // Extract school from announcement's target school or author's school
+        if (entity.getAnnouncement() != null && entity.getAnnouncement().getTargetSchool() != null) {
+            return entity.getAnnouncement().getTargetSchool().getId();
+        }
+        if (entity.getAuthor() != null && entity.getAuthor().getSchool() != null) {
+            return entity.getAuthor().getSchool().getId();
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(AnnouncementComment entity) {
+        // Extract region from announcement's target region or author's school region
+        if (entity.getAnnouncement() != null && entity.getAnnouncement().getTargetRegion() != null) {
+            return entity.getAnnouncement().getTargetRegion().getId();
+        }
+        if (entity.getAnnouncement() != null && entity.getAnnouncement().getTargetSchool() != null && entity.getAnnouncement().getTargetSchool().getRegion() != null) {
+            return entity.getAnnouncement().getTargetSchool().getRegion().getId();
+        }
+        if (entity.getAuthor() != null && entity.getAuthor().getSchool() != null && entity.getAuthor().getSchool().getRegion() != null) {
+            return entity.getAuthor().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

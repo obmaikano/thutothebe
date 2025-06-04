@@ -413,8 +413,10 @@ public class SubmissionServiceImpl extends BaseServiceImpl<Submission, Submissio
     @Override
     @Transactional
     public SubmissionDTO deleteSubmissionFile(Long submissionId, String fileName) {
+        log.info("Deleting file {} from submission: {}", fileName, submissionId);
+        
         Submission submission = submissionRepository.findById(submissionId)
-            .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
         
         // Simple file deletion - in real implementation, you'd delete from file system or cloud storage
         submission.setFilePaths(null);
@@ -423,5 +425,17 @@ public class SubmissionServiceImpl extends BaseServiceImpl<Submission, Submissio
         
         Submission updatedSubmission = submissionRepository.save(submission);
         return submissionMapper.toDto(updatedSubmission);
+    }
+
+    @Override
+    protected Long extractSchoolId(Submission entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Submission entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null && entity.getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getRegion().getId() : null;
     }
 } 

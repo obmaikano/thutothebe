@@ -345,4 +345,16 @@ public class UserActivityLogServiceImpl extends BaseServiceImpl<UserActivityLog,
             log.error("Error logging error for user ID: {}", userId, e);
         }
     }
+
+    @Override
+    protected Long extractSchoolId(UserActivityLog entity) {
+        return entity.getUser() != null && entity.getUser().getSchool() != null 
+            ? entity.getUser().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(UserActivityLog entity) {
+        return entity.getUser() != null && entity.getUser().getSchool() != null && entity.getUser().getSchool().getRegion() != null 
+            ? entity.getUser().getSchool().getRegion().getId() : null;
+    }
 } 

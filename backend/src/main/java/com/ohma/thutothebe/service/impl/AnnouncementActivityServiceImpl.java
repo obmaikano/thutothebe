@@ -138,4 +138,31 @@ public class AnnouncementActivityServiceImpl extends BaseServiceImpl<Announcemen
     public void recordLikeActivity(Long announcementId, Long userId, String details) {
         createActivity(announcementId, userId, AnnouncementActivityType.LIKED, details);
     }
+
+    @Override
+    protected Long extractSchoolId(AnnouncementActivity entity) {
+        // Extract school from announcement's target school or user's school
+        if (entity.getAnnouncement() != null && entity.getAnnouncement().getTargetSchool() != null) {
+            return entity.getAnnouncement().getTargetSchool().getId();
+        }
+        if (entity.getUser() != null && entity.getUser().getSchool() != null) {
+            return entity.getUser().getSchool().getId();
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(AnnouncementActivity entity) {
+        // Extract region from announcement's target region or user's school region
+        if (entity.getAnnouncement() != null && entity.getAnnouncement().getTargetRegion() != null) {
+            return entity.getAnnouncement().getTargetRegion().getId();
+        }
+        if (entity.getAnnouncement() != null && entity.getAnnouncement().getTargetSchool() != null && entity.getAnnouncement().getTargetSchool().getRegion() != null) {
+            return entity.getAnnouncement().getTargetSchool().getRegion().getId();
+        }
+        if (entity.getUser() != null && entity.getUser().getSchool() != null && entity.getUser().getSchool().getRegion() != null) {
+            return entity.getUser().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

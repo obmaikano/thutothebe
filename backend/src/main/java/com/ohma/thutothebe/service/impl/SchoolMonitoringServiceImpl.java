@@ -303,4 +303,15 @@ public class SchoolMonitoringServiceImpl extends BaseServiceImpl<SchoolMonitorin
             throw new RuntimeException("Failed to update monitoring data", e);
         }
     }
+
+    @Override
+    protected Long extractSchoolId(SchoolMonitoring entity) {
+        return entity.getSchool() != null ? entity.getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(SchoolMonitoring entity) {
+        return entity.getSchool() != null && entity.getSchool().getRegion() != null 
+            ? entity.getSchool().getRegion().getId() : null;
+    }
 } 

@@ -159,4 +159,23 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment, Assessmen
     protected void updateEntity(Assessment entity, AssessmentDto dto) {
         assessmentMapper.updateEntityFromDto(dto, entity);
     }
+
+    @Override
+    protected Long extractSchoolId(Assessment entity) {
+        return entity.getSubmission() != null && entity.getSubmission().getAssignment() != null && 
+               entity.getSubmission().getAssignment().getCourse() != null && 
+               entity.getSubmission().getAssignment().getCourse().getClassEntity() != null && 
+               entity.getSubmission().getAssignment().getCourse().getClassEntity().getSchool() != null 
+            ? entity.getSubmission().getAssignment().getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Assessment entity) {
+        return entity.getSubmission() != null && entity.getSubmission().getAssignment() != null && 
+               entity.getSubmission().getAssignment().getCourse() != null && 
+               entity.getSubmission().getAssignment().getCourse().getClassEntity() != null && 
+               entity.getSubmission().getAssignment().getCourse().getClassEntity().getSchool() != null && 
+               entity.getSubmission().getAssignment().getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getSubmission().getAssignment().getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

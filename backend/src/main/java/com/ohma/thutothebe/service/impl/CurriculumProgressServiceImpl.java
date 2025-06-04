@@ -299,4 +299,37 @@ public class CurriculumProgressServiceImpl extends BaseServiceImpl<CurriculumPro
         CurriculumProgress savedProgress = curriculumProgressRepository.save(progress);
         return curriculumProgressMapper.toDto(savedProgress);
     }
+
+    @Override
+    protected Long extractSchoolId(CurriculumProgress entity) {
+        // Extract school from direct school relationship, class entity, or curriculum
+        if (entity.getSchool() != null) {
+            return entity.getSchool().getId();
+        }
+        if (entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null) {
+            return entity.getClassEntity().getSchool().getId();
+        }
+        if (entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null) {
+            return entity.getCurriculum().getSchool().getId();
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(CurriculumProgress entity) {
+        // Extract region from school's region, class's school region, or curriculum's region
+        if (entity.getSchool() != null && entity.getSchool().getRegion() != null) {
+            return entity.getSchool().getRegion().getId();
+        }
+        if (entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null && entity.getClassEntity().getSchool().getRegion() != null) {
+            return entity.getClassEntity().getSchool().getRegion().getId();
+        }
+        if (entity.getCurriculum() != null && entity.getCurriculum().getRegion() != null) {
+            return entity.getCurriculum().getRegion().getId();
+        }
+        if (entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null && entity.getCurriculum().getSchool().getRegion() != null) {
+            return entity.getCurriculum().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

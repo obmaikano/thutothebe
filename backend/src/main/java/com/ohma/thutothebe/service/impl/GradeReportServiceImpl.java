@@ -399,4 +399,34 @@ public class GradeReportServiceImpl extends BaseServiceImpl<GradeReport, GradeRe
         if (score >= 50) return "D";
         return "F";
     }
+
+    @Override
+    protected Long extractSchoolId(GradeReport entity) {
+        // Reports can be for students, courses, or classes - try to extract school from any relationship
+        if (entity.getStudent() != null && entity.getStudent().getSchool() != null) {
+            return entity.getStudent().getSchool().getId();
+        }
+        if (entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null) {
+            return entity.getCourse().getClassEntity().getSchool().getId();
+        }
+        if (entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null) {
+            return entity.getClassEntity().getSchool().getId();
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(GradeReport entity) {
+        // Reports can be for students, courses, or classes - try to extract region from any relationship
+        if (entity.getStudent() != null && entity.getStudent().getSchool() != null && entity.getStudent().getSchool().getRegion() != null) {
+            return entity.getStudent().getSchool().getRegion().getId();
+        }
+        if (entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null && entity.getCourse().getClassEntity().getSchool().getRegion() != null) {
+            return entity.getCourse().getClassEntity().getSchool().getRegion().getId();
+        }
+        if (entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null && entity.getClassEntity().getSchool().getRegion() != null) {
+            return entity.getClassEntity().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

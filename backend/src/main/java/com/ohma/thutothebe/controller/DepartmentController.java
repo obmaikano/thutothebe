@@ -14,12 +14,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/departments")
-@Tag(name = "Department Management", description = "APIs for managing departments with role-based access control")
+@Tag(name = "Department Management", description = "APIs for managing departments with multi-tenant security")
 public class DepartmentController extends BaseController<DepartmentDTO, Long> {
 
     private final DepartmentService departmentService;
@@ -29,6 +28,8 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
         super(departmentService);
         this.departmentService = departmentService;
     }
+
+    // ==================== SECURE MULTI-TENANT OVERRIDES ====================
 
     @Override
     @GetMapping
@@ -40,22 +41,12 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get accessible department IDs and filter departments
-            List<Long> accessibleDeptIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.DEPARTMENT);
-            
-            if (accessibleDeptIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible departments", List.of(), null));
-            }
-
-            List<DepartmentDTO> allDepartments = departmentService.getAll();
-            List<DepartmentDTO> accessibleDepartments = allDepartments.stream()
-                    .filter(dept -> accessibleDeptIds.contains(dept.id()))
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments retrieved successfully", accessibleDepartments, null));
+            // Use secure database-level filtering instead of memory filtering
+            List<DepartmentDTO> departments = departmentService.getDepartmentsByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments retrieved successfully", departments, null));
         } catch (Exception e) {
             log.error("Error retrieving departments: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
@@ -69,8 +60,8 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                 return createUnauthorizedResponse();
             }
 
-            // Check if user has access to view this department
-            if (!hasAccess(AccessScope.DEPARTMENT, id)) {
+            // Validate access before retrieving
+            if (!departmentService.validateDepartmentAccess(id, currentUserId)) {
                 return createAccessDeniedResponse();
             }
 
@@ -78,55 +69,55 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department retrieved successfully", department, null));
         } catch (Exception e) {
             log.error("Error retrieving department: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @Override
     @PostMapping
-    @Operation(summary = "Create a new department")
-    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> create(@RequestBody DepartmentDTO dto) {
+    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> create(@Valid @RequestBody DepartmentDTO dto) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return createUnauthorizedResponse();
             }
 
-            // Check if user has permission to create departments in this school (requires school admin or higher)
-            if (!hasAccess(AccessScope.SCHOOL, dto.schoolId())) {
-                return createAccessDeniedResponse();
-            }
-
+            // Business rule validation is handled in service layer
             DepartmentDTO created = departmentService.create(dto);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department created successfully", created, null));
+        } catch (SecurityException e) {
+            log.warn("Access denied creating department: {}", e.getMessage());
+            return createAccessDeniedResponse();
         } catch (Exception e) {
             log.error("Error creating department: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @Override
     @PutMapping("/{id}")
-    @Operation(summary = "Update a department")
-    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> update(@PathVariable Long id, @RequestBody DepartmentDTO dto) {
+    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> update(@PathVariable Long id, @Valid @RequestBody DepartmentDTO dto) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return createUnauthorizedResponse();
             }
 
-            // Check if user has access to update this department
-            if (!hasAccess(AccessScope.DEPARTMENT, id)) {
+            // Validate access before updating
+            if (!departmentService.validateDepartmentAccess(id, currentUserId)) {
                 return createAccessDeniedResponse();
             }
 
             DepartmentDTO updated = departmentService.update(id, dto);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department updated successfully", updated, null));
+        } catch (SecurityException e) {
+            log.warn("Access denied updating department: {}", e.getMessage());
+            return createAccessDeniedResponse();
         } catch (Exception e) {
             log.error("Error updating department: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
@@ -141,9 +132,8 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to delete this department (requires school admin or higher)
-            DepartmentDTO department = departmentService.getById(id);
-            if (!hasAccess(AccessScope.SCHOOL, department.schoolId())) {
+            // Validate access before deleting
+            if (!departmentService.validateDepartmentAccess(id, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
@@ -152,63 +142,15 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department deleted successfully", null, null));
         } catch (Exception e) {
             log.error("Error deleting department: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @GetMapping("/school/{schoolId}")
-    @Operation(summary = "Get departments by school ID")
-    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getDepartmentsBySchoolId(@PathVariable Long schoolId) {
-        try {
-            Long currentUserId = getCurrentUserId();
-            if (currentUserId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
-            }
-
-            // Check if user has access to view this school's departments
-            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
-            }
-
-            List<DepartmentDTO> departments = departmentService.getDepartmentsBySchoolId(schoolId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments retrieved successfully", departments, null));
-        } catch (Exception e) {
-            log.error("Error retrieving departments for school {}: {}", schoolId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @GetMapping("/school/{schoolId}/active")
-    @Operation(summary = "Get active departments by school ID")
-    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getActiveDepartmentsBySchoolId(@PathVariable Long schoolId) {
-        try {
-            Long currentUserId = getCurrentUserId();
-            if (currentUserId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
-            }
-
-            // Check if user has access to view this school's departments
-            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
-            }
-
-            List<DepartmentDTO> departments = departmentService.getActiveDepartmentsBySchoolId(schoolId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active departments retrieved successfully", departments, null));
-        } catch (Exception e) {
-            log.error("Error retrieving active departments for school {}: {}", schoolId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
+    // ==================== SECURE DEPARTMENT-SPECIFIC ENDPOINTS ====================
 
     @GetMapping("/active")
-    @Operation(summary = "Get all active departments")
+    @Operation(summary = "Get all active departments with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getActiveDepartments() {
         try {
             Long currentUserId = getCurrentUserId();
@@ -217,19 +159,19 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            List<DepartmentDTO> departments = departmentService.getActiveDepartments();
+            // Use secure database-level filtering
+            List<DepartmentDTO> departments = departmentService.getActiveDepartmentsByAccessibleScopes(currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active departments retrieved successfully", departments, null));
         } catch (Exception e) {
             log.error("Error retrieving active departments: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @GetMapping("/search")
-    @Operation(summary = "Get department by name and school ID")
-    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> getDepartmentByNameAndSchoolId(
-            @RequestParam String name, @RequestParam Long schoolId) {
+    @GetMapping("/school/{schoolId}")
+    @Operation(summary = "Get departments by school ID with access validation")
+    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getDepartmentsBySchoolId(@PathVariable Long schoolId) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -237,24 +179,18 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this school's departments
-            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
-            }
-
-            DepartmentDTO department = departmentService.getDepartmentByNameAndSchoolId(name, schoolId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department retrieved successfully", department, null));
+            List<DepartmentDTO> departments = departmentService.getDepartmentsBySchoolIdAndAccessibleScopes(schoolId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments retrieved successfully", departments, null));
         } catch (Exception e) {
-            log.error("Error retrieving department by name {} and school {}: {}", name, schoolId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving departments by school: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @GetMapping("/head/{departmentHeadId}")
-    @Operation(summary = "Get department by department head ID")
-    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> getDepartmentByDepartmentHeadId(@PathVariable Long departmentHeadId) {
+    @GetMapping("/region/{regionId}")
+    @Operation(summary = "Get departments by region ID with access validation")
+    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getDepartmentsByRegionId(@PathVariable Long regionId) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -262,23 +198,17 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this user (department head)
-            if (!hasAccess(AccessScope.USER, departmentHeadId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
-            }
-
-            DepartmentDTO department = departmentService.getDepartmentByDepartmentHeadId(departmentHeadId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department retrieved successfully", department, null));
+            List<DepartmentDTO> departments = departmentService.getDepartmentsByRegionIdAndAccessibleScopes(regionId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments retrieved successfully", departments, null));
         } catch (Exception e) {
-            log.error("Error retrieving department for head {}: {}", departmentHeadId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving departments by region: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @GetMapping("/teacher/{teacherId}")
-    @Operation(summary = "Get departments by teacher ID")
+    @Operation(summary = "Get departments by teacher ID with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getDepartmentsByTeacherId(@PathVariable Long teacherId) {
         try {
             Long currentUserId = getCurrentUserId();
@@ -287,23 +217,17 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this teacher's information
-            if (!hasAccess(AccessScope.USER, teacherId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
-            }
-
-            List<DepartmentDTO> departments = departmentService.getDepartmentsByTeacherId(teacherId);
+            List<DepartmentDTO> departments = departmentService.getDepartmentsByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments retrieved successfully", departments, null));
         } catch (Exception e) {
-            log.error("Error retrieving departments for teacher {}: {}", teacherId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving departments by teacher: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @GetMapping("/subject/{subjectId}")
-    @Operation(summary = "Get department by subject ID")
+    @Operation(summary = "Get department by subject ID with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<DepartmentDTO>> getDepartmentBySubjectId(@PathVariable Long subjectId) {
         try {
             Long currentUserId = getCurrentUserId();
@@ -312,27 +236,18 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get the department first, then check access to that department
-            DepartmentDTO department = departmentService.getDepartmentBySubjectId(subjectId);
-            
-            // Check if user has access to view this department
-            if (!hasAccess(AccessScope.DEPARTMENT, department.id())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
-            }
-
+            DepartmentDTO department = departmentService.getDepartmentBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department retrieved successfully", department, null));
         } catch (Exception e) {
-            log.error("Error retrieving department for subject {}: {}", subjectId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving department by subject: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @PostMapping("/{departmentId}/head/{userId}")
-    @Operation(summary = "Assign department head")
-    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> assignDepartmentHead(
-            @PathVariable Long departmentId, @PathVariable Long userId) {
+    @GetMapping("/head/{departmentHeadId}")
+    @Operation(summary = "Get department by department head ID with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> getDepartmentByDepartmentHeadId(@PathVariable Long departmentHeadId) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -340,17 +255,147 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to assign department head
-            if (!hasAccess(AccessScope.DEPARTMENT, departmentId)) {
+            DepartmentDTO department = departmentService.getDepartmentByDepartmentHeadIdAndAccessibleScopes(departmentHeadId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department retrieved successfully", department, null));
+        } catch (Exception e) {
+            log.error("Error retrieving department by head: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Search departments by name with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> searchDepartmentsByName(@RequestParam String name) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<DepartmentDTO> departments = departmentService.searchDepartmentsByNameAndAccessibleScopes(name, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments retrieved successfully", departments, null));
+        } catch (Exception e) {
+            log.error("Error searching departments by name: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/without-head")
+    @Operation(summary = "Get departments without head with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getDepartmentsWithoutHead() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<DepartmentDTO> departments = departmentService.getDepartmentsWithoutHeadByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments without head retrieved successfully", departments, null));
+        } catch (Exception e) {
+            log.error("Error retrieving departments without head: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/with-subjects")
+    @Operation(summary = "Get departments with subjects with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getDepartmentsWithSubjects() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<DepartmentDTO> departments = departmentService.getDepartmentsWithSubjectsByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments with subjects retrieved successfully", departments, null));
+        } catch (Exception e) {
+            log.error("Error retrieving departments with subjects: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    // ==================== DEPARTMENT MANAGEMENT ENDPOINTS ====================
+
+    @PostMapping("/{id}/activate")
+    @Operation(summary = "Activate a department")
+    public ResponseEntity<OhmaApiResponse<Void>> activateDepartment(@PathVariable Long id) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Validate access before activating
+            if (!departmentService.validateDepartmentAccess(id, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
 
-            DepartmentDTO department = departmentService.assignDepartmentHead(departmentId, userId);
+            departmentService.activateDepartment(id);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department activated successfully", null, null));
+        } catch (Exception e) {
+            log.error("Error activating department: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/{id}/deactivate")
+    @Operation(summary = "Deactivate a department")
+    public ResponseEntity<OhmaApiResponse<Void>> deactivateDepartment(@PathVariable Long id) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Validate access before deactivating
+            if (!departmentService.validateDepartmentAccess(id, currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
+            }
+
+            departmentService.deactivateDepartment(id);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department deactivated successfully", null, null));
+        } catch (Exception e) {
+            log.error("Error deactivating department: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/{departmentId}/head/{teacherId}")
+    @Operation(summary = "Assign department head")
+    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> assignDepartmentHead(
+            @PathVariable Long departmentId,
+            @PathVariable Long teacherId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Validate access before assigning head
+            if (!departmentService.validateDepartmentAccess(departmentId, currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
+            }
+
+            DepartmentDTO department = departmentService.assignDepartmentHead(departmentId, teacherId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department head assigned successfully", department, null));
         } catch (Exception e) {
-            log.error("Error assigning department head {} to department {}: {}", userId, departmentId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error assigning department head: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
@@ -365,8 +410,8 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to remove department head
-            if (!hasAccess(AccessScope.DEPARTMENT, departmentId)) {
+            // Validate access before removing head
+            if (!departmentService.validateDepartmentAccess(departmentId, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
@@ -374,16 +419,17 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
             DepartmentDTO department = departmentService.removeDepartmentHead(departmentId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department head removed successfully", department, null));
         } catch (Exception e) {
-            log.error("Error removing department head from department {}: {}", departmentId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error removing department head: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @PostMapping("/{departmentId}/teachers/{teacherId}")
+    @PostMapping("/{departmentId}/teacher/{teacherId}")
     @Operation(summary = "Assign teacher to department")
     public ResponseEntity<OhmaApiResponse<DepartmentDTO>> assignTeacherToDepartment(
-            @PathVariable Long departmentId, @PathVariable Long teacherId) {
+            @PathVariable Long departmentId,
+            @PathVariable Long teacherId) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -391,8 +437,8 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to assign teacher to department
-            if (!hasAccess(AccessScope.DEPARTMENT, departmentId)) {
+            // Validate access before assigning teacher
+            if (!departmentService.validateDepartmentAccess(departmentId, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
@@ -400,16 +446,17 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
             DepartmentDTO department = departmentService.assignTeacherToDepartment(departmentId, teacherId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher assigned to department successfully", department, null));
         } catch (Exception e) {
-            log.error("Error assigning teacher {} to department {}: {}", teacherId, departmentId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error assigning teacher to department: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @DeleteMapping("/{departmentId}/teachers/{teacherId}")
+    @DeleteMapping("/{departmentId}/teacher/{teacherId}")
     @Operation(summary = "Remove teacher from department")
     public ResponseEntity<OhmaApiResponse<DepartmentDTO>> removeTeacherFromDepartment(
-            @PathVariable Long departmentId, @PathVariable Long teacherId) {
+            @PathVariable Long departmentId,
+            @PathVariable Long teacherId) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -417,8 +464,8 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to remove teacher from department
-            if (!hasAccess(AccessScope.DEPARTMENT, departmentId)) {
+            // Validate access before removing teacher
+            if (!departmentService.validateDepartmentAccess(departmentId, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
@@ -426,16 +473,17 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
             DepartmentDTO department = departmentService.removeTeacherFromDepartment(departmentId, teacherId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher removed from department successfully", department, null));
         } catch (Exception e) {
-            log.error("Error removing teacher {} from department {}: {}", teacherId, departmentId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error removing teacher from department: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @PostMapping("/{departmentId}/subjects/{subjectId}")
+    @PostMapping("/{departmentId}/subject/{subjectId}")
     @Operation(summary = "Assign subject to department")
     public ResponseEntity<OhmaApiResponse<DepartmentDTO>> assignSubjectToDepartment(
-            @PathVariable Long departmentId, @PathVariable Long subjectId) {
+            @PathVariable Long departmentId,
+            @PathVariable Long subjectId) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -443,8 +491,8 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to assign subject to department
-            if (!hasAccess(AccessScope.DEPARTMENT, departmentId)) {
+            // Validate access before assigning subject
+            if (!departmentService.validateDepartmentAccess(departmentId, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
@@ -452,16 +500,17 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
             DepartmentDTO department = departmentService.assignSubjectToDepartment(departmentId, subjectId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Subject assigned to department successfully", department, null));
         } catch (Exception e) {
-            log.error("Error assigning subject {} to department {}: {}", subjectId, departmentId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error assigning subject to department: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @DeleteMapping("/{departmentId}/subjects/{subjectId}")
+    @DeleteMapping("/{departmentId}/subject/{subjectId}")
     @Operation(summary = "Remove subject from department")
     public ResponseEntity<OhmaApiResponse<DepartmentDTO>> removeSubjectFromDepartment(
-            @PathVariable Long departmentId, @PathVariable Long subjectId) {
+            @PathVariable Long departmentId,
+            @PathVariable Long subjectId) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -469,8 +518,8 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to remove subject from department
-            if (!hasAccess(AccessScope.DEPARTMENT, departmentId)) {
+            // Validate access before removing subject
+            if (!departmentService.validateDepartmentAccess(departmentId, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
@@ -478,15 +527,17 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
             DepartmentDTO department = departmentService.removeSubjectFromDepartment(departmentId, subjectId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Subject removed from department successfully", department, null));
         } catch (Exception e) {
-            log.error("Error removing subject {} from department {}: {}", subjectId, departmentId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error removing subject from department: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @PutMapping("/{departmentId}/activate")
-    @Operation(summary = "Activate department")
-    public ResponseEntity<OhmaApiResponse<Void>> activateDepartment(@PathVariable Long departmentId) {
+    // ==================== STATISTICS ENDPOINTS ====================
+
+    @GetMapping("/statistics/count")
+    @Operation(summary = "Get department count by accessible scopes")
+    public ResponseEntity<OhmaApiResponse<Long>> getDepartmentCount() {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -494,74 +545,18 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to activate this department
-            if (!hasAccess(AccessScope.DEPARTMENT, departmentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
-            }
-
-            departmentService.activateDepartment(departmentId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department activated successfully", null, null));
-        } catch (Exception e) {
-            log.error("Error activating department {}: {}", departmentId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @PutMapping("/{departmentId}/deactivate")
-    @Operation(summary = "Deactivate department")
-    public ResponseEntity<OhmaApiResponse<Void>> deactivateDepartment(@PathVariable Long departmentId) {
-        try {
-            Long currentUserId = getCurrentUserId();
-            if (currentUserId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
-            }
-
-            // Check if user has access to deactivate this department
-            if (!hasAccess(AccessScope.DEPARTMENT, departmentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
-            }
-
-            departmentService.deactivateDepartment(departmentId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department deactivated successfully", null, null));
-        } catch (Exception e) {
-            log.error("Error deactivating department {}: {}", departmentId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
-        }
-    }
-
-    @GetMapping("/school/{schoolId}/count")
-    @Operation(summary = "Count active departments by school ID")
-    public ResponseEntity<OhmaApiResponse<Long>> countActiveDepartmentsBySchoolId(@PathVariable Long schoolId) {
-        try {
-            Long currentUserId = getCurrentUserId();
-            if (currentUserId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
-            }
-
-            // Check if user has access to view this school's departments
-            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
-            }
-
-            Long count = departmentService.countActiveDepartmentsBySchoolId(schoolId);
+            Long count = departmentService.getDepartmentCountByAccessibleScopes(currentUserId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department count retrieved successfully", count, null));
         } catch (Exception e) {
-            log.error("Error counting departments for school {}: {}", schoolId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving department count: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @GetMapping("/school/{schoolId}/without-head")
-    @Operation(summary = "Get departments without head by school ID")
-    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getDepartmentsWithoutHead(@PathVariable Long schoolId) {
+    @GetMapping("/statistics/with-head")
+    @Operation(summary = "Get departments with head count by accessible scopes")
+    public ResponseEntity<OhmaApiResponse<Long>> getDepartmentsWithHeadCount() {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -569,24 +564,18 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this school's departments
-            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
-            }
-
-            List<DepartmentDTO> departments = departmentService.getDepartmentsWithoutHead(schoolId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments without head retrieved successfully", departments, null));
+            Long count = departmentService.getDepartmentsWithHeadCountByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments with head count retrieved successfully", count, null));
         } catch (Exception e) {
-            log.error("Error retrieving departments without head for school {}: {}", schoolId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving departments with head count: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @GetMapping("/school/{schoolId}/with-subjects")
-    @Operation(summary = "Get departments with subjects by school ID")
-    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getDepartmentsWithSubjects(@PathVariable Long schoolId) {
+    @GetMapping("/statistics/without-head")
+    @Operation(summary = "Get departments without head count by accessible scopes")
+    public ResponseEntity<OhmaApiResponse<Long>> getDepartmentsWithoutHeadCount() {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -594,25 +583,18 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this school's departments
-            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
-            }
-
-            List<DepartmentDTO> departments = departmentService.getDepartmentsWithSubjects(schoolId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments with subjects retrieved successfully", departments, null));
+            Long count = departmentService.getDepartmentsWithoutHeadCountByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments without head count retrieved successfully", count, null));
         } catch (Exception e) {
-            log.error("Error retrieving departments with subjects for school {}: {}", schoolId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving departments without head count: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
-    @GetMapping("/exists")
-    @Operation(summary = "Check if department exists by name and school ID")
-    public ResponseEntity<OhmaApiResponse<Boolean>> existsByNameAndSchoolId(
-            @RequestParam String name, @RequestParam Long schoolId) {
+    @GetMapping("/statistics/with-subjects")
+    @Operation(summary = "Get departments with subjects count by accessible scopes")
+    public ResponseEntity<OhmaApiResponse<Long>> getDepartmentsWithSubjectsCount() {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
@@ -620,17 +602,30 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this school's departments
-            if (!hasAccess(AccessScope.SCHOOL, schoolId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this school", null, null));
+            Long count = departmentService.getDepartmentsWithSubjectsCountByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments with subjects count retrieved successfully", count, null));
+        } catch (Exception e) {
+            log.error("Error retrieving departments with subjects count: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/statistics/with-teachers")
+    @Operation(summary = "Get departments with teachers count by accessible scopes")
+    public ResponseEntity<OhmaApiResponse<Long>> getDepartmentsWithTeachersCount() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            boolean exists = departmentService.existsByNameAndSchoolId(name, schoolId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department existence checked successfully", exists, null));
+            Long count = departmentService.getDepartmentsWithTeachersCountByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Departments with teachers count retrieved successfully", count, null));
         } catch (Exception e) {
-            log.error("Error checking department existence for name {} and school {}: {}", name, schoolId, e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving departments with teachers count: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }

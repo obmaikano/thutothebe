@@ -625,4 +625,16 @@ public class AssignmentServiceImpl extends BaseServiceImpl<Assignment, Assignmen
             return List.of();
         }
     }
+
+    @Override
+    protected Long extractSchoolId(Assignment entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Assignment entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null && entity.getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

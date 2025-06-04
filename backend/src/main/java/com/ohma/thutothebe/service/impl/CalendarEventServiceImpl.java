@@ -6,12 +6,13 @@ import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.CalendarEventMapper;
 import com.ohma.thutothebe.repository.*;
 import com.ohma.thutothebe.service.CalendarEventService;
-import jakarta.transaction.Transactional;
+import com.ohma.thutothebe.service.impl.RuleBasedAccessControlServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -31,6 +32,7 @@ public class CalendarEventServiceImpl extends BaseServiceImpl<CalendarEvent, Cal
     private final ClassRepository classRepository;
     private final CourseRepository courseRepository;
     private final CalendarEventMapper calendarEventMapper;
+    private final RuleBasedAccessControlServiceImpl accessControlService;
 
     @Autowired
     public CalendarEventServiceImpl(
@@ -40,7 +42,8 @@ public class CalendarEventServiceImpl extends BaseServiceImpl<CalendarEvent, Cal
             RegionRepository regionRepository,
             ClassRepository classRepository,
             CourseRepository courseRepository,
-            CalendarEventMapper calendarEventMapper) {
+            CalendarEventMapper calendarEventMapper,
+            RuleBasedAccessControlServiceImpl accessControlService) {
         super(calendarEventRepository);
         this.calendarEventRepository = calendarEventRepository;
         this.userRepository = userRepository;
@@ -49,6 +52,7 @@ public class CalendarEventServiceImpl extends BaseServiceImpl<CalendarEvent, Cal
         this.classRepository = classRepository;
         this.courseRepository = courseRepository;
         this.calendarEventMapper = calendarEventMapper;
+        this.accessControlService = accessControlService;
     }
 
     @Override
@@ -68,6 +72,1337 @@ public class CalendarEventServiceImpl extends BaseServiceImpl<CalendarEvent, Cal
         calendarEventMapper.updateEntityFromDto(dto, entity);
         setEntityRelationships(entity, dto);
     }
+
+    @Override
+    protected Long extractSchoolId(CalendarEvent entity) {
+        return entity.getSchool() != null ? entity.getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(CalendarEvent entity) {
+        return entity.getRegion() != null ? entity.getRegion().getId() : null;
+    }
+    
+    @Override
+    protected void validateBusinessRules(CalendarEvent entity, boolean isUpdate) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                throw new SecurityException("Authentication required for calendar event operations");
+            }
+            
+            // Validate title uniqueness within creator scope
+            if (entity.getTitle() != null && entity.getCreatedBy() != null) {
+                List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+                if (!accessibleSchoolIds.isEmpty()) {
+                    boolean exists = calendarEventRepository.existsByTitleAndCreatorIdAndSchoolIdIn(
+                        entity.getTitle(), entity.getCreatedBy().getId(), accessibleSchoolIds);
+                    if (exists && !isUpdate) {
+                        throw new IllegalArgumentException("Calendar event with title '" + entity.getTitle() + 
+                            "' already exists for creator in accessible schools");
+                    }
+                }
+            }
+            
+            // Validate cross-tenant references
+            if (entity.getCourse() != null) {
+                List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+                if (!accessibleSchoolIds.isEmpty()) {
+                    boolean courseExists = calendarEventRepository.existsByCourseIdAndSchoolIdIn(entity.getCourse().getId(), accessibleSchoolIds);
+                    if (!courseExists) {
+                        throw new IllegalArgumentException("Course " + entity.getCourse().getId() + " not accessible in user's school scope");
+                    }
+                }
+            }
+            
+            if (entity.getTargetClass() != null) {
+                List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+                if (!accessibleSchoolIds.isEmpty()) {
+                    boolean classExists = calendarEventRepository.existsByClassIdAndSchoolIdIn(entity.getTargetClass().getId(), accessibleSchoolIds);
+                    if (!classExists) {
+                        throw new IllegalArgumentException("Class " + entity.getTargetClass().getId() + " not accessible in user's school scope");
+                    }
+                }
+            }
+            
+            if (entity.getCreatedBy() != null) {
+                List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+                if (!accessibleSchoolIds.isEmpty()) {
+                    boolean creatorExists = calendarEventRepository.existsByCreatorIdAndSchoolIdIn(entity.getCreatedBy().getId(), accessibleSchoolIds);
+                    if (!creatorExists) {
+                        throw new IllegalArgumentException("Creator " + entity.getCreatedBy().getId() + " not accessible in user's school scope");
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            log.error("Error validating calendar event business rules: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Calendar event validation failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getAll() {
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            log.warn("No current user found, returning empty list");
+            return List.of();
+        }
+        return getCalendarEventsByAccessibleScopes(currentUserId);
+    }
+
+    // ==================== MISSING INTERFACE METHODS ====================
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsByCreatorAndDateRange(Long creatorId, LocalDateTime startDate, LocalDateTime endDate) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            // Use existing repository method with filtering
+            return calendarEventRepository.findByCreatedBy(creatorId).stream()
+                .filter(event -> event.getStartTime().isAfter(startDate) && event.getEndTime().isBefore(endDate))
+                .filter(event -> event.getSchool() != null && accessibleSchoolIds.contains(event.getSchool().getId()))
+                .map(calendarEventMapper::toDto)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting events by creator and date range: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getUpcomingEvents(LocalDateTime fromDate) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getUpcomingCalendarEventsByAccessibleScopes(fromDate, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting upcoming events: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional
+    public List<CalendarEventDTO> generateRecurringInstances(Long parentEventId, LocalDateTime until) {
+        return generateRecurringEvents(parentEventId, until);
+    }
+
+    @Override
+    @Transactional
+    public void markEventAsAttended(Long eventId, Long userId) {
+        try {
+            CalendarEvent event = calendarEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+            
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            // Add user to attendees if not already present
+            if (!event.getAttendees().contains(user)) {
+                event.getAttendees().add(user);
+            }
+            
+            calendarEventRepository.save(event);
+        } catch (Exception e) {
+            log.error("Error marking event as attended: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to mark event as attended: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsForUser(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
+        return getUserEventsForDateRange(userId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getConflictingEvents(LocalDateTime startTime, LocalDateTime endTime, Long excludeEventId) {
+        return findConflictingEvents(excludeEventId, null, startTime, endTime);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsRequiringApproval() {
+        return getPendingApprovalEvents();
+    }
+
+    @Override
+    @Transactional
+    public void archiveOldEvents(LocalDateTime cutoffDate) {
+        try {
+            // Use existing method to find events before cutoff date
+            List<CalendarEvent> oldEvents = calendarEventRepository.findEventsBetweenDates(
+                LocalDateTime.of(2000, 1, 1, 0, 0), cutoffDate);
+            oldEvents.forEach(event -> event.setActive(false));
+            calendarEventRepository.saveAll(oldEvents);
+            log.info("Archived {} old events before {}", oldEvents.size(), cutoffDate);
+        } catch (Exception e) {
+            log.error("Error archiving old events: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to archive old events: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getAttendedEventsByUser(Long userId) {
+        return getEventsByAttendee(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> searchEventsByTitle(String title) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return searchCalendarEventsByTitleAndAccessibleScopes(title, currentUserId);
+        } catch (Exception e) {
+            log.error("Error searching events by title: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteRecurringEventSeries(Long parentEventId) {
+        try {
+            CalendarEvent parentEvent = calendarEventRepository.findById(parentEventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Parent event not found with id: " + parentEventId));
+            
+            List<CalendarEvent> childEvents = calendarEventRepository.findByParentEvent(parentEventId);
+            childEvents.forEach(event -> event.setActive(false));
+            parentEvent.setActive(false);
+            
+            calendarEventRepository.saveAll(childEvents);
+            calendarEventRepository.save(parentEvent);
+            
+            log.info("Deleted recurring event series with parent id: {}", parentEventId);
+        } catch (Exception e) {
+            log.error("Error deleting recurring event series: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to delete recurring event series: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getRecentlyUpdatedEvents(int limit) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            // Use existing method and limit results - use createdAt since updatedAt may not exist
+            return calendarEventRepository.findByActiveTrue().stream()
+                .filter(event -> event.getSchool() != null && accessibleSchoolIds.contains(event.getSchool().getId()))
+                .sorted((e1, e2) -> e2.getCreatedAt().compareTo(e1.getCreatedAt()))
+                .limit(limit)
+                .map(calendarEventMapper::toDto)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting recently updated events: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasTimeConflict(LocalDateTime startTime, LocalDateTime endTime, Long excludeEventId) {
+        return hasConflicts(excludeEventId, null, startTime, endTime);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsByApprovalStatus(String status) {
+        try {
+            CalendarEventStatus eventStatus = CalendarEventStatus.valueOf(status.toUpperCase());
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getCalendarEventsByStatusAndAccessibleScopes(eventStatus, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting events by approval status: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional
+    public CalendarEventDTO createRecurringEvent(CalendarEventDTO eventDTO, String recurrenceRule) {
+        try {
+            CalendarEventDTO createdEvent = create(eventDTO);
+            
+            // Update the created event to set recurrence
+            CalendarEvent entity = calendarEventRepository.findById(createdEvent.id())
+                .orElseThrow(() -> new ResourceNotFoundException("Created event not found"));
+            
+            entity.setRecurring(true);
+            entity.setRecurrenceRule(recurrenceRule);
+            
+            CalendarEvent savedEvent = calendarEventRepository.save(entity);
+            return mapToDto(savedEvent);
+        } catch (Exception e) {
+            log.error("Error creating recurring event: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to create recurring event: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsForUserByType(Long userId, CalendarEventType type) {
+        try {
+            List<CalendarEventDTO> userEvents = getUserEvents(userId);
+            return userEvents.stream()
+                .filter(event -> event.eventType() == type)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting events for user by type: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsByRegion(Long regionId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getCalendarEventsByRegionIdAndAccessibleScopes(regionId, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting events by region: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getRecentlyCreatedEvents(int limit) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            // Use existing method and limit results
+            return calendarEventRepository.findByActiveTrue().stream()
+                .filter(event -> event.getSchool() != null && accessibleSchoolIds.contains(event.getSchool().getId()))
+                .sorted((e1, e2) -> e2.getCreatedAt().compareTo(e1.getCreatedAt()))
+                .limit(limit)
+                .map(calendarEventMapper::toDto)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting recently created events: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getNotAttendedEventsByUser(Long userId) {
+        try {
+            List<CalendarEventDTO> allUserEvents = getUserEvents(userId);
+            List<CalendarEventDTO> attendedEvents = getEventsByAttendee(userId);
+            
+            return allUserEvents.stream()
+                .filter(event -> !attendedEvents.contains(event))
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting not attended events by user: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional
+    public void markEventAsNotAttended(Long eventId, Long userId) {
+        try {
+            CalendarEvent event = calendarEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+            
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            // Remove user from attendees
+            event.getAttendees().remove(user);
+            
+            calendarEventRepository.save(event);
+        } catch (Exception e) {
+            log.error("Error marking event as not attended: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to mark event as not attended: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsByDateAndType(LocalDateTime date, CalendarEventType type) {
+        try {
+            LocalDateTime dayStart = date.truncatedTo(ChronoUnit.DAYS);
+            LocalDateTime dayEnd = dayStart.plusDays(1).minusSeconds(1);
+            
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            List<CalendarEventDTO> dateRangeEvents = getCalendarEventsByDateRangeAndAccessibleScopes(dayStart, dayEnd, currentUserId);
+            return dateRangeEvents.stream()
+                .filter(event -> event.eventType() == type)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting events by date and type: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventStatistics(LocalDateTime startDate, LocalDateTime endDate) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            List<CalendarEventDTO> events = getCalendarEventsByDateRangeAndAccessibleScopes(startDate, endDate, currentUserId);
+            
+            // Return the events list instead of a Map
+            return events;
+        } catch (Exception e) {
+            log.error("Error getting event statistics: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteRecurringEventInstance(Long eventId) {
+        try {
+            CalendarEvent event = calendarEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+            
+            event.setActive(false);
+            calendarEventRepository.save(event);
+            
+            log.info("Deleted recurring event instance with id: {}", eventId);
+        } catch (Exception e) {
+            log.error("Error deleting recurring event instance: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to delete recurring event instance: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public CalendarEventDTO restoreArchivedEvent(Long eventId) {
+        try {
+            CalendarEvent event = calendarEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+            
+            event.setActive(true);
+            CalendarEvent savedEvent = calendarEventRepository.save(event);
+            
+            log.info("Restored archived event with id: {}", eventId);
+            return mapToDto(savedEvent);
+        } catch (Exception e) {
+            log.error("Error restoring archived event: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to restore archived event: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public CalendarEventDTO updateEventStatus(Long eventId, CalendarEventStatus status) {
+        try {
+            CalendarEvent event = calendarEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+            
+            event.setStatus(status);
+            CalendarEvent savedEvent = calendarEventRepository.save(event);
+            
+            return mapToDto(savedEvent);
+        } catch (Exception e) {
+            log.error("Error updating event status: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to update event status: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void bulkDeleteEvents(List<Long> eventIds) {
+        deleteBulkEvents(eventIds);
+    }
+
+    @Override
+    @Transactional
+    public void bulkUpdateEventStatus(List<Long> eventIds, CalendarEventStatus status) {
+        updateBulkEventStatus(eventIds, status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getOngoingEvents(LocalDateTime currentTime) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getOngoingCalendarEventsByAccessibleScopes(currentTime, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting ongoing events: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsBySchool(Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getCalendarEventsBySchoolIdAndAccessibleScopes(schoolId, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting events by school: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsByClass(Long classId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getCalendarEventsByClassIdAndAccessibleScopes(classId, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting events by class: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getCalendarEventsByDateRangeAndAccessibleScopes(startDate, endDate, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting events by date range: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsByCourse(Long courseId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getCalendarEventsByCourseIdAndAccessibleScopes(courseId, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting events by course: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional
+    public CalendarEventDTO duplicateEvent(Long eventId, LocalDateTime newStartTime) {
+        try {
+            CalendarEvent originalEvent = calendarEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+            
+            CalendarEvent duplicatedEvent = createChildEvent(originalEvent, newStartTime, 
+                newStartTime.plusMinutes(ChronoUnit.MINUTES.between(originalEvent.getStartTime(), originalEvent.getEndTime())));
+            
+            duplicatedEvent.setParentEvent(null); // Not a recurring child
+            CalendarEvent savedEvent = calendarEventRepository.save(duplicatedEvent);
+            
+            return mapToDto(savedEvent);
+        } catch (Exception e) {
+            log.error("Error duplicating event: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to duplicate event: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getArchivedEvents() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            // Use existing method to find inactive events
+            return calendarEventRepository.findByActiveTrue().stream()
+                .filter(event -> !event.isActive())
+                .filter(event -> event.getSchool() != null && accessibleSchoolIds.contains(event.getSchool().getId()))
+                .map(calendarEventMapper::toDto)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting archived events: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getPopularEvents(int limit) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            if (accessibleSchoolIds.isEmpty()) {
+                return List.of();
+            }
+            
+            // Use existing method and sort by attendee count
+            return calendarEventRepository.findByActiveTrue().stream()
+                .filter(event -> event.getSchool() != null && accessibleSchoolIds.contains(event.getSchool().getId()))
+                .sorted((e1, e2) -> Integer.compare(e2.getAttendees().size(), e1.getAttendees().size()))
+                .limit(limit)
+                .map(calendarEventMapper::toDto)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting popular events: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsByPriority(CalendarEventPriority priority) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getCalendarEventsByPriorityAndAccessibleScopes(priority, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting events by priority: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getEventsByCreator(Long creatorId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return List.of();
+            }
+            
+            return getCalendarEventsByCreatorIdAndAccessibleScopes(creatorId, currentUserId);
+        } catch (Exception e) {
+            log.error("Error getting events by creator: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional
+    public CalendarEventDTO approveEvent(Long eventId, Long approverId) {
+        return approveEvent(eventId, approverId, "Approved");
+    }
+
+    public CalendarEventDTO approveEvent(Long eventId, Long approverId, String approvalNotes) {
+        CalendarEvent event = calendarEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+        
+        User approver = userRepository.findById(approverId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + approverId));
+
+        event.setStatus(CalendarEventStatus.SCHEDULED);
+        event.setApprovedBy(approver);
+        event.setApprovedAt(LocalDateTime.now());
+        event.setApprovalNotes(approvalNotes);
+
+        CalendarEvent savedEvent = calendarEventRepository.save(event);
+        return mapToDto(savedEvent);
+    }
+
+    // ==================== MULTI-TENANT SECURITY METHODS ====================
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return calendarEventRepository.findByActiveTrue().stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return calendarEventRepository.findByMultiScopeAccess(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds
+            ).stream()
+                    .map(calendarEventMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getActiveCalendarEventsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return calendarEventRepository.findByActiveTrue().stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return calendarEventRepository.findByMultiScopeAccessAndActive(
+                    accessibleSchoolIds.isEmpty() ? List.of(-1L) : accessibleSchoolIds,
+                    accessibleRegionIds.isEmpty() ? List.of(-1L) : accessibleRegionIds,
+                    true
+            ).stream()
+                    .map(calendarEventMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting active calendar events by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsBySchoolIdAndAccessibleScopes(Long schoolId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (!accessibleSchoolIds.contains(schoolId)) {
+                log.warn("User {} does not have access to school {}", currentUserId, schoolId);
+                return List.of();
+            }
+            
+            return calendarEventRepository.findBySchoolIdSecure(schoolId).stream()
+                    .map(calendarEventMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by school and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsByRegionIdAndAccessibleScopes(Long regionId, Long currentUserId) {
+        try {
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            if (!accessibleRegionIds.contains(regionId)) {
+                log.warn("User {} does not have access to region {}", currentUserId, regionId);
+                return List.of();
+            }
+            
+            return calendarEventRepository.findByRegionId(regionId).stream()
+                    .map(calendarEventMapper::toDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by region and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsByTypeAndAccessibleScopes(CalendarEventType type, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return calendarEventRepository.findByEventType(type).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByEventTypeAndSchoolIdInAndActive(type, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByEventTypeAndRegionIdInAndActive(type, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by type and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsByPriorityAndAccessibleScopes(CalendarEventPriority priority, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByPriorityAndSchoolIdInAndActive(priority, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByPriorityAndRegionIdInAndActive(priority, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by priority and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsByStatusAndAccessibleScopes(CalendarEventStatus status, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByStatusAndSchoolIdInAndActive(status, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByStatusAndRegionIdInAndActive(status, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by status and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsByCreatorIdAndAccessibleScopes(Long creatorId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByCreatorIdAndSchoolIdInAndActive(creatorId, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByCreatorIdAndRegionIdInAndActive(creatorId, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by creator and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsByCourseIdAndAccessibleScopes(Long courseId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByCourseIdAndSchoolIdInAndActive(courseId, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByCourseIdAndRegionIdInAndActive(courseId, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by course and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsByClassIdAndAccessibleScopes(Long classId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByClassIdAndSchoolIdInAndActive(classId, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByClassIdAndRegionIdInAndActive(classId, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by class and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getCalendarEventsByDateRangeAndAccessibleScopes(LocalDateTime startDate, LocalDateTime endDate, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByDateRangeAndSchoolIdInAndActive(startDate, endDate, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByDateRangeAndRegionIdInAndActive(startDate, endDate, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting calendar events by date range and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getUpcomingCalendarEventsByAccessibleScopes(LocalDateTime fromDate, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findUpcomingEventsBySchoolIdInAndActive(fromDate, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findUpcomingEventsByRegionIdInAndActive(fromDate, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting upcoming calendar events by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getOngoingCalendarEventsByAccessibleScopes(LocalDateTime currentTime, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findOngoingEventsBySchoolIdInAndActive(currentTime, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findOngoingEventsByRegionIdInAndActive(currentTime, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting ongoing calendar events by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> searchCalendarEventsByTitleAndAccessibleScopes(String title, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByTitleContainingAndSchoolIdInAndActive(title, accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findByTitleContainingAndRegionIdInAndActive(title, accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error searching calendar events by title and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getPublicCalendarEventsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findPublicEventsBySchoolIdInAndActive(accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findPublicEventsByRegionIdInAndActive(accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting public calendar events by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CalendarEventDTO> getRecurringCalendarEventsByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            List<CalendarEventDTO> results = new ArrayList<>();
+            
+            if (!accessibleSchoolIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findRecurringEventsBySchoolIdInAndActive(accessibleSchoolIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            if (!accessibleRegionIds.isEmpty()) {
+                results.addAll(calendarEventRepository.findRecurringEventsByRegionIdInAndActive(accessibleRegionIds, true).stream()
+                        .map(calendarEventMapper::toDto)
+                        .collect(Collectors.toList()));
+            }
+            
+            return results.stream().distinct().collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("Error getting recurring calendar events by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean validateCalendarEventAccess(Long eventId, Long currentUserId) {
+        try {
+            CalendarEvent event = calendarEventRepository.findById(eventId).orElse(null);
+            if (event == null) {
+                return false;
+            }
+            
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess) {
+                return true;
+            }
+            
+            if (event.getSchool() != null && accessibleSchoolIds.contains(event.getSchool().getId())) {
+                return true;
+            }
+            
+            if (event.getRegion() != null && accessibleRegionIds.contains(event.getRegion().getId())) {
+                return true;
+            }
+            
+            return false;
+        } catch (Exception e) {
+            log.error("Error validating calendar event access for user {}: {}", currentUserId, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean validateCalendarEventBusinessRules(CalendarEventDTO eventDTO, Long currentUserId) {
+        try {
+            CalendarEvent entity = calendarEventMapper.toEntity(eventDTO);
+            validateBusinessRules(entity, false);
+            return true;
+        } catch (Exception e) {
+            log.error("Error validating calendar event business rules from DTO: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    // Statistics methods with multi-tenant security
+    @Override
+    @Transactional(readOnly = true)
+    public Long getCalendarEventCountByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            
+            Long schoolCount = !accessibleSchoolIds.isEmpty() ? 
+                calendarEventRepository.countBySchoolIdInAndActive(accessibleSchoolIds, true) : 0L;
+            Long regionCount = !accessibleRegionIds.isEmpty() ? 
+                calendarEventRepository.countByRegionIdInAndActive(accessibleRegionIds, true) : 0L;
+            
+            return schoolCount + regionCount;
+        } catch (Exception e) {
+            log.error("Error getting calendar event count by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getCalendarEventCountByTypeAndAccessibleScopes(CalendarEventType type, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return calendarEventRepository.countByEventTypeAndSchoolIdInAndActive(type, accessibleSchoolIds, true);
+        } catch (Exception e) {
+            log.error("Error getting calendar event count by type and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getCalendarEventCountByStatusAndAccessibleScopes(CalendarEventStatus status, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return calendarEventRepository.countByStatusAndSchoolIdInAndActive(status, accessibleSchoolIds, true);
+        } catch (Exception e) {
+            log.error("Error getting calendar event count by status and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getCalendarEventCountByPriorityAndAccessibleScopes(CalendarEventPriority priority, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return calendarEventRepository.countByPriorityAndSchoolIdInAndActive(priority, accessibleSchoolIds, true);
+        } catch (Exception e) {
+            log.error("Error getting calendar event count by priority and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getCalendarEventCountByCreatorIdAndAccessibleScopes(Long creatorId, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return calendarEventRepository.countByCreatorIdAndSchoolIdInAndActive(creatorId, accessibleSchoolIds, true);
+        } catch (Exception e) {
+            log.error("Error getting calendar event count by creator and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getUpcomingCalendarEventCountByAccessibleScopes(LocalDateTime fromDate, Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return (long) calendarEventRepository.findUpcomingEventsBySchoolIdInAndActive(fromDate, accessibleSchoolIds, true).size();
+        } catch (Exception e) {
+            log.error("Error getting upcoming calendar event count by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getPublicCalendarEventCountByAccessibleScopes(Long currentUserId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return 0L;
+            }
+            
+            return calendarEventRepository.countPublicEventsBySchoolIdInAndActive(accessibleSchoolIds, true);
+        } catch (Exception e) {
+            log.error("Error getting public calendar event count by accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    // ==================== EXISTING METHODS ====================
 
     private void setEntityRelationships(CalendarEvent entity, CalendarEventDTO dto) {
         // Set created by user
@@ -342,23 +1677,6 @@ public class CalendarEventServiceImpl extends BaseServiceImpl<CalendarEvent, Cal
     }
 
     @Override
-    public CalendarEventDTO approveEvent(Long eventId, Long approverId, String approvalNotes) {
-        CalendarEvent event = calendarEventRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
-        
-        User approver = userRepository.findById(approverId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + approverId));
-
-        event.setStatus(CalendarEventStatus.SCHEDULED);
-        event.setApprovedBy(approver);
-        event.setApprovedAt(LocalDateTime.now());
-        event.setApprovalNotes(approvalNotes);
-
-        CalendarEvent savedEvent = calendarEventRepository.save(event);
-        return mapToDto(savedEvent);
-    }
-
-    @Override
     public CalendarEventDTO rejectEvent(Long eventId, Long approverId, String rejectionNotes) {
         CalendarEvent event = calendarEventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
@@ -376,7 +1694,6 @@ public class CalendarEventServiceImpl extends BaseServiceImpl<CalendarEvent, Cal
     }
 
     // Time-based queries
-    @Override
     public List<CalendarEventDTO> getUpcomingEvents() {
         List<CalendarEvent> events = calendarEventRepository.findUpcomingEvents(LocalDateTime.now());
         return events.stream().map(this::mapToDto).collect(Collectors.toList());
@@ -533,7 +1850,6 @@ public class CalendarEventServiceImpl extends BaseServiceImpl<CalendarEvent, Cal
         return mapToDto(savedEvent);
     }
 
-    @Override
     public CalendarEventDTO postponeEvent(Long eventId, LocalDateTime newStartTime, LocalDateTime newEndTime) {
         CalendarEvent event = calendarEventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));

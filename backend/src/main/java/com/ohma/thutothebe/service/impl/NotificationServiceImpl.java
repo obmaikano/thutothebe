@@ -111,4 +111,16 @@ public class NotificationServiceImpl extends BaseServiceImpl<Notification, Notif
                 .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
         return notification.getRecipient().getId().equals(userId);
     }
+
+    @Override
+    protected Long extractSchoolId(Notification entity) {
+        return entity.getRecipient() != null && entity.getRecipient().getSchool() != null 
+            ? entity.getRecipient().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Notification entity) {
+        return entity.getRecipient() != null && entity.getRecipient().getSchool() != null && entity.getRecipient().getSchool().getRegion() != null 
+            ? entity.getRecipient().getSchool().getRegion().getId() : null;
+    }
 } 

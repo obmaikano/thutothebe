@@ -124,4 +124,38 @@ public class MessageGroupServiceImpl extends BaseServiceImpl<MessageGroup, Messa
                 .orElseThrow(() -> new IllegalArgumentException("Message group not found"));
         return group.getCreator().getId().equals(userId);
     }
+
+    @Override
+    protected Long extractSchoolId(MessageGroup entity) {
+        // Extract school from group creator or from members' common school
+        if (entity.getCreator() != null && entity.getCreator().getSchool() != null) {
+            return entity.getCreator().getSchool().getId();
+        }
+        // If creator has no school, try to find common school from members
+        if (entity.getMembers() != null && !entity.getMembers().isEmpty()) {
+            return entity.getMembers().stream()
+                .filter(member -> member.getSchool() != null)
+                .map(member -> member.getSchool().getId())
+                .findFirst()
+                .orElse(null);
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(MessageGroup entity) {
+        // Extract region from group creator or from members' common region
+        if (entity.getCreator() != null && entity.getCreator().getSchool() != null && entity.getCreator().getSchool().getRegion() != null) {
+            return entity.getCreator().getSchool().getRegion().getId();
+        }
+        // If creator has no region, try to find common region from members
+        if (entity.getMembers() != null && !entity.getMembers().isEmpty()) {
+            return entity.getMembers().stream()
+                .filter(member -> member.getSchool() != null && member.getSchool().getRegion() != null)
+                .map(member -> member.getSchool().getRegion().getId())
+                .findFirst()
+                .orElse(null);
+        }
+        return null;
+    }
 } 

@@ -140,4 +140,16 @@ public class CourseStatisticsServiceImpl extends BaseServiceImpl<CourseStatistic
         // Implementation to calculate dropout rate
         return 0.0; // Placeholder
     }
+
+    @Override
+    protected Long extractSchoolId(CourseStatistics entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(CourseStatistics entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null && entity.getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

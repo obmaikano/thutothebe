@@ -2,11 +2,13 @@ package com.ohma.thutothebe.repository;
 
 import com.ohma.thutothebe.entity.CalendarEvent;
 import com.ohma.thutothebe.entity.CalendarEventType;
-import com.ohma.thutothebe.entity.CalendarEventScope;
+import com.ohma.thutothebe.entity.CalendarEventPriority;
 import com.ohma.thutothebe.entity.CalendarEventStatus;
+import com.ohma.thutothebe.entity.CalendarEventScope;
 import com.ohma.thutothebe.entity.UserRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,16 +16,33 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Long> {
 
     // Basic queries
+    @EntityGraph(attributePaths = {"createdBy", "school", "region", "targetClass", "course", "attendees", "organizers"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.active = true")
     List<CalendarEvent> findByActiveTrue();
     
-    List<CalendarEvent> findByActiveTrueOrderByStartTimeAsc();
+    @EntityGraph(attributePaths = {"createdBy", "school", "region", "targetClass", "course", "attendees", "organizers"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.createdBy.id = :userId")
+    List<CalendarEvent> findByCreatedById(@Param("userId") Long userId);
     
-    Page<CalendarEvent> findByActiveTrue(Pageable pageable);
+    @EntityGraph(attributePaths = {"createdBy", "school", "region", "targetClass", "course", "attendees", "organizers"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.eventType = :type")
+    List<CalendarEvent> findByEventType(@Param("type") CalendarEventType type);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "region", "targetClass", "course", "attendees", "organizers"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.status = :status")
+    List<CalendarEvent> findByStatus(@Param("status") CalendarEventStatus status);
+    
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.createdBy.id = :userId AND e.active = true")
+    Long countByCreatedByIdAndActiveTrue(@Param("userId") Long userId);
+    
+    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END FROM CalendarEvent e WHERE e.title = :title AND e.createdBy.id = :userId")
+    boolean existsByTitleAndCreatedById(@Param("title") String title, @Param("userId") Long userId);
 
     // Date range queries
     @Query("SELECT e FROM CalendarEvent e WHERE e.active = true AND " +
@@ -192,4 +211,259 @@ public interface CalendarEventRepository extends JpaRepository<CalendarEvent, Lo
         @Param("startTime") LocalDateTime startTime,
         @Param("endTime") LocalDateTime endTime
     );
+
+    // ==================== MULTI-TENANT SECURITY METHODS ====================
+    
+    // Enhanced school-level filtering with EntityGraph
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.school.id = :schoolId")
+    List<CalendarEvent> findBySchoolIdSecure(@Param("schoolId") Long schoolId);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.school.id = :schoolId AND e.active = :active")
+    List<CalendarEvent> findBySchoolIdAndActiveSecure(@Param("schoolId") Long schoolId, @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.school.id = :schoolId AND e.active = true")
+    List<CalendarEvent> findActiveEventsBySchoolId(@Param("schoolId") Long schoolId);
+    
+    // Region-level filtering
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.region.id = :regionId")
+    List<CalendarEvent> findByRegionId(@Param("regionId") Long regionId);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.region.id = :regionId AND e.active = :active")
+    List<CalendarEvent> findByRegionIdAndActive(@Param("regionId") Long regionId, @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.region.id = :regionId AND e.active = true")
+    List<CalendarEvent> findActiveEventsByRegionId(@Param("regionId") Long regionId);
+    
+    // Multi-scope filtering
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.school.id IN :schoolIds")
+    List<CalendarEvent> findBySchoolIdIn(@Param("schoolIds") List<Long> schoolIds);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.region.id IN :regionIds")
+    List<CalendarEvent> findByRegionIdIn(@Param("regionIds") List<Long> regionIds);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.school.id IN :schoolIds OR e.region.id IN :regionIds")
+    List<CalendarEvent> findByMultiScopeAccess(@Param("schoolIds") List<Long> schoolIds,
+                                              @Param("regionIds") List<Long> regionIds);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE (e.school.id IN :schoolIds OR e.region.id IN :regionIds) AND e.active = :active")
+    List<CalendarEvent> findByMultiScopeAccessAndActive(@Param("schoolIds") List<Long> schoolIds,
+                                                       @Param("regionIds") List<Long> regionIds,
+                                                       @Param("active") boolean active);
+    
+    // Event type filtering with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.eventType = :type AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findByEventTypeAndSchoolIdInAndActive(@Param("type") CalendarEventType type,
+                                                             @Param("schoolIds") List<Long> schoolIds,
+                                                             @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.eventType = :type AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findByEventTypeAndRegionIdInAndActive(@Param("type") CalendarEventType type,
+                                                             @Param("regionIds") List<Long> regionIds,
+                                                             @Param("active") boolean active);
+    
+    // Priority filtering with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.priority = :priority AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findByPriorityAndSchoolIdInAndActive(@Param("priority") CalendarEventPriority priority,
+                                                            @Param("schoolIds") List<Long> schoolIds,
+                                                            @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.priority = :priority AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findByPriorityAndRegionIdInAndActive(@Param("priority") CalendarEventPriority priority,
+                                                            @Param("regionIds") List<Long> regionIds,
+                                                            @Param("active") boolean active);
+    
+    // Status filtering with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.status = :status AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findByStatusAndSchoolIdInAndActive(@Param("status") CalendarEventStatus status,
+                                                          @Param("schoolIds") List<Long> schoolIds,
+                                                          @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.status = :status AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findByStatusAndRegionIdInAndActive(@Param("status") CalendarEventStatus status,
+                                                          @Param("regionIds") List<Long> regionIds,
+                                                          @Param("active") boolean active);
+    
+    // Date range filtering with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime >= :startDate AND e.endTime <= :endDate AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findByDateRangeAndSchoolIdInAndActive(@Param("startDate") LocalDateTime startDate,
+                                                             @Param("endDate") LocalDateTime endDate,
+                                                             @Param("schoolIds") List<Long> schoolIds,
+                                                             @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime >= :startDate AND e.endTime <= :endDate AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findByDateRangeAndRegionIdInAndActive(@Param("startDate") LocalDateTime startDate,
+                                                             @Param("endDate") LocalDateTime endDate,
+                                                             @Param("regionIds") List<Long> regionIds,
+                                                             @Param("active") boolean active);
+    
+    // Creator filtering with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.createdBy.id = :creatorId AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findByCreatorIdAndSchoolIdInAndActive(@Param("creatorId") Long creatorId,
+                                                             @Param("schoolIds") List<Long> schoolIds,
+                                                             @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.createdBy.id = :creatorId AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findByCreatorIdAndRegionIdInAndActive(@Param("creatorId") Long creatorId,
+                                                             @Param("regionIds") List<Long> regionIds,
+                                                             @Param("active") boolean active);
+    
+    // Course filtering with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.course.id = :courseId AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findByCourseIdAndSchoolIdInAndActive(@Param("courseId") Long courseId,
+                                                            @Param("schoolIds") List<Long> schoolIds,
+                                                            @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.course.id = :courseId AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findByCourseIdAndRegionIdInAndActive(@Param("courseId") Long courseId,
+                                                            @Param("regionIds") List<Long> regionIds,
+                                                            @Param("active") boolean active);
+    
+    // Class filtering with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.targetClass.id = :classId AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findByClassIdAndSchoolIdInAndActive(@Param("classId") Long classId,
+                                                           @Param("schoolIds") List<Long> schoolIds,
+                                                           @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.targetClass.id = :classId AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findByClassIdAndRegionIdInAndActive(@Param("classId") Long classId,
+                                                           @Param("regionIds") List<Long> regionIds,
+                                                           @Param("active") boolean active);
+    
+    // Title search with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%')) AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findByTitleContainingAndSchoolIdInAndActive(@Param("title") String title,
+                                                                   @Param("schoolIds") List<Long> schoolIds,
+                                                                   @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%')) AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findByTitleContainingAndRegionIdInAndActive(@Param("title") String title,
+                                                                   @Param("regionIds") List<Long> regionIds,
+                                                                   @Param("active") boolean active);
+    
+    // Upcoming events with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime > :currentTime AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findUpcomingEventsBySchoolIdInAndActive(@Param("currentTime") LocalDateTime currentTime,
+                                                               @Param("schoolIds") List<Long> schoolIds,
+                                                               @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime > :currentTime AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findUpcomingEventsByRegionIdInAndActive(@Param("currentTime") LocalDateTime currentTime,
+                                                               @Param("regionIds") List<Long> regionIds,
+                                                               @Param("active") boolean active);
+    
+    // Ongoing events with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime <= :currentTime AND e.endTime >= :currentTime AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findOngoingEventsBySchoolIdInAndActive(@Param("currentTime") LocalDateTime currentTime,
+                                                              @Param("schoolIds") List<Long> schoolIds,
+                                                              @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime <= :currentTime AND e.endTime >= :currentTime AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findOngoingEventsByRegionIdInAndActive(@Param("currentTime") LocalDateTime currentTime,
+                                                              @Param("regionIds") List<Long> regionIds,
+                                                              @Param("active") boolean active);
+    
+    // Public events with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.isPublic = true AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findPublicEventsBySchoolIdInAndActive(@Param("schoolIds") List<Long> schoolIds,
+                                                             @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.isPublic = true AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findPublicEventsByRegionIdInAndActive(@Param("regionIds") List<Long> regionIds,
+                                                             @Param("active") boolean active);
+    
+    // Recurring events with multi-tenant security
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.isRecurring = true AND e.school.id IN :schoolIds AND e.active = :active")
+    List<CalendarEvent> findRecurringEventsBySchoolIdInAndActive(@Param("schoolIds") List<Long> schoolIds,
+                                                                @Param("active") boolean active);
+    
+    @EntityGraph(attributePaths = {"createdBy", "school", "school.region", "region", "targetClass", "course", "attendees", "organizers", "approvedBy", "parentEvent"})
+    @Query("SELECT e FROM CalendarEvent e WHERE e.isRecurring = true AND e.region.id IN :regionIds AND e.active = :active")
+    List<CalendarEvent> findRecurringEventsByRegionIdInAndActive(@Param("regionIds") List<Long> regionIds,
+                                                                @Param("active") boolean active);
+    
+    // Business rule validation methods with multi-tenant security
+    @Query("SELECT COUNT(e) > 0 FROM CalendarEvent e WHERE e.title = :title AND e.createdBy.id = :creatorId AND e.school.id IN :schoolIds")
+    boolean existsByTitleAndCreatorIdAndSchoolIdIn(@Param("title") String title,
+                                                   @Param("creatorId") Long creatorId,
+                                                   @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT COUNT(e) > 0 FROM CalendarEvent e WHERE e.course.id = :courseId AND e.school.id IN :schoolIds")
+    boolean existsByCourseIdAndSchoolIdIn(@Param("courseId") Long courseId,
+                                         @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT COUNT(e) > 0 FROM CalendarEvent e WHERE e.targetClass.id = :classId AND e.school.id IN :schoolIds")
+    boolean existsByClassIdAndSchoolIdIn(@Param("classId") Long classId,
+                                        @Param("schoolIds") List<Long> schoolIds);
+    
+    @Query("SELECT COUNT(e) > 0 FROM CalendarEvent e WHERE e.createdBy.id = :creatorId AND e.school.id IN :schoolIds")
+    boolean existsByCreatorIdAndSchoolIdIn(@Param("creatorId") Long creatorId,
+                                          @Param("schoolIds") List<Long> schoolIds);
+    
+    // Count methods for statistics with multi-tenant security
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.school.id IN :schoolIds AND e.active = :active")
+    Long countBySchoolIdInAndActive(@Param("schoolIds") List<Long> schoolIds, @Param("active") boolean active);
+    
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.region.id IN :regionIds AND e.active = :active")
+    Long countByRegionIdInAndActive(@Param("regionIds") List<Long> regionIds, @Param("active") boolean active);
+    
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.eventType = :type AND e.school.id IN :schoolIds AND e.active = :active")
+    Long countByEventTypeAndSchoolIdInAndActive(@Param("type") CalendarEventType type,
+                                               @Param("schoolIds") List<Long> schoolIds,
+                                               @Param("active") boolean active);
+    
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.status = :status AND e.school.id IN :schoolIds AND e.active = :active")
+    Long countByStatusAndSchoolIdInAndActive(@Param("status") CalendarEventStatus status,
+                                            @Param("schoolIds") List<Long> schoolIds,
+                                            @Param("active") boolean active);
+    
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.priority = :priority AND e.school.id IN :schoolIds AND e.active = :active")
+    Long countByPriorityAndSchoolIdInAndActive(@Param("priority") CalendarEventPriority priority,
+                                              @Param("schoolIds") List<Long> schoolIds,
+                                              @Param("active") boolean active);
+    
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.isPublic = true AND e.school.id IN :schoolIds AND e.active = :active")
+    Long countPublicEventsBySchoolIdInAndActive(@Param("schoolIds") List<Long> schoolIds,
+                                               @Param("active") boolean active);
+    
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.isRecurring = true AND e.school.id IN :schoolIds AND e.active = :active")
+    Long countRecurringEventsBySchoolIdInAndActive(@Param("schoolIds") List<Long> schoolIds,
+                                                  @Param("active") boolean active);
+    
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.createdBy.id = :creatorId AND e.school.id IN :schoolIds AND e.active = :active")
+    Long countByCreatorIdAndSchoolIdInAndActive(@Param("creatorId") Long creatorId,
+                                               @Param("schoolIds") List<Long> schoolIds,
+                                               @Param("active") boolean active);
 } 

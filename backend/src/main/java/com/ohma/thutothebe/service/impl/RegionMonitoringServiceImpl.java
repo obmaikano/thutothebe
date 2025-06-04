@@ -359,4 +359,15 @@ public class RegionMonitoringServiceImpl extends BaseServiceImpl<RegionMonitorin
             throw new RuntimeException("Failed to update region monitoring data", e);
         }
     }
+
+    @Override
+    protected Long extractSchoolId(RegionMonitoring entity) {
+        // RegionMonitoring entities don't have direct school relationship
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(RegionMonitoring entity) {
+        return entity.getRegion() != null ? entity.getRegion().getId() : null;
+    }
 } 

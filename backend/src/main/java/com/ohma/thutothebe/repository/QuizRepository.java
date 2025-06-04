@@ -41,59 +41,59 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     // ==================== MULTI-TENANT FILTERING METHODS ====================
     
     // School-level filtering (through course relationship)
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.id = :schoolId")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.id = :schoolId")
     List<Quiz> findBySchoolId(@Param("schoolId") Long schoolId);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.id = :schoolId AND q.active = :active")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.id = :schoolId AND q.active = :active")
     List<Quiz> findBySchoolIdAndActive(@Param("schoolId") Long schoolId, @Param("active") boolean active);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.id = :schoolId AND q.status = :status")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.id = :schoolId AND q.status = :status")
     List<Quiz> findBySchoolIdAndStatus(@Param("schoolId") Long schoolId, @Param("status") QuizStatus status);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.id = :schoolId AND q.active = true")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.id = :schoolId AND q.active = true")
     List<Quiz> findActiveQuizzesBySchoolId(@Param("schoolId") Long schoolId);
     
     // Region-level filtering (through course → school → region relationship)
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.region.id = :regionId")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.region.id = :regionId")
     List<Quiz> findByRegionId(@Param("regionId") Long regionId);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.region.id = :regionId AND q.active = :active")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.region.id = :regionId AND q.active = :active")
     List<Quiz> findByRegionIdAndActive(@Param("regionId") Long regionId, @Param("active") boolean active);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.region.id = :regionId AND q.status = :status")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.region.id = :regionId AND q.status = :status")
     List<Quiz> findByRegionIdAndStatus(@Param("regionId") Long regionId, @Param("status") QuizStatus status);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.region.id = :regionId AND q.active = true")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.region.id = :regionId AND q.active = true")
     List<Quiz> findActiveQuizzesByRegionId(@Param("regionId") Long regionId);
     
     // Course-level filtering with multi-tenancy
-    @Query("SELECT q FROM Quiz q WHERE q.course.id = :courseId AND q.course.school.id IN :schoolIds")
+    @Query("SELECT q FROM Quiz q WHERE q.course.id = :courseId AND q.course.classEntity.school.id IN :schoolIds")
     List<Quiz> findByCourseIdAndSchoolIdIn(@Param("courseId") Long courseId, @Param("schoolIds") List<Long> schoolIds);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.id = :courseId AND q.course.school.id IN :schoolIds AND q.active = :active")
+    @Query("SELECT q FROM Quiz q WHERE q.course.id = :courseId AND q.course.classEntity.school.id IN :schoolIds AND q.active = :active")
     List<Quiz> findByCourseIdAndSchoolIdInAndActive(@Param("courseId") Long courseId, @Param("schoolIds") List<Long> schoolIds, @Param("active") boolean active);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.id = :courseId AND q.course.school.id = :schoolId AND q.active = true")
+    @Query("SELECT q FROM Quiz q WHERE q.course.id = :courseId AND q.course.classEntity.school.id = :schoolId AND q.active = true")
     List<Quiz> findByCourseIdAndSchoolIdAndActive(@Param("courseId") Long courseId, @Param("schoolId") Long schoolId);
     
     // Multi-scope filtering (school IDs list for class-level access)
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.id IN :schoolIds")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.id IN :schoolIds")
     List<Quiz> findBySchoolIdIn(@Param("schoolIds") List<Long> schoolIds);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.id IN :schoolIds AND q.active = :active")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.id IN :schoolIds AND q.active = :active")
     List<Quiz> findBySchoolIdInAndActive(@Param("schoolIds") List<Long> schoolIds, @Param("active") boolean active);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.id IN :schoolIds AND q.status = :status")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.id IN :schoolIds AND q.status = :status")
     List<Quiz> findBySchoolIdInAndStatus(@Param("schoolIds") List<Long> schoolIds, @Param("status") QuizStatus status);
     
     // Region IDs list filtering
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.region.id IN :regionIds")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.region.id IN :regionIds")
     List<Quiz> findByRegionIdIn(@Param("regionIds") List<Long> regionIds);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.region.id IN :regionIds AND q.active = :active")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.region.id IN :regionIds AND q.active = :active")
     List<Quiz> findByRegionIdInAndActive(@Param("regionIds") List<Long> regionIds, @Param("active") boolean active);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.school.region.id IN :regionIds AND q.status = :status")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.school.region.id IN :regionIds AND q.status = :status")
     List<Quiz> findByRegionIdInAndStatus(@Param("regionIds") List<Long> regionIds, @Param("status") QuizStatus status);
     
     // Quiz IDs list filtering (for user-level access)
@@ -118,14 +118,14 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     
     // Combined filtering for complex access patterns
     @Query("SELECT q FROM Quiz q WHERE " +
-           "(q.course.school.id IN :schoolIds OR q.course.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) " +
+           "(q.course.classEntity.school.id IN :schoolIds OR q.course.classEntity.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) " +
            "AND q.active = true")
     List<Quiz> findByMultiScopeAccess(@Param("schoolIds") List<Long> schoolIds, 
                                      @Param("regionIds") List<Long> regionIds, 
                                      @Param("instructorIds") List<Long> instructorIds);
     
     @Query("SELECT q FROM Quiz q WHERE " +
-           "(q.course.school.id IN :schoolIds OR q.course.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) " +
+           "(q.course.classEntity.school.id IN :schoolIds OR q.course.classEntity.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) " +
            "AND q.active = :active")
     List<Quiz> findByMultiScopeAccessAndActive(@Param("schoolIds") List<Long> schoolIds, 
                                               @Param("regionIds") List<Long> regionIds, 
@@ -133,7 +133,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
                                               @Param("active") boolean active);
     
     @Query("SELECT q FROM Quiz q WHERE " +
-           "(q.course.school.id IN :schoolIds OR q.course.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) " +
+           "(q.course.classEntity.school.id IN :schoolIds OR q.course.classEntity.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) " +
            "AND q.status = :status")
     List<Quiz> findByMultiScopeAccessAndStatus(@Param("schoolIds") List<Long> schoolIds, 
                                               @Param("regionIds") List<Long> regionIds, 
@@ -141,7 +141,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
                                               @Param("status") QuizStatus status);
     
     @Query("SELECT q FROM Quiz q WHERE " +
-           "(q.course.school.id IN :schoolIds OR q.course.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) " +
+           "(q.course.classEntity.school.id IN :schoolIds OR q.course.classEntity.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) " +
            "AND q.active = :active AND q.status = :status")
     List<Quiz> findByMultiScopeAccessAndActiveAndStatus(@Param("schoolIds") List<Long> schoolIds, 
                                                        @Param("regionIds") List<Long> regionIds, 
@@ -150,23 +150,23 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
                                                        @Param("status") QuizStatus status);
     
     // Teacher-level filtering with multi-tenancy (through course instructors)
-    @Query("SELECT q FROM Quiz q JOIN q.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId AND q.course.school.id IN :schoolIds AND q.active = true")
+    @Query("SELECT q FROM Quiz q JOIN q.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId AND q.course.classEntity.school.id IN :schoolIds AND q.active = true")
     List<Quiz> findByTeacherIdAndSchoolIdInAndActive(@Param("teacherId") Long teacherId, @Param("schoolIds") List<Long> schoolIds);
     
-    @Query("SELECT q FROM Quiz q JOIN q.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId AND q.course.school.region.id IN :regionIds AND q.active = true")
+    @Query("SELECT q FROM Quiz q JOIN q.course c JOIN c.courseInstructors ci WHERE ci.teacher.id = :teacherId AND q.course.classEntity.school.region.id IN :regionIds AND q.active = true")
     List<Quiz> findByTeacherIdAndRegionIdInAndActive(@Param("teacherId") Long teacherId, @Param("regionIds") List<Long> regionIds);
     
     // Class-level filtering with multi-tenancy (through course → class relationship)
-    @Query("SELECT q FROM Quiz q WHERE q.course.studentClass.id = :classId AND q.course.school.id IN :schoolIds AND q.active = true")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.id = :classId AND q.course.classEntity.school.id IN :schoolIds AND q.active = true")
     List<Quiz> findByClassIdAndSchoolIdInAndActive(@Param("classId") Long classId, @Param("schoolIds") List<Long> schoolIds);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.studentClass.id = :classId AND q.course.school.id = :schoolId AND q.active = true")
+    @Query("SELECT q FROM Quiz q WHERE q.course.classEntity.id = :classId AND q.course.classEntity.school.id = :schoolId AND q.active = true")
     List<Quiz> findByClassIdAndSchoolIdAndActive(@Param("classId") Long classId, @Param("schoolId") Long schoolId);
     
     // Subject-level filtering with multi-tenancy (through course → subject relationship)
-    @Query("SELECT q FROM Quiz q WHERE q.course.subject.id = :subjectId AND q.course.school.id IN :schoolIds AND q.active = true")
+    @Query("SELECT q FROM Quiz q WHERE q.course.subject.id = :subjectId AND q.course.classEntity.school.id IN :schoolIds AND q.active = true")
     List<Quiz> findBySubjectIdAndSchoolIdInAndActive(@Param("subjectId") Long subjectId, @Param("schoolIds") List<Long> schoolIds);
     
-    @Query("SELECT q FROM Quiz q WHERE q.course.subject.id = :subjectId AND q.course.school.region.id IN :regionIds AND q.active = true")
+    @Query("SELECT q FROM Quiz q WHERE q.course.subject.id = :subjectId AND q.course.classEntity.school.region.id IN :regionIds AND q.active = true")
     List<Quiz> findBySubjectIdAndRegionIdInAndActive(@Param("subjectId") Long subjectId, @Param("regionIds") List<Long> regionIds);
 } 

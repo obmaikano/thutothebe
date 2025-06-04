@@ -15,6 +15,53 @@ import java.util.List;
 
 public interface DocumentService extends BaseService<DocumentDTO, Long> {
 
+    // ==================== MULTI-TENANT SECURITY METHODS ====================
+    
+    // Core multi-tenant methods
+    List<DocumentDTO> getDocumentsByAccessibleScopes(Long currentUserId);
+    List<DocumentDTO> getActiveDocumentsByAccessibleScopes(Long currentUserId);
+    List<DocumentDTO> getDocumentsBySchoolIdAndAccessibleScopes(Long schoolId, Long currentUserId);
+    List<DocumentDTO> getDocumentsByRegionIdAndAccessibleScopes(Long regionId, Long currentUserId);
+    
+    // Document type filtering with multi-tenant security
+    List<DocumentDTO> getDocumentsByTypeAndAccessibleScopes(DocumentType type, Long currentUserId);
+    List<DocumentDTO> getDocumentsByCategoryAndAccessibleScopes(DocumentCategory category, Long currentUserId);
+    List<DocumentDTO> getDocumentsByAccessLevelAndAccessibleScopes(DocumentAccessLevel accessLevel, Long currentUserId);
+    List<DocumentDTO> getDocumentsByApprovalStatusAndAccessibleScopes(DocumentApprovalStatus status, Long currentUserId);
+    
+    // Uploader filtering with multi-tenant security
+    List<DocumentDTO> getDocumentsByUploaderIdAndAccessibleScopes(Long uploaderId, Long currentUserId);
+    
+    // Course/Class/Subject filtering with multi-tenant security
+    List<DocumentDTO> getDocumentsByCourseIdAndAccessibleScopes(Long courseId, Long currentUserId);
+    List<DocumentDTO> getDocumentsByClassIdAndAccessibleScopes(Long classId, Long currentUserId);
+    List<DocumentDTO> getDocumentsBySubjectIdAndAccessibleScopes(Long subjectId, Long currentUserId);
+    
+    // Title search with multi-tenant security
+    List<DocumentDTO> searchDocumentsByTitleAndAccessibleScopes(String title, Long currentUserId);
+    
+    // Public documents with multi-tenant security
+    List<DocumentDTO> getPublicDocumentsByAccessibleScopes(Long currentUserId);
+    
+    // Expired documents with multi-tenant security
+    List<DocumentDTO> getExpiredDocumentsByAccessibleScopes(LocalDateTime currentTime, Long currentUserId);
+    
+    // Validation methods with multi-tenant security
+    boolean validateDocumentAccess(Long documentId, Long currentUserId);
+    boolean validateDocumentBusinessRules(DocumentDTO documentDTO, Long currentUserId);
+    
+    // Statistics methods with multi-tenant security
+    Long getDocumentCountByAccessibleScopes(Long currentUserId);
+    Long getDocumentCountByTypeAndAccessibleScopes(DocumentType type, Long currentUserId);
+    Long getDocumentCountByApprovalStatusAndAccessibleScopes(DocumentApprovalStatus status, Long currentUserId);
+    Long getPublicDocumentCountByAccessibleScopes(Long currentUserId);
+    Long getDocumentCountByUploaderIdAndAccessibleScopes(Long uploaderId, Long currentUserId);
+    Long getTotalFileSizeByAccessibleScopes(Long currentUserId);
+    Long getTotalDownloadCountByAccessibleScopes(Long currentUserId);
+    Long getTotalViewCountByAccessibleScopes(Long currentUserId);
+
+    // ==================== EXISTING METHODS ====================
+
     // File upload and management
     DocumentDTO uploadDocument(MultipartFile file, DocumentUploadRequest uploadRequest, Long uploadedById);
     DocumentDTO uploadDocument(MultipartFile file, DocumentDTO documentDTO, Long uploadedById);

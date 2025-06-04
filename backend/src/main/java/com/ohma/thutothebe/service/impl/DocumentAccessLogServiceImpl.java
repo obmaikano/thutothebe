@@ -1045,4 +1045,28 @@ public class DocumentAccessLogServiceImpl extends BaseServiceImpl<DocumentAccess
                 .map(entry -> new Object[]{entry.getKey(), entry.getValue()})
                 .collect(Collectors.toList());
     }
+
+    @Override
+    protected Long extractSchoolId(DocumentAccessLog entity) {
+        // Extract school from document relationship or user relationship
+        if (entity.getDocument() != null && entity.getDocument().getSchool() != null) {
+            return entity.getDocument().getSchool().getId();
+        }
+        if (entity.getUser() != null && entity.getUser().getSchool() != null) {
+            return entity.getUser().getSchool().getId();
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(DocumentAccessLog entity) {
+        // Extract region from document's school or user's school
+        if (entity.getDocument() != null && entity.getDocument().getSchool() != null && entity.getDocument().getSchool().getRegion() != null) {
+            return entity.getDocument().getSchool().getRegion().getId();
+        }
+        if (entity.getUser() != null && entity.getUser().getSchool() != null && entity.getUser().getSchool().getRegion() != null) {
+            return entity.getUser().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

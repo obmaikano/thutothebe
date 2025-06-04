@@ -4,6 +4,7 @@ import com.ohma.thutothebe.dto.CourseDTO;
 import com.ohma.thutothebe.entity.Course;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.entity.Teacher;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.exception.CourseNotFoundException;
 import com.ohma.thutothebe.exception.UserNotFoundException;
 import com.ohma.thutothebe.mapper.CourseMapper;
@@ -72,6 +73,58 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, CourseDTO, Long> 
     }
 
     @Override
+    protected Long extractSchoolId(Course entity) {
+        return entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null 
+               ? entity.getClassEntity().getSchool().getId() 
+               : null;
+    }
+
+    @Override
+    protected Long extractRegionId(Course entity) {
+        return entity.getClassEntity() != null && 
+               entity.getClassEntity().getSchool() != null && 
+               entity.getClassEntity().getSchool().getRegion() != null 
+               ? entity.getClassEntity().getSchool().getRegion().getId() 
+               : null;
+    }
+
+    @Override
+    protected void validateBusinessRules(Course entity, boolean isUpdate) {
+        // Validate course code uniqueness within school
+        Long schoolId = extractSchoolId(entity);
+        if (schoolId != null) {
+            if (!isUpdate && courseRepository.existsByCodeAndSchoolId(entity.getCode(), schoolId)) {
+                throw new IllegalArgumentException("Course code '" + entity.getCode() + "' already exists in this school");
+            }
+            
+            // Validate course name uniqueness within school for same term and year
+            if (courseRepository.existsByNameAndSchoolIdAndTermAndYear(
+                    entity.getName(), schoolId, entity.getTerm(), entity.getYear())) {
+                throw new IllegalArgumentException("Course '" + entity.getName() + "' already exists for " + 
+                                                 entity.getTerm() + " " + entity.getYear() + " in this school");
+            }
+        }
+        
+        // Validate class belongs to same school
+        if (entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null) {
+            Long classSchoolId = entity.getClassEntity().getSchool().getId();
+            if (schoolId != null && !schoolId.equals(classSchoolId)) {
+                throw new IllegalArgumentException("Course class must belong to the same school");
+            }
+        }
+    }
+
+    @Override
+    public List<CourseDTO> getAll() {
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            log.warn("Unauthorized access attempt to getAll courses");
+            return Collections.emptyList();
+        }
+        return getCoursesByAccessibleScopes(currentUserId);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public CourseDTO getCourseByCode(String code) {
         return courseRepository.findByCode(code)
@@ -99,8 +152,11 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, CourseDTO, Long> 
     @Override
     @Transactional(readOnly = true)
     public Set<CourseDTO> getActiveCourses() {
-        return courseRepository.findByActive(true).stream()
-            .map(courseMapper::toDto)
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptySet();
+        }
+        return getActiveCoursesByAccessibleScopes(currentUserId).stream()
             .collect(Collectors.toSet());
     }
 
@@ -154,125 +210,128 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, CourseDTO, Long> 
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getCoursesBySubjectId(Long subjectId) {
-        Subject subject = subjectRepository.findById(subjectId)
-            .orElseThrow(() -> new ResourceNotFoundException("Subject", "id", subjectId));
-        return courseRepository.findBySubject(subject).stream()
-            .map(courseMapper::toDto)
-            .collect(Collectors.toList());
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getActiveCoursesbySubjectId(Long subjectId) {
-        return courseRepository.findBySubjectIdAndActive(subjectId, true).stream()
-            .map(courseMapper::toDto)
-            .collect(Collectors.toList());
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getCoursesByClassId(Long classId) {
-        return courseRepository.findByClassEntityId(classId).stream()
-            .map(courseMapper::toDto)
-            .collect(Collectors.toList());
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesByClassIdAndAccessibleScopes(classId, currentUserId);
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getActiveCoursesByClassId(Long classId) {
-        return courseRepository.findByClassEntityIdAndActive(classId, true).stream()
-            .map(courseMapper::toDto)
-            .collect(Collectors.toList());
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesByClassIdAndAccessibleScopes(classId, currentUserId);
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getCoursesByTeacherId(Long teacherId) {
-        return courseRepository.findByTeacherId(teacherId).stream()
-            .map(courseMapper::toDto)
-            .collect(Collectors.toList());
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getActiveCoursesByTeacherId(Long teacherId) {
-        return courseRepository.findByTeacherId(teacherId).stream()
-            .filter(Course::isActive)
-            .map(courseMapper::toDto)
-            .collect(Collectors.toList());
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getCoursesByTerm(Term term) {
-        return courseRepository.findByTerm(term).stream()
-            .map(courseMapper::toDto)
-            .collect(Collectors.toList());
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesByTermAndAccessibleScopes(term, currentUserId);
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getCoursesByYear(Integer year) {
-        log.debug("Getting courses for year: {}", year);
-        return courseRepository.findByYear(year).stream()
-                .map(courseMapper::toDto)
-                .toList();
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesByYearAndAccessibleScopes(year, currentUserId);
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getCoursesByType(CourseType type) {
-        log.debug("Getting courses for type: {}", type);
-        return courseRepository.findByType(type).stream()
-                .map(courseMapper::toDto)
-                .toList();
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesByTypeAndAccessibleScopes(type, currentUserId);
     }
     
     @Override
     @Transactional(readOnly = true)
     public List<CourseDTO> getActiveCoursesByType(CourseType type) {
-        log.debug("Getting active courses for type: {}", type);
-        return courseRepository.findByTypeAndActive(type, true).stream()
-                .map(courseMapper::toDto)
-                .toList();
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Collections.emptyList();
+        }
+        return getCoursesByTypeAndAccessibleScopes(type, currentUserId);
     }
     
     @Override
     @Transactional
     public CourseDTO createCourse(CourseDTO courseDTO) {
-        if (courseRepository.existsByCode(courseDTO.code())) {
-            throw new IllegalArgumentException("Course with code " + courseDTO.code() + " already exists");
-        }
-        Course course = mapToEntity(courseDTO);
-        beforeCreate(course);
-        Course savedCourse = courseRepository.save(course);
-        return mapToDto(savedCourse);
+        validateCourseBusinessRules(courseDTO, false, getCurrentUserId());
+        return create(courseDTO);
     }
     
     @Override
     @Transactional
     public CourseDTO updateCourse(Long id, CourseDTO courseDTO) {
-        Course existingCourse = courseRepository.findById(id)
-            .orElseThrow(() -> CourseNotFoundException.withId(id));
-        updateEntity(existingCourse, courseDTO);
-        Course updatedCourse = courseRepository.save(existingCourse);
-        return mapToDto(updatedCourse);
+        validateCourseBusinessRules(courseDTO, true, getCurrentUserId());
+        return update(id, courseDTO);
     }
     
     @Override
     @Transactional
     public void deleteCourse(Long id) {
-        if (!courseRepository.existsById(id)) {
-            throw CourseNotFoundException.withId(id);
-        }
-        courseRepository.deleteById(id);
+        delete(id);
     }
     
     @Override
     @Transactional
     public void activateCourse(Long id) {
         Course course = courseRepository.findById(id)
-            .orElseThrow(() -> CourseNotFoundException.withId(id));
+            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
         course.setActive(true);
         courseRepository.save(course);
     }
@@ -281,7 +340,7 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, CourseDTO, Long> 
     @Transactional
     public void deactivateCourse(Long id) {
         Course course = courseRepository.findById(id)
-            .orElseThrow(() -> CourseNotFoundException.withId(id));
+            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
         course.setActive(false);
         courseRepository.save(course);
     }
@@ -290,14 +349,10 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, CourseDTO, Long> 
     @Transactional
     public void addInstructorToCourse(Long courseId, Long teacherId, boolean isPrimary) {
         Course course = courseRepository.findById(courseId)
-            .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
+            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
         
         Teacher teacher = teacherRepository.findById(teacherId)
-            .orElseThrow(() -> new ResourceNotFoundException("Teacher", "id", teacherId));
-        
-        if (courseInstructorRepository.existsByCourseIdAndTeacherId(courseId, teacherId)) {
-            throw new IllegalArgumentException("Teacher is already an instructor for this course");
-        }
+            .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + teacherId));
         
         CourseInstructor courseInstructor = new CourseInstructor();
         courseInstructor.setCourse(course);
@@ -310,18 +365,291 @@ public class CourseServiceImpl extends BaseServiceImpl<Course, CourseDTO, Long> 
     @Override
     @Transactional
     public void removeInstructorFromCourse(Long courseId, Long teacherId) {
-        if (!courseRepository.existsById(courseId)) {
-            throw new ResourceNotFoundException("Course", "id", courseId);
+        CourseInstructor courseInstructor = courseInstructorRepository.findByCourseIdAndTeacherId(courseId, teacherId)
+            .orElseThrow(() -> new ResourceNotFoundException("Course instructor relationship not found"));
+        
+        courseInstructorRepository.delete(courseInstructor);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesByAccessibleScopes(Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.REGION);
+            
+            if (accessibleSchoolIds.isEmpty() && accessibleRegionIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findByMultiScopeAccess(accessibleSchoolIds, accessibleRegionIds);
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by accessible scopes for user {}: {}", userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getActiveCoursesByAccessibleScopes(Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.REGION);
+            
+            if (accessibleSchoolIds.isEmpty() && accessibleRegionIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findByMultiScopeAccessAndActive(accessibleSchoolIds, accessibleRegionIds, true);
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving active courses by accessible scopes for user {}: {}", userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesBySchoolIdAndAccessibleScopes(Long schoolId, Long userId) {
+        try {
+            if (!accessControlService.hasAccess(userId, AccessScope.SCHOOL, schoolId)) {
+                log.warn("User {} denied access to school {}", userId, schoolId);
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findBySchoolId(schoolId);
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by school {} for user {}: {}", schoolId, userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesByRegionIdAndAccessibleScopes(Long regionId, Long userId) {
+        try {
+            if (!accessControlService.hasAccess(userId, AccessScope.REGION, regionId)) {
+                log.warn("User {} denied access to region {}", userId, regionId);
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findByRegionId(regionId);
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by region {} for user {}: {}", regionId, userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesBySubjectIdAndAccessibleScopes(Long subjectId, Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.REGION);
+            
+            if (accessibleSchoolIds.isEmpty() && accessibleRegionIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findBySubjectIdAndSchoolIdInAndActive(subjectId, accessibleSchoolIds, true);
+            if (courses.isEmpty() && !accessibleRegionIds.isEmpty()) {
+                courses = courseRepository.findBySubjectIdAndRegionIdInAndActive(subjectId, accessibleRegionIds, true);
+            }
+            
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by subject {} for user {}: {}", subjectId, userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesByTeacherIdAndAccessibleScopes(Long teacherId, Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.REGION);
+            
+            if (accessibleSchoolIds.isEmpty() && accessibleRegionIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findByTeacherIdAndSchoolIdInAndActive(teacherId, accessibleSchoolIds, true);
+            if (courses.isEmpty() && !accessibleRegionIds.isEmpty()) {
+                courses = courseRepository.findByTeacherIdAndRegionIdInAndActive(teacherId, accessibleRegionIds, true);
+            }
+            
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by teacher {} for user {}: {}", teacherId, userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesByClassIdAndAccessibleScopes(Long classId, Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findByClassIdAndSchoolIdInAndActive(classId, accessibleSchoolIds, true);
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by class {} for user {}: {}", classId, userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesByTermAndAccessibleScopes(Term term, Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findByTermAndSchoolIdInAndActive(term, accessibleSchoolIds, true);
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by term {} for user {}: {}", term, userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesByYearAndAccessibleScopes(Integer year, Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findByYearAndSchoolIdInAndActive(year, accessibleSchoolIds, true);
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by year {} for user {}: {}", year, userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesByTypeAndAccessibleScopes(CourseType type, Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            
+            if (accessibleSchoolIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            
+            List<Course> courses = courseRepository.findByTypeAndSchoolIdInAndActive(type, accessibleSchoolIds, true);
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by type {} for user {}: {}", type, userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDTO> getCoursesByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds) {
+        try {
+            List<Course> courses = courseRepository.findByMultiScopeAccess(schoolIds, regionIds);
+            return courses.stream()
+                    .map(courseMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving courses by multi-scope access: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean validateCourseAccess(Long courseId, Long userId) {
+        try {
+            Course course = courseRepository.findById(courseId).orElse(null);
+            if (course == null) {
+                return false;
+            }
+            
+            Long schoolId = extractSchoolId(course);
+            Long regionId = extractRegionId(course);
+            
+            return (schoolId != null && accessControlService.hasAccess(userId, AccessScope.SCHOOL, schoolId)) ||
+                   (regionId != null && accessControlService.hasAccess(userId, AccessScope.REGION, regionId));
+        } catch (Exception e) {
+            log.error("Error validating course access for user {} and course {}: {}", userId, courseId, e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByCodeAndAccessibleScopes(String code, Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            
+            for (Long schoolId : accessibleSchoolIds) {
+                if (courseRepository.existsByCodeAndSchoolId(code, schoolId)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Error checking course code existence for user {}: {}", userId, e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    public void validateCourseBusinessRules(CourseDTO courseDTO, boolean isUpdate, Long userId) {
+        if (userId == null) {
+            throw new SecurityException("Authentication required for course operations");
         }
         
-        if (!userRepository.existsById(teacherId)) {
-            throw new ResourceNotFoundException("Teacher", "id", teacherId);
+        // Validate user has access to the class's school
+        if (courseDTO.classId() != null) {
+            com.ohma.thutothebe.entity.Class classEntity = classRepository.findById(courseDTO.classId())
+                .orElseThrow(() -> new IllegalArgumentException("Class not found with id: " + courseDTO.classId()));
+            
+            Long schoolId = classEntity.getSchool() != null ? classEntity.getSchool().getId() : null;
+            if (schoolId != null && !accessControlService.hasAccess(userId, AccessScope.SCHOOL, schoolId)) {
+                throw new SecurityException("Access denied: Cannot create/update course in school " + schoolId);
+            }
         }
         
-        if (!courseInstructorRepository.existsByCourseIdAndTeacherId(courseId, teacherId)) {
-            throw new IllegalArgumentException("Teacher is not an instructor for this course");
-        }
-        
-        courseInstructorRepository.deleteByCourseIdAndTeacherId(courseId, teacherId);
+        // Additional business rule validations can be added here
     }
 } 

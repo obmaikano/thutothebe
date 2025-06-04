@@ -138,4 +138,15 @@ public class SchoolServiceImpl extends BaseServiceImpl<School, SchoolDTO, Long> 
     public boolean existsByCode(String code) {
         return schoolRepository.existsByCode(code);
     }
+
+    @Override
+    protected Long extractSchoolId(School entity) {
+        // Schools are themselves the school entity
+        return entity.getId();
+    }
+    
+    @Override
+    protected Long extractRegionId(School entity) {
+        return entity.getRegion() != null ? entity.getRegion().getId() : null;
+    }
 } 

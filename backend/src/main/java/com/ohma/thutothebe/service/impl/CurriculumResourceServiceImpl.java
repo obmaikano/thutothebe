@@ -522,4 +522,23 @@ public class CurriculumResourceServiceImpl extends BaseServiceImpl<CurriculumRes
         // Simplified thumbnail generation
         return originalUrl.replace("/uploads/", "/thumbnails/") + "_thumb.jpg";
     }
+
+    @Override
+    protected Long extractSchoolId(CurriculumResource entity) {
+        // Extract school from curriculum's school
+        return entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null 
+            ? entity.getCurriculum().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(CurriculumResource entity) {
+        // Extract region from curriculum's region or school's region
+        if (entity.getCurriculum() != null && entity.getCurriculum().getRegion() != null) {
+            return entity.getCurriculum().getRegion().getId();
+        }
+        if (entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null && entity.getCurriculum().getSchool().getRegion() != null) {
+            return entity.getCurriculum().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

@@ -191,4 +191,16 @@ public class PermissionServiceImpl extends BaseServiceImpl<Permission, Permissio
         
         log.info("Default permissions initialization completed");
     }
+
+    @Override
+    protected Long extractSchoolId(Permission entity) {
+        // Permissions are system-level entities not tied to specific schools
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Permission entity) {
+        // Permissions are system-level entities not tied to specific regions
+        return null;
+    }
 } 

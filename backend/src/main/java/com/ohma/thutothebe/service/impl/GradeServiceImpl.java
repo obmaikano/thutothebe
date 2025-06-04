@@ -1005,4 +1005,16 @@ public class GradeServiceImpl extends BaseServiceImpl<Grade, GradeDTO, Long> imp
     public boolean existsForStudentAndCategory(Long studentId, Long gradeCategoryId) {
         return gradeRepository.existsByStudentIdAndGradeCategoryIdAndActive(studentId, gradeCategoryId, true);
     }
+
+    @Override
+    protected Long extractSchoolId(Grade entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Grade entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null && entity.getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

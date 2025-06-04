@@ -49,7 +49,7 @@ const contentApi = {
    * @returns Response with a list of content
    */
   getAll: async (): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get('/api/v1/content');
+    return api.get('/content');
   },
 
   /**
@@ -58,7 +58,7 @@ const contentApi = {
    * @returns Response with content details
    */
   getById: async (id: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/${id}`);
+    return api.get(`/content/${id}`);
   },
 
   /**
@@ -67,7 +67,7 @@ const contentApi = {
    * @returns Response with course content
    */
   getByCourse: async (courseId: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/course/${courseId}`);
+    return api.get(`/content/course/${courseId}`);
   },
 
   /**
@@ -77,7 +77,7 @@ const contentApi = {
    * @returns Response with filtered content
    */
   getByType: async (courseId: number, type: string): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/course/${courseId}/type/${type}`);
+    return api.get(`/content/course/${courseId}/type/${type}`);
   },
 
   /**
@@ -86,7 +86,7 @@ const contentApi = {
    * @returns Response with active course content
    */
   getActiveByCourse: async (courseId: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/course/${courseId}/active`);
+    return api.get(`/content/course/${courseId}/active`);
   },
 
   /**
@@ -96,7 +96,7 @@ const contentApi = {
    * @returns Response with active filtered content
    */
   getActiveByType: async (courseId: number, type: string): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/course/${courseId}/type/${type}/active`);
+    return api.get(`/content/course/${courseId}/type/${type}/active`);
   },
 
   /**
@@ -105,7 +105,7 @@ const contentApi = {
    * @returns Response with teacher's content
    */
   getByTeacher: async (teacherId: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/teacher/${teacherId}`);
+    return api.get(`/content/teacher/${teacherId}`);
   },
 
   /**
@@ -114,7 +114,7 @@ const contentApi = {
    * @returns Response with teacher's active content
    */
   getActiveByTeacher: async (teacherId: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/teacher/${teacherId}/active`);
+    return api.get(`/content/teacher/${teacherId}/active`);
   },
 
   /**
@@ -124,7 +124,7 @@ const contentApi = {
    * @returns Response with teacher's content by type
    */
   getByTeacherAndType: async (teacherId: number, type: string): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/teacher/${teacherId}/type/${type}`);
+    return api.get(`/content/teacher/${teacherId}/type/${type}`);
   },
 
   /**
@@ -133,7 +133,7 @@ const contentApi = {
    * @returns Response with creator's content
    */
   getByCreator: async (userId: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/created-by/${userId}`);
+    return api.get(`/content/created-by/${userId}`);
   },
 
   /**
@@ -142,7 +142,7 @@ const contentApi = {
    * @returns Response with creator's active content
    */
   getActiveByCreator: async (userId: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/created-by/${userId}/active`);
+    return api.get(`/content/created-by/${userId}/active`);
   },
 
   /**
@@ -152,7 +152,7 @@ const contentApi = {
    * @returns Response indicating if content exists
    */
   checkExists: async (title: string, courseId: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.get(`/api/v1/content/exists?title=${encodeURIComponent(title)}&courseId=${courseId}`);
+    return api.get(`/content/exists?title=${encodeURIComponent(title)}&courseId=${courseId}`);
   },
 
   /**
@@ -161,7 +161,7 @@ const contentApi = {
    * @returns Response with created content details
    */
   create: async (contentData: CreateContentRequest): Promise<AxiosResponse<ContentResponse>> => {
-    return api.post('/api/v1/content', contentData);
+    return api.post('/content', contentData);
   },
 
   /**
@@ -171,7 +171,7 @@ const contentApi = {
    * @returns Response with updated content details
    */
   update: async (id: number, contentData: UpdateContentRequest): Promise<AxiosResponse<ContentResponse>> => {
-    return api.put(`/api/v1/content/${id}`, contentData);
+    return api.put(`/content/${id}`, contentData);
   },
 
   /**
@@ -180,7 +180,7 @@ const contentApi = {
    * @returns Response indicating success/failure
    */
   delete: async (id: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.delete(`/api/v1/content/${id}`);
+    return api.delete(`/content/${id}`);
   },
 
   /**
@@ -189,7 +189,7 @@ const contentApi = {
    * @returns Response indicating success/failure
    */
   activate: async (id: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.put(`/api/v1/content/${id}/activate`);
+    return api.put(`/content/${id}/activate`);
   },
 
   /**
@@ -198,7 +198,7 @@ const contentApi = {
    * @returns Response indicating success/failure
    */
   deactivate: async (id: number): Promise<AxiosResponse<ContentResponse>> => {
-    return api.put(`/api/v1/content/${id}/deactivate`);
+    return api.put(`/content/${id}/deactivate`);
   }
 };
 

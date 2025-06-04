@@ -895,4 +895,14 @@ public class AnnouncementServiceImpl extends BaseServiceImpl<Announcement, Annou
         // For now, returning true as a simplified implementation
         return true;
     }
+
+    @Override
+    protected Long extractSchoolId(Announcement entity) {
+        return entity.getTargetSchool() != null ? entity.getTargetSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Announcement entity) {
+        return entity.getTargetRegion() != null ? entity.getTargetRegion().getId() : null;
+    }
 } 

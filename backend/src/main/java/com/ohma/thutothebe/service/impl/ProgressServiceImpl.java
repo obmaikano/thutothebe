@@ -165,4 +165,16 @@ public class ProgressServiceImpl extends BaseServiceImpl<Progress, ProgressDTO, 
     protected RuntimeException notFoundException(Long id) {
         return ProgressNotFoundException.withId(id);
     }
+
+    @Override
+    protected Long extractSchoolId(Progress entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Progress entity) {
+        return entity.getCourse() != null && entity.getCourse().getClassEntity() != null && entity.getCourse().getClassEntity().getSchool() != null && entity.getCourse().getClassEntity().getSchool().getRegion() != null 
+            ? entity.getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

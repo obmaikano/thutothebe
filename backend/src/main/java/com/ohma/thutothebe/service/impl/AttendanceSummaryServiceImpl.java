@@ -841,4 +841,28 @@ public class AttendanceSummaryServiceImpl extends BaseServiceImpl<AttendanceSumm
         // Calculate percentage (this will be done automatically in @PrePersist/@PreUpdate)
         summary.calculateAttendancePercentage();
     }
+
+    @Override
+    protected Long extractSchoolId(AttendanceSummary entity) {
+        // Extract school from student or class entity
+        if (entity.getStudentUser() != null && entity.getStudentUser().getSchool() != null) {
+            return entity.getStudentUser().getSchool().getId();
+        }
+        if (entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null) {
+            return entity.getClassEntity().getSchool().getId();
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(AttendanceSummary entity) {
+        // Extract region from student's school or class's school
+        if (entity.getStudentUser() != null && entity.getStudentUser().getSchool() != null && entity.getStudentUser().getSchool().getRegion() != null) {
+            return entity.getStudentUser().getSchool().getRegion().getId();
+        }
+        if (entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null && entity.getClassEntity().getSchool().getRegion() != null) {
+            return entity.getClassEntity().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

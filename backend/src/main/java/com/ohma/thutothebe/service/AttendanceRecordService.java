@@ -14,6 +14,89 @@ import java.util.Map;
 
 public interface AttendanceRecordService extends BaseService<AttendanceRecordDTO, Long> {
 
+    // ==================== MULTI-TENANT SECURITY METHODS ====================
+    
+    // Core multi-tenant methods
+    List<AttendanceRecordDTO> getAttendanceRecordsByAccessibleScopes(Long currentUserId);
+    List<AttendanceRecordDTO> getActiveAttendanceRecordsByAccessibleScopes(Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceRecordsBySchoolIdAndAccessibleScopes(Long schoolId, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceRecordsByRegionIdAndAccessibleScopes(Long regionId, Long currentUserId);
+    
+    // Student-based queries with multi-tenant security
+    List<AttendanceRecordDTO> getAttendanceByStudentAndAccessibleScopes(Long studentId, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByStudentAndDateAndAccessibleScopes(Long studentId, LocalDate date, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByStudentAndDateRangeAndAccessibleScopes(Long studentId, LocalDate startDate, LocalDate endDate, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByStudentAndAcademicYearAndAccessibleScopes(Long studentId, Integer academicYear, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByStudentAndAcademicYearAndTermAndAccessibleScopes(Long studentId, Integer academicYear, Term term, Long currentUserId);
+    
+    // Class-based queries with multi-tenant security
+    List<AttendanceRecordDTO> getAttendanceByClassAndAccessibleScopes(Long classId, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByClassAndDateAndAccessibleScopes(Long classId, LocalDate date, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByClassAndDateRangeAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Long currentUserId);
+    
+    // Course-based queries with multi-tenant security
+    List<AttendanceRecordDTO> getAttendanceByCourseAndAccessibleScopes(Long courseId, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByCourseAndDateAndAccessibleScopes(Long courseId, LocalDate date, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByCourseAndDateRangeAndAccessibleScopes(Long courseId, LocalDate startDate, LocalDate endDate, Long currentUserId);
+    
+    // Subject-based queries with multi-tenant security
+    List<AttendanceRecordDTO> getAttendanceBySubjectAndAccessibleScopes(Long subjectId, Long currentUserId);
+    
+    // Teacher-based queries with multi-tenant security
+    List<AttendanceRecordDTO> getAttendanceByTeacherAndAccessibleScopes(Long teacherId, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByTeacherAndDateAndAccessibleScopes(Long teacherId, LocalDate date, Long currentUserId);
+    
+    // Status-based queries with multi-tenant security
+    List<AttendanceRecordDTO> getAttendanceByStatusAndAccessibleScopes(AttendanceStatus status, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByClassAndStatusAndDateAndAccessibleScopes(Long classId, AttendanceStatus status, LocalDate date, Long currentUserId);
+    
+    // Type-based queries with multi-tenant security
+    List<AttendanceRecordDTO> getAttendanceByTypeAndAccessibleScopes(AttendanceType type, Long currentUserId);
+    
+    // Period-based queries with multi-tenant security
+    List<AttendanceRecordDTO> getAttendanceByClassAndDateAndTypeAndPeriodAndAccessibleScopes(Long classId, LocalDate date, AttendanceType type, Integer periodNumber, Long currentUserId);
+    
+    // Academic year and term queries with multi-tenant security
+    List<AttendanceRecordDTO> getAttendanceByAcademicYearAndAccessibleScopes(Integer academicYear, Long currentUserId);
+    List<AttendanceRecordDTO> getAttendanceByAcademicYearAndTermAndAccessibleScopes(Integer academicYear, Term term, Long currentUserId);
+    
+    // Modified records tracking with multi-tenant security
+    List<AttendanceRecordDTO> getModifiedRecordsByAccessibleScopes(Long currentUserId);
+    List<AttendanceRecordDTO> getModifiedRecordsByUserAndAccessibleScopes(Long userId, Long currentUserId);
+    
+    // Validation methods with multi-tenant security
+    boolean validateAttendanceRecordAccess(Long attendanceId, Long currentUserId);
+    boolean validateAttendanceRecordBusinessRules(AttendanceRecordDTO attendanceDTO, Long currentUserId);
+    boolean hasExistingAttendanceAndAccessibleScopes(Long studentId, LocalDate date, AttendanceType type, Long courseId, Integer periodNumber, Long currentUserId);
+    AttendanceRecordDTO getExistingAttendanceAndAccessibleScopes(Long studentId, LocalDate date, AttendanceType type, Long courseId, Integer periodNumber, Long currentUserId);
+    
+    // Statistics and reporting with multi-tenant security
+    Map<AttendanceStatus, Long> getAttendanceStatsByStudentAndAccessibleScopes(Long studentId, Integer academicYear, Long currentUserId);
+    Map<AttendanceStatus, Long> getAttendanceStatsByStudentAndTermAndAccessibleScopes(Long studentId, Integer academicYear, Term term, Long currentUserId);
+    Map<AttendanceStatus, Long> getAttendanceStatsByClassAndDateAndAccessibleScopes(Long classId, LocalDate date, Long currentUserId);
+    Double getAttendancePercentageByStudentAndAccessibleScopes(Long studentId, Integer academicYear, Long currentUserId);
+    Double getAttendancePercentageByStudentAndTermAndAccessibleScopes(Long studentId, Integer academicYear, Term term, Long currentUserId);
+    Double getAttendancePercentageByClassAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Long currentUserId);
+    
+    // Low attendance identification with multi-tenant security
+    List<Long> getStudentsWithLowAttendanceAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Double threshold, Long currentUserId);
+    List<AttendanceRecordDTO> getStudentsWithLowAttendanceDetailsAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Double threshold, Long currentUserId);
+    
+    // Dashboard data with multi-tenant security
+    Map<String, Object> getAttendanceDashboardDataAndAccessibleScopes(Long classId, LocalDate date, Long currentUserId);
+    Map<String, Object> getTeacherAttendanceDashboardAndAccessibleScopes(Long teacherId, LocalDate startDate, LocalDate endDate, Long currentUserId);
+    Map<String, Object> getSchoolAttendanceDashboardAndAccessibleScopes(Long schoolId, LocalDate startDate, LocalDate endDate, Long currentUserId);
+    
+    // Attendance trends with multi-tenant security
+    List<Map<String, Object>> getAttendanceTrendsAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Long currentUserId);
+    List<Map<String, Object>> getStudentAttendanceTrendsAndAccessibleScopes(Long studentId, LocalDate startDate, LocalDate endDate, Long currentUserId);
+    
+    // Quick marking support with multi-tenant security
+    List<AttendanceRecordDTO> quickMarkAllPresentAndAccessibleScopes(Long classId, LocalDate date, AttendanceType type, Integer periodNumber, Long markedById, Long currentUserId);
+    List<AttendanceRecordDTO> quickMarkAllAbsentAndAccessibleScopes(Long classId, LocalDate date, AttendanceType type, Integer periodNumber, Long markedById, AttendanceStatus absentType, Long currentUserId);
+
+    // ==================== EXISTING METHODS ====================
+
     // Student-based queries
     List<AttendanceRecordDTO> getAttendanceByStudent(Long studentId);
     

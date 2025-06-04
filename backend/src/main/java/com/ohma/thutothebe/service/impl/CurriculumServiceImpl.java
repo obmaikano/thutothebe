@@ -1175,4 +1175,21 @@ public class CurriculumServiceImpl extends BaseServiceImpl<Curriculum, Curriculu
         public String getAssessmentMethods() { return assessmentMethods; }
         public void setAssessmentMethods(String assessmentMethods) { this.assessmentMethods = assessmentMethods; }
     }
+
+    @Override
+    protected Long extractSchoolId(Curriculum entity) {
+        return entity.getSchool() != null ? entity.getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Curriculum entity) {
+        // Extract region from curriculum's region or school's region
+        if (entity.getRegion() != null) {
+            return entity.getRegion().getId();
+        }
+        if (entity.getSchool() != null && entity.getSchool().getRegion() != null) {
+            return entity.getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

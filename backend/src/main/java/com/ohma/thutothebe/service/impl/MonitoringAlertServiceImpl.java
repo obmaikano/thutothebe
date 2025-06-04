@@ -451,4 +451,23 @@ public class MonitoringAlertServiceImpl extends BaseServiceImpl<MonitoringAlert,
             case LOW -> 50;
         };
     }
+
+    @Override
+    protected Long extractSchoolId(MonitoringAlert entity) {
+        // MonitoringAlerts can be scoped to school, region, or global
+        if (entity.getScope() == MonitoringScope.SCHOOL && entity.getScopeId() != null) {
+            return entity.getScopeId();
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(MonitoringAlert entity) {
+        // MonitoringAlerts can be scoped to region or derived from school
+        if (entity.getScope() == MonitoringScope.REGION && entity.getScopeId() != null) {
+            return entity.getScopeId();
+        }
+        // Could also extract region from school if scope is SCHOOL
+        return null;
+    }
 } 

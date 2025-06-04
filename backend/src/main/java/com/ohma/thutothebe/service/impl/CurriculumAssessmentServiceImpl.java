@@ -848,4 +848,23 @@ public class CurriculumAssessmentServiceImpl extends BaseServiceImpl<CurriculumA
         // Simplified: assume good sequence if order is defined
         return assessment.getSequenceOrder() != null ? 0.8 : 0.4;
     }
+
+    @Override
+    protected Long extractSchoolId(CurriculumAssessment entity) {
+        // Extract school from curriculum's school
+        return entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null 
+            ? entity.getCurriculum().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(CurriculumAssessment entity) {
+        // Extract region from curriculum's region or school's region
+        if (entity.getCurriculum() != null && entity.getCurriculum().getRegion() != null) {
+            return entity.getCurriculum().getRegion().getId();
+        }
+        if (entity.getCurriculum() != null && entity.getCurriculum().getSchool() != null && entity.getCurriculum().getSchool().getRegion() != null) {
+            return entity.getCurriculum().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

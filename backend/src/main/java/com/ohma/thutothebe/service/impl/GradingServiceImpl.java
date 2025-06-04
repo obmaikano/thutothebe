@@ -313,4 +313,28 @@ public class GradingServiceImpl extends BaseServiceImpl<GradingResult, GradingRe
                 return 0.0;
         }
     }
+
+    @Override
+    protected Long extractSchoolId(GradingResult entity) {
+        // Grading results can be for submissions or quiz submissions - extract from either
+        if (entity.getSubmission() != null && entity.getSubmission().getCourse() != null && entity.getSubmission().getCourse().getClassEntity() != null && entity.getSubmission().getCourse().getClassEntity().getSchool() != null) {
+            return entity.getSubmission().getCourse().getClassEntity().getSchool().getId();
+        }
+        if (entity.getQuizSubmission() != null && entity.getQuizSubmission().getQuiz() != null && entity.getQuizSubmission().getQuiz().getCourse() != null && entity.getQuizSubmission().getQuiz().getCourse().getClassEntity() != null && entity.getQuizSubmission().getQuiz().getCourse().getClassEntity().getSchool() != null) {
+            return entity.getQuizSubmission().getQuiz().getCourse().getClassEntity().getSchool().getId();
+        }
+        return null;
+    }
+    
+    @Override
+    protected Long extractRegionId(GradingResult entity) {
+        // Grading results can be for submissions or quiz submissions - extract from either
+        if (entity.getSubmission() != null && entity.getSubmission().getCourse() != null && entity.getSubmission().getCourse().getClassEntity() != null && entity.getSubmission().getCourse().getClassEntity().getSchool() != null && entity.getSubmission().getCourse().getClassEntity().getSchool().getRegion() != null) {
+            return entity.getSubmission().getCourse().getClassEntity().getSchool().getRegion().getId();
+        }
+        if (entity.getQuizSubmission() != null && entity.getQuizSubmission().getQuiz() != null && entity.getQuizSubmission().getQuiz().getCourse() != null && entity.getQuizSubmission().getQuiz().getCourse().getClassEntity() != null && entity.getQuizSubmission().getQuiz().getCourse().getClassEntity().getSchool() != null && entity.getQuizSubmission().getQuiz().getCourse().getClassEntity().getSchool().getRegion() != null) {
+            return entity.getQuizSubmission().getQuiz().getCourse().getClassEntity().getSchool().getRegion().getId();
+        }
+        return null;
+    }
 } 

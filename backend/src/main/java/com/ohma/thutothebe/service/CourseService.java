@@ -34,4 +34,76 @@ public interface CourseService extends BaseService<CourseDTO, Long> {
     void deactivateCourse(Long id);
     void addInstructorToCourse(Long courseId, Long teacherId, boolean isPrimary);
     void removeInstructorFromCourse(Long courseId, Long teacherId);
+
+    // ==================== MULTI-TENANT SECURITY METHODS ====================
+    
+    /**
+     * Get courses accessible to the current user based on their access scopes
+     */
+    List<CourseDTO> getCoursesByAccessibleScopes(Long userId);
+    
+    /**
+     * Get active courses accessible to the current user based on their access scopes
+     */
+    List<CourseDTO> getActiveCoursesByAccessibleScopes(Long userId);
+    
+    /**
+     * Get courses by school ID with access validation
+     */
+    List<CourseDTO> getCoursesBySchoolIdAndAccessibleScopes(Long schoolId, Long userId);
+    
+    /**
+     * Get courses by region ID with access validation
+     */
+    List<CourseDTO> getCoursesByRegionIdAndAccessibleScopes(Long regionId, Long userId);
+    
+    /**
+     * Get courses by subject ID with multi-tenant security
+     */
+    List<CourseDTO> getCoursesBySubjectIdAndAccessibleScopes(Long subjectId, Long userId);
+    
+    /**
+     * Get courses by teacher ID with multi-tenant security
+     */
+    List<CourseDTO> getCoursesByTeacherIdAndAccessibleScopes(Long teacherId, Long userId);
+    
+    /**
+     * Get courses by class ID with multi-tenant security
+     */
+    List<CourseDTO> getCoursesByClassIdAndAccessibleScopes(Long classId, Long userId);
+    
+    /**
+     * Get courses by term with multi-tenant security
+     */
+    List<CourseDTO> getCoursesByTermAndAccessibleScopes(Term term, Long userId);
+    
+    /**
+     * Get courses by year with multi-tenant security
+     */
+    List<CourseDTO> getCoursesByYearAndAccessibleScopes(Integer year, Long userId);
+    
+    /**
+     * Get courses by type with multi-tenant security
+     */
+    List<CourseDTO> getCoursesByTypeAndAccessibleScopes(CourseType type, Long userId);
+    
+    /**
+     * Get courses by multi-scope access (schools and regions)
+     */
+    List<CourseDTO> getCoursesByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds);
+    
+    /**
+     * Validate course access for current user
+     */
+    boolean validateCourseAccess(Long courseId, Long userId);
+    
+    /**
+     * Check if course code exists within user's accessible schools
+     */
+    boolean existsByCodeAndAccessibleScopes(String code, Long userId);
+    
+    /**
+     * Validate business rules for course creation/update
+     */
+    void validateCourseBusinessRules(CourseDTO courseDTO, boolean isUpdate, Long userId);
 } 

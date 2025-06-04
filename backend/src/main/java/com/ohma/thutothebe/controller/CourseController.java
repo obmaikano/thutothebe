@@ -32,6 +32,8 @@ public class CourseController extends BaseController<CourseDTO, Long> {
         this.courseService = courseService;
     }
 
+    // ==================== SECURE MULTI-TENANT OVERRIDES ====================
+
     @Override
     @GetMapping
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getAll() {
@@ -42,22 +44,12 @@ public class CourseController extends BaseController<CourseDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get accessible class IDs and filter courses by those classes
-            List<Long> accessibleClassIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.CLASS);
-            
-            if (accessibleClassIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible courses", List.of(), null));
-            }
-
-            List<CourseDTO> allCourses = courseService.getAll();
-            List<CourseDTO> accessibleCourses = allCourses.stream()
-                    .filter(course -> accessibleClassIds.contains(course.classId()))
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", accessibleCourses, null));
+            // Use secure database-level filtering instead of memory filtering
+            List<CourseDTO> courses = courseService.getCoursesByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", courses, null));
         } catch (Exception e) {
             log.error("Error retrieving courses: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
@@ -71,64 +63,64 @@ public class CourseController extends BaseController<CourseDTO, Long> {
                 return createUnauthorizedResponse();
             }
 
-            CourseDTO course = courseService.getById(id);
-            
-            // Check if user has access to view this course (via class access)
-            if (!hasAccess(AccessScope.CLASS, course.classId())) {
+            // Validate access before retrieving
+            if (!courseService.validateCourseAccess(id, currentUserId)) {
                 return createAccessDeniedResponse();
             }
 
+            CourseDTO course = courseService.getById(id);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course retrieved successfully", course, null));
         } catch (Exception e) {
             log.error("Error retrieving course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @Override
     @PostMapping
-    public ResponseEntity<OhmaApiResponse<CourseDTO>> create(@RequestBody CourseDTO dto) {
+    public ResponseEntity<OhmaApiResponse<CourseDTO>> create(@Valid @RequestBody CourseDTO dto) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return createUnauthorizedResponse();
             }
 
-            // Check if user has permission to create courses in this class
-            if (!hasAccess(AccessScope.CLASS, dto.classId())) {
-                return createAccessDeniedResponse();
-            }
-
-            CourseDTO created = courseService.create(dto);
+            // Business rule validation is handled in service layer
+            CourseDTO created = courseService.createCourse(dto);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course created successfully", created, null));
+        } catch (SecurityException e) {
+            log.warn("Access denied creating course: {}", e.getMessage());
+            return createAccessDeniedResponse();
         } catch (Exception e) {
             log.error("Error creating course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @Override
     @PutMapping("/{id}")
-    public ResponseEntity<OhmaApiResponse<CourseDTO>> update(@PathVariable Long id, @RequestBody CourseDTO dto) {
+    public ResponseEntity<OhmaApiResponse<CourseDTO>> update(@PathVariable Long id, @Valid @RequestBody CourseDTO dto) {
         try {
             Long currentUserId = getCurrentUserId();
             if (currentUserId == null) {
                 return createUnauthorizedResponse();
             }
 
-            // Check if user has access to update this course (via class access)
-            CourseDTO existingCourse = courseService.getById(id);
-            if (!hasAccess(AccessScope.CLASS, existingCourse.classId())) {
+            // Validate access before updating
+            if (!courseService.validateCourseAccess(id, currentUserId)) {
                 return createAccessDeniedResponse();
             }
 
-            CourseDTO updated = courseService.update(id, dto);
+            CourseDTO updated = courseService.updateCourse(id, dto);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course updated successfully", updated, null));
+        } catch (SecurityException e) {
+            log.warn("Access denied updating course: {}", e.getMessage());
+            return createAccessDeniedResponse();
         } catch (Exception e) {
             log.error("Error updating course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
@@ -143,21 +135,22 @@ public class CourseController extends BaseController<CourseDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to delete this course (via class access)
-            CourseDTO course = courseService.getById(id);
-            if (!hasAccess(AccessScope.CLASS, course.classId())) {
+            // Validate access before deleting
+            if (!courseService.validateCourseAccess(id, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
 
-            courseService.delete(id);
+            courseService.deleteCourse(id);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course deleted successfully", null, null));
         } catch (Exception e) {
             log.error("Error deleting course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
+
+    // ==================== SECURE COURSE-SPECIFIC ENDPOINTS ====================
 
     @GetMapping("/code/{code}")
     @Operation(summary = "Get course by code")
@@ -170,21 +163,21 @@ public class CourseController extends BaseController<CourseDTO, Long> {
 
             CourseDTO course = courseService.getCourseByCode(code);
             
-            // Check if user has access to view this course (via class access)
-            if (!hasAccess(AccessScope.CLASS, course.classId())) {
+            // Validate access to the retrieved course
+            if (!courseService.validateCourseAccess(course.id(), currentUserId)) {
                 return createAccessDeniedResponse();
             }
 
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course retrieved successfully", course, null));
         } catch (Exception e) {
-            log.error("Error retrieving course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving course by code: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @GetMapping("/active")
-    @Operation(summary = "Get all active courses")
+    @Operation(summary = "Get all active courses with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getActiveCourses() {
         try {
             Long currentUserId = getCurrentUserId();
@@ -193,54 +186,56 @@ public class CourseController extends BaseController<CourseDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get accessible class IDs and filter active courses by those classes
-            List<Long> accessibleClassIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.CLASS);
-            
-            if (accessibleClassIds.isEmpty()) {
-                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No accessible courses", List.of(), null));
-            }
-
-            List<CourseDTO> allActiveCourses = courseService.getActiveCourses().stream().toList();
-            List<CourseDTO> accessibleCourses = allActiveCourses.stream()
-                    .filter(course -> accessibleClassIds.contains(course.classId()))
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses retrieved successfully", accessibleCourses, null));
+            // Use secure database-level filtering
+            List<CourseDTO> courses = courseService.getActiveCoursesByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses retrieved successfully", courses, null));
         } catch (Exception e) {
             log.error("Error retrieving active courses: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @GetMapping("/subject/{subjectId}")
-    @Operation(summary = "Get courses by subject ID")
+    @Operation(summary = "Get courses by subject ID with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getCoursesBySubjectId(@PathVariable Long subjectId) {
         try {
-            List<CourseDTO> courses = courseService.getCoursesBySubjectId(subjectId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses for subject retrieved successfully", courses, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving courses for subject: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving courses by subject: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
-    
+
     @GetMapping("/subject/{subjectId}/active")
-    @Operation(summary = "Get active courses by subject ID")
+    @Operation(summary = "Get active courses by subject ID with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getActiveCoursesBySubjectId(@PathVariable Long subjectId) {
         try {
-            List<CourseDTO> courses = courseService.getActiveCoursesbySubjectId(subjectId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses for subject retrieved successfully", courses, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesBySubjectIdAndAccessibleScopes(subjectId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving active courses for subject: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving active courses by subject: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @GetMapping("/class/{classId}")
-    @Operation(summary = "Get courses by class ID")
+    @Operation(summary = "Get courses by class ID with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getCoursesByClassId(@PathVariable Long classId) {
         try {
             Long currentUserId = getCurrentUserId();
@@ -249,36 +244,36 @@ public class CourseController extends BaseController<CourseDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this class's courses
-            if (!hasAccess(AccessScope.CLASS, classId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to this class", null, null));
-            }
-
-            List<CourseDTO> courses = courseService.getCoursesByClassId(classId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses for class retrieved successfully", courses, null));
+            List<CourseDTO> courses = courseService.getCoursesByClassIdAndAccessibleScopes(classId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving courses for class: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving courses by class: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
-    
+
     @GetMapping("/class/{classId}/active")
-    @Operation(summary = "Get active courses by class ID")
+    @Operation(summary = "Get active courses by class ID with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getActiveCoursesByClassId(@PathVariable Long classId) {
         try {
-            List<CourseDTO> courses = courseService.getActiveCoursesByClassId(classId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses for class retrieved successfully", courses, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesByClassIdAndAccessibleScopes(classId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving active courses for class: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving active courses by class: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 
     @GetMapping("/teacher/{teacherId}")
-    @Operation(summary = "Get courses by teacher ID")
+    @Operation(summary = "Get courses by teacher ID with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getCoursesByTeacherId(@PathVariable Long teacherId) {
         try {
             Long currentUserId = getCurrentUserId();
@@ -287,85 +282,151 @@ public class CourseController extends BaseController<CourseDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this teacher's courses
-            if (!hasAccess(AccessScope.USER, teacherId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to teacher data", null, null));
-            }
-
-            List<CourseDTO> courses = courseService.getCoursesByTeacherId(teacherId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses for teacher retrieved successfully", courses, null));
+            List<CourseDTO> courses = courseService.getCoursesByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving courses for teacher: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving courses by teacher: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
-    
+
     @GetMapping("/teacher/{teacherId}/active")
-    @Operation(summary = "Get active courses by teacher ID")
+    @Operation(summary = "Get active courses by teacher ID with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getActiveCoursesByTeacherId(@PathVariable Long teacherId) {
         try {
-            List<CourseDTO> courses = courseService.getActiveCoursesByTeacherId(teacherId);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses for teacher retrieved successfully", courses, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving active courses for teacher: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving active courses by teacher: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
-    
+
     @GetMapping("/term/{term}")
-    @Operation(summary = "Get courses by term")
+    @Operation(summary = "Get courses by term with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getCoursesByTerm(@PathVariable Term term) {
         try {
-            List<CourseDTO> courses = courseService.getCoursesByTerm(term);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses for term retrieved successfully", courses, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesByTermAndAccessibleScopes(term, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving courses for term: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving courses by term: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
-    
+
     @GetMapping("/year/{year}")
-    @Operation(summary = "Get courses by year")
+    @Operation(summary = "Get courses by year with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getCoursesByYear(@PathVariable Integer year) {
         try {
-            List<CourseDTO> courses = courseService.getCoursesByYear(year);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses for year retrieved successfully", courses, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesByYearAndAccessibleScopes(year, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving courses for year: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving courses by year: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
-    
+
     @GetMapping("/type/{type}")
-    @Operation(summary = "Get courses by type (CORE or ELECTIVE)")
+    @Operation(summary = "Get courses by type with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getCoursesByType(@PathVariable CourseType type) {
         try {
-            List<CourseDTO> courses = courseService.getCoursesByType(type);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses for type retrieved successfully", courses, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesByTypeAndAccessibleScopes(type, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving courses for type: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving courses by type: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
-    
+
     @GetMapping("/type/{type}/active")
-    @Operation(summary = "Get active courses by type (CORE or ELECTIVE)")
+    @Operation(summary = "Get active courses by type with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getActiveCoursesByType(@PathVariable CourseType type) {
         try {
-            List<CourseDTO> courses = courseService.getActiveCoursesByType(type);
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses for type retrieved successfully", courses, null));
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesByTypeAndAccessibleScopes(type, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active courses retrieved successfully", courses, null));
         } catch (Exception e) {
-            log.error("Error retrieving active courses for type: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            log.error("Error retrieving active courses by type: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
+
+    // ==================== NEW SECURE ENDPOINTS ====================
+
+    @GetMapping("/school/{schoolId}")
+    @Operation(summary = "Get courses by school ID with access validation")
+    public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getCoursesBySchoolId(@PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesBySchoolIdAndAccessibleScopes(schoolId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", courses, null));
+        } catch (Exception e) {
+            log.error("Error retrieving courses by school: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/region/{regionId}")
+    @Operation(summary = "Get courses by region ID with access validation")
+    public ResponseEntity<OhmaApiResponse<List<CourseDTO>>> getCoursesByRegionId(@PathVariable Long regionId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<CourseDTO> courses = courseService.getCoursesByRegionIdAndAccessibleScopes(regionId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Courses retrieved successfully", courses, null));
+        } catch (Exception e) {
+            log.error("Error retrieving courses by region: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    // ==================== COURSE MANAGEMENT ENDPOINTS ====================
 
     @PostMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate a course")
@@ -377,9 +438,8 @@ public class CourseController extends BaseController<CourseDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get course and check if user has access to manage it
-            CourseDTO course = courseService.getById(id);
-            if (!hasAccess(AccessScope.CLASS, course.classId())) {
+            // Validate access before deactivating
+            if (!courseService.validateCourseAccess(id, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
@@ -388,7 +448,7 @@ public class CourseController extends BaseController<CourseDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course deactivated successfully", null, null));
         } catch (Exception e) {
             log.error("Error deactivating course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
@@ -403,9 +463,8 @@ public class CourseController extends BaseController<CourseDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Get course and check if user has access to manage it
-            CourseDTO course = courseService.getById(id);
-            if (!hasAccess(AccessScope.CLASS, course.classId())) {
+            // Validate access before activating
+            if (!courseService.validateCourseAccess(id, currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
             }
@@ -414,11 +473,11 @@ public class CourseController extends BaseController<CourseDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Course activated successfully", null, null));
         } catch (Exception e) {
             log.error("Error activating course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
-    
+
     @PostMapping("/{courseId}/teacher/{teacherId}")
     @Operation(summary = "Add a teacher to a course")
     public ResponseEntity<OhmaApiResponse<Void>> addTeacherToCourse(
@@ -426,26 +485,50 @@ public class CourseController extends BaseController<CourseDTO, Long> {
             @PathVariable Long teacherId,
             @RequestParam(defaultValue = "false") boolean isPrimary) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Validate access before adding teacher
+            if (!courseService.validateCourseAccess(courseId, currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
+            }
+
             courseService.addInstructorToCourse(courseId, teacherId, isPrimary);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher added to course successfully", null, null));
         } catch (Exception e) {
             log.error("Error adding teacher to course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
-    
+
     @DeleteMapping("/{courseId}/teacher/{teacherId}")
     @Operation(summary = "Remove a teacher from a course")
     public ResponseEntity<OhmaApiResponse<Void>> removeTeacherFromCourse(
             @PathVariable Long courseId,
             @PathVariable Long teacherId) {
         try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Validate access before removing teacher
+            if (!courseService.validateCourseAccess(courseId, currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));
+            }
+
             courseService.removeInstructorFromCourse(courseId, teacherId);
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher removed from course successfully", null, null));
         } catch (Exception e) {
             log.error("Error removing teacher from course: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }

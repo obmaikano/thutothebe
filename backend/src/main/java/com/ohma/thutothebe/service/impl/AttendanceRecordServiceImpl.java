@@ -710,4 +710,16 @@ public class AttendanceRecordServiceImpl extends BaseServiceImpl<AttendanceRecor
         // TODO: Implement student attendance summary generation
         log.info("Generating attendance summaries for student {} for {} {}", studentId, academicYear, term);
     }
+
+    @Override
+    protected Long extractSchoolId(AttendanceRecord entity) {
+        return entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null 
+            ? entity.getClassEntity().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(AttendanceRecord entity) {
+        return entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null && entity.getClassEntity().getSchool().getRegion() != null 
+            ? entity.getClassEntity().getSchool().getRegion().getId() : null;
+    }
 } 

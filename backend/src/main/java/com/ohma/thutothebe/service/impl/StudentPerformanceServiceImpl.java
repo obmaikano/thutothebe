@@ -85,4 +85,16 @@ public class StudentPerformanceServiceImpl extends BaseServiceImpl<StudentPerfor
     public void updateAllStudentPerformance() {
         // Implement update logic as needed, for now just a stub
     }
+
+    @Override
+    protected Long extractSchoolId(StudentPerformance entity) {
+        return entity.getStudent() != null && entity.getStudent().getSchool() != null 
+            ? entity.getStudent().getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(StudentPerformance entity) {
+        return entity.getStudent() != null && entity.getStudent().getSchool() != null && entity.getStudent().getSchool().getRegion() != null 
+            ? entity.getStudent().getSchool().getRegion().getId() : null;
+    }
 } 

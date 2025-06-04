@@ -1280,4 +1280,15 @@ public class StudentServiceImpl extends BaseServiceImpl<Student, StudentDTO, Lon
             return List.of();
         }
     }
+
+    @Override
+    protected Long extractSchoolId(Student entity) {
+        return entity.getSchool() != null ? entity.getSchool().getId() : null;
+    }
+    
+    @Override
+    protected Long extractRegionId(Student entity) {
+        return entity.getSchool() != null && entity.getSchool().getRegion() != null 
+            ? entity.getSchool().getRegion().getId() : null;
+    }
 } 
