@@ -1,22 +1,12 @@
 import React from 'react';
-import { Bell, Settings, User } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '../app/hooks';
-import { openRightDrawer } from '../features/common/rightDrawerSlice';
-import { RIGHT_DRAWER_TYPES } from '../utils/modalConstants';
+import { Settings, User } from 'lucide-react';
+import { useAppSelector } from '../store';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from '../features/notifications/components/NotificationBell';
 
 const Header: React.FC = () => {
-  const dispatch = useAppDispatch();
   const { pageTitle } = useAppSelector(state => state.header);
-  const { logout } = useAuth();
-
-  const openNotifications = () => {
-    dispatch(openRightDrawer({
-      header: "Notifications",
-      bodyType: RIGHT_DRAWER_TYPES.NOTIFICATIONS,
-      extraObject: {}
-    }));
-  };
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -31,15 +21,7 @@ const Header: React.FC = () => {
       <div className="flex-none">
         <div className="flex items-center space-x-4">
           {/* Notifications */}
-          <button
-            className="btn btn-ghost btn-circle"
-            onClick={openNotifications}
-          >
-            <div className="indicator">
-              <Bell size={20} />
-              <span className="badge badge-xs badge-primary indicator-item"></span>
-            </div>
-          </button>
+          {user?.id && <NotificationBell userId={user.id} />}
 
           {/* Settings */}
           <button className="btn btn-ghost btn-circle">

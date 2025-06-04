@@ -143,6 +143,16 @@ const quizSubmissionApi = {
   },
 
   /**
+   * Start a quiz for a student
+   * @param quizId Quiz ID
+   * @param studentId Student ID
+   * @returns Response with created quiz submission details
+   */
+  startQuiz: async (quizId: number, studentId: number): Promise<AxiosResponse<QuizSubmissionResponse>> => {
+    return api.post(`/quiz-submissions/start?quizId=${quizId}&studentId=${studentId}`);
+  },
+
+  /**
    * Grade a quiz submission
    * @param id Quiz submission ID
    * @param gradeData Grade data

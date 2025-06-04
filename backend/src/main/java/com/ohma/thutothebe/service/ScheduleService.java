@@ -45,6 +45,11 @@ public interface ScheduleService extends BaseService<ScheduleDTO, Long> {
     List<ScheduleDTO> getSchedulesForStudent(Long studentId, UserRole userRole, Long userId, Long userRegionId, Long userSchoolId);
     
     /**
+     * Get next upcoming class for a student
+     */
+    ScheduleDTO getNextClassForStudent(Long studentId, UserRole userRole, Long userId, Long userRegionId, Long userSchoolId);
+    
+    /**
      * Get schedules for a parent's children
      */
     List<ScheduleDTO> getSchedulesForParent(Long parentId, UserRole userRole, Long userId, Long userRegionId, Long userSchoolId);

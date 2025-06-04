@@ -9,6 +9,11 @@ export { default as DeleteAnnouncementModal } from './modals/DeleteAnnouncementM
 export { default as AnnouncementDetailsModal } from './modals/AnnouncementDetailsModal';
 export { default as AnnouncementAnalyticsModal } from './modals/AnnouncementAnalyticsModal';
 
+// Export page components
+export { default as StudentAnnouncementsPage } from './pages/StudentAnnouncementsPage';
+export { default as TeacherAnnouncementsPage } from './pages/TeacherAnnouncementsPage';
+export { default as ParentAnnouncementsPage } from './pages/ParentAnnouncementsPage';
+
 // Export types from API
 export type {
   Announcement,

@@ -7,7 +7,9 @@ import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.DayOfWeek;
 import com.ohma.thutothebe.entity.ScheduleStatus;
 import com.ohma.thutothebe.entity.UserRole;
+import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.service.ScheduleService;
+import com.ohma.thutothebe.util.AuthUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -219,6 +221,52 @@ public class ScheduleController extends BaseController<ScheduleDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Student schedules retrieved successfully", schedules, null));
         } catch (Exception e) {
             log.error("Error retrieving student schedules: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/student/{studentId}/next-class")
+    @Operation(summary = "Get next upcoming class for a specific student")
+    public ResponseEntity<OhmaApiResponse<ScheduleDTO>> getNextClassForStudent(
+            @Parameter(description = "Student ID") @PathVariable Long studentId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // For student access, we need to check if the current user can access this student's data
+            // This will use the same access control logic as the student dashboard
+            if (!hasAccess(AccessScope.USER, studentId) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student schedule", null, null));
+            }
+
+            // Get current user details for service call
+            User currentUser = authUtils.getCurrentUser();
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "User not found", null, null));
+            }
+            
+            ScheduleDTO nextClass = scheduleService.getNextClassForStudent(
+                studentId, 
+                currentUser.getRole(), 
+                currentUserId, 
+                currentUser.getSchool() != null && currentUser.getSchool().getRegion() != null ? 
+                    currentUser.getSchool().getRegion().getId() : null, 
+                currentUser.getSchool() != null ? currentUser.getSchool().getId() : null
+            );
+            
+            if (nextClass != null) {
+                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Next class retrieved successfully", nextClass, null));
+            } else {
+                return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "No upcoming classes found", null, null));
+            }
+        } catch (Exception e) {
+            log.error("Error retrieving next class for student: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

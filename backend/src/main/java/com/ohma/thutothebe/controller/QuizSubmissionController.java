@@ -108,4 +108,47 @@ public class QuizSubmissionController extends BaseController<QuizSubmissionDTO, 
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
+
+    @PostMapping("/start")
+    @Operation(summary = "Start a quiz for a student")
+    public ResponseEntity<OhmaApiResponse<QuizSubmissionDTO>> startQuiz(
+            @RequestParam Long quizId,
+            @RequestParam Long studentId) {
+        try {
+            QuizSubmissionDTO submission = quizSubmissionService.startQuiz(quizId, studentId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quiz started successfully", submission, null));
+        } catch (Exception e) {
+            log.error("Error starting quiz: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/{submissionId}/submit")
+    @Operation(summary = "Submit a quiz")
+    public ResponseEntity<OhmaApiResponse<QuizSubmissionDTO>> submitQuiz(@PathVariable Long submissionId) {
+        try {
+            QuizSubmissionDTO submission = quizSubmissionService.submitQuiz(submissionId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quiz submitted successfully", submission, null));
+        } catch (Exception e) {
+            log.error("Error submitting quiz: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/{submissionId}/grade")
+    @Operation(summary = "Grade a quiz submission")
+    public ResponseEntity<OhmaApiResponse<QuizSubmissionDTO>> gradeQuiz(
+            @PathVariable Long submissionId,
+            @RequestParam Integer score) {
+        try {
+            QuizSubmissionDTO submission = quizSubmissionService.gradeQuiz(submissionId, score);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quiz graded successfully", submission, null));
+        } catch (Exception e) {
+            log.error("Error grading quiz: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
 } 

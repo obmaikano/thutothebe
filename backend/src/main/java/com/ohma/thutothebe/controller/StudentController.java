@@ -506,10 +506,25 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
+            // Get the student first to check access against their user ID
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
             // Check if user has access to view this student's data
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            if (student.userId() != null) {
+                if (!hasAccess(AccessScope.USER, student.userId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
+            } else {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
             }
 
             List<Object> courses = studentService.getStudentCourses(studentId);
@@ -531,10 +546,25 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
+            // Get the student first to check access against their user ID
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
             // Check if user has access to view this student's data
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            if (student.userId() != null) {
+                if (!hasAccess(AccessScope.USER, student.userId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
+            } else {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
             }
 
             List<Object> assignments = studentService.getStudentAssignments(studentId);
@@ -556,10 +586,25 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
+            // Get the student first to check access against their user ID
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
             // Check if user has access to view this student's data
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            if (student.userId() != null) {
+                if (!hasAccess(AccessScope.USER, student.userId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
+            } else {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
             }
 
             Object performance = studentService.getStudentPerformanceAnalytics(studentId);
@@ -581,10 +626,27 @@ public class StudentController extends BaseController<StudentDTO, Long> {
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
+            // Get the student first to check access against their user ID
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
             // Check if user has access to view this student's data
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            // For students, they can only access their own data (currentUserId == student.userId)
+            // For other roles, use the access control service
+            if (student.userId() != null) {
+                if (!hasAccess(AccessScope.USER, student.userId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
+            } else {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
             }
 
             Object dashboardData = studentService.getStudentDashboardData(studentId);
@@ -607,6 +669,7 @@ public class StudentController extends BaseController<StudentDTO, Long> {
             }
 
             // Check if user has access to create a student record for this user
+            // Students can only create records for themselves, others need appropriate permissions
             if (!hasAccess(AccessScope.USER, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new OhmaApiResponse<>("ERROR", "Access denied", null, null));

@@ -37,6 +37,8 @@ import commentsReducer from '../features/forums/commentsSlice';
 import studentPerformanceReducer from '../features/analytics/studentPerformanceSlice';
 import progressReducer from '../features/analytics/progressSlice';
 import analyticsReducer from '../features/analytics/analyticsSlice';
+import messagesReducer from '../features/messaging/messagesSlice';
+import notificationsReducer from '../features/notifications/notificationsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -77,6 +79,8 @@ export const store = configureStore({
     studentPerformance: studentPerformanceReducer,
     progress: progressReducer,
     analytics: analyticsReducer,
+    messages: messagesReducer,
+    notifications: notificationsReducer,
   },
 });
 

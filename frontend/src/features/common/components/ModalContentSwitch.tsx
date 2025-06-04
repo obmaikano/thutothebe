@@ -145,6 +145,10 @@ const EditThreadModal = lazy(() => import('../../forums/components/EditThreadMod
 const DeleteThreadModal = lazy(() => import('../../forums/components/DeleteThreadModal'));
 const CreateCommentModal = lazy(() => import('../../forums/components/CreateCommentModal'));
 
+// Messaging modals
+const NewMessageModal = lazy(() => import('../../messaging/modals/NewMessageModal'));
+const CreateGroupModal = lazy(() => import('../../messaging/modals/CreateGroupModal'));
+
 interface ModalContentSwitchProps {
   content: string;
   contentProps?: any;
@@ -1078,6 +1082,21 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <CreateCommentModal extraObject={contentProps} />
+        </Suspense>
+      );
+      
+    // Messaging modals
+    case MODAL_BODY_TYPES.MESSAGE_NEW:
+      return (
+        <Suspense fallback={fallback}>
+          <NewMessageModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.MESSAGE_GROUP_CREATE:
+      return (
+        <Suspense fallback={fallback}>
+          <CreateGroupModal extraObject={contentProps} />
         </Suspense>
       );
       

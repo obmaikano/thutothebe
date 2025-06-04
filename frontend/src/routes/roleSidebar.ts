@@ -62,6 +62,12 @@ const commonMenuItems: MenuItem[] = [
     description: 'Overview of your activities'
   },
   {
+    icon: Bell,
+    label: 'Notifications',
+    path: '/app/notifications',
+    description: 'View and manage your notifications'
+  },
+  {
     icon: HelpCircle,
     label: 'Help',
     path: '/app/help',
@@ -123,8 +129,22 @@ export const studentMenuItems: MenuItem[] = [
   {
     icon: MessageSquare,
     label: 'Messages',
-    path: '/app/student-messages',
-    description: 'Contact teachers and staff'
+    path: '/app/messages',
+    description: 'Communicate with teachers and staff',
+    children: [
+      {
+        icon: MessageSquare,
+        label: 'All Messages',
+        path: '/app/messages',
+        description: 'View all conversations'
+      },
+      {
+        icon: Users,
+        label: 'Contacts',
+        path: '/app/messages/contacts',
+        description: 'Manage messaging contacts'
+      }
+    ]
   }
 ];
 
@@ -358,8 +378,28 @@ export const teacherMenuItems: MenuItem[] = [
   {
     icon: MessageSquare,
     label: 'Messages',
-    path: '/app/teacher-messages',
-    description: 'Communicate with students and parents'
+    path: '/app/messages',
+    description: 'Communicate with students, parents and staff',
+    children: [
+      {
+        icon: MessageSquare,
+        label: 'All Messages',
+        path: '/app/messages',
+        description: 'View all conversations'
+      },
+      {
+        icon: Users,
+        label: 'Group Messages',
+        path: '/app/messages/groups',
+        description: 'Create and manage group conversations'
+      },
+      {
+        icon: Users,
+        label: 'Contacts',
+        path: '/app/messages/contacts',
+        description: 'Manage messaging contacts'
+      }
+    ]
   }
 ];
 
@@ -418,7 +458,7 @@ export const parentMenuItems: MenuItem[] = [
   {
     icon: CheckSquare,
     label: 'Child Attendance',
-    path: '/app/parent-child-attendance',
+    path: '/app/child-attendance',
     description: 'Monitor your child\'s attendance record'
   },
   {
@@ -436,8 +476,22 @@ export const parentMenuItems: MenuItem[] = [
   {
     icon: MessageSquare,
     label: 'Messages',
-    path: '/app/parent-messages',
-    description: 'Contact teachers and staff'
+    path: '/app/messages',
+    description: 'Contact teachers and staff',
+    children: [
+      {
+        icon: MessageSquare,
+        label: 'All Messages',
+        path: '/app/messages',
+        description: 'View all conversations'
+      },
+      {
+        icon: Users,
+        label: 'Contacts',
+        path: '/app/messages/contacts',
+        description: 'Manage messaging contacts'
+      }
+    ]
   },
   {
     icon: Bell,
@@ -695,6 +749,32 @@ export const schoolAdminMenuItems: MenuItem[] = [
     description: 'Generate and view school reports'
   },
   {
+    icon: MessageSquare,
+    label: 'Messages',
+    path: '/app/messages',
+    description: 'Communicate with staff, teachers, and parents',
+    children: [
+      {
+        icon: MessageSquare,
+        label: 'All Messages',
+        path: '/app/messages',
+        description: 'View all conversations'
+      },
+      {
+        icon: Users,
+        label: 'Group Messages',
+        path: '/app/messages/groups',
+        description: 'Create and manage group conversations'
+      },
+      {
+        icon: Users,
+        label: 'Contacts',
+        path: '/app/messages/contacts',
+        description: 'Manage messaging contacts'
+      }
+    ]
+  },
+  {
     icon: Settings,
     label: 'Settings',
     path: '/app/school-settings',
@@ -866,10 +946,42 @@ export const schoolHeadMenuItems: MenuItem[] = [
     ]
   },
   {
+    icon: MessageSquare,
+    label: 'Messages',
+    path: '/app/messages',
+    description: 'Communicate with staff, teachers, and parents',
+    children: [
+      {
+        icon: MessageSquare,
+        label: 'All Messages',
+        path: '/app/messages',
+        description: 'View all conversations'
+      },
+      {
+        icon: Users,
+        label: 'Group Messages',
+        path: '/app/messages/groups',
+        description: 'Create and manage group conversations'
+      },
+      {
+        icon: Users,
+        label: 'Contacts',
+        path: '/app/messages/contacts',
+        description: 'Manage messaging contacts'
+      }
+    ]
+  },
+  {
     icon: Settings,
     label: 'Settings',
-    path: '/app/settings',
-    description: 'School configuration'
+    path: '/app/school-settings',
+    description: 'Configure school settings'
+  },
+  {
+    icon: HelpCircle,
+    label: 'Help',
+    path: '/app/school-admin-help',
+    description: 'Support and documentation'
   }
 ];
 
@@ -925,6 +1037,26 @@ export const regionalOfficerMenuItems: MenuItem[] = [
         label: 'Regional Usage',
         path: '/app/monitoring/regional',
         description: 'Regional LMS usage patterns'
+      }
+    ]
+  },
+  {
+    icon: MessageSquare,
+    label: 'Messages',
+    path: '/app/messages',
+    description: 'Communicate with schools and regional staff',
+    children: [
+      {
+        icon: MessageSquare,
+        label: 'All Messages',
+        path: '/app/messages',
+        description: 'View all conversations'
+      },
+      {
+        icon: Users,
+        label: 'Contacts',
+        path: '/app/messages/contacts',
+        description: 'Manage messaging contacts'
       }
     ]
   },
@@ -1124,6 +1256,32 @@ export const regionalAdminMenuItems: MenuItem[] = [
     label: 'Calendar Events',
     path: '/app/calendar',
     description: 'Manage regional calendar and events'
+  },
+  {
+    icon: MessageSquare,
+    label: 'Messages',
+    path: '/app/messages',
+    description: 'Communicate with schools and regional staff',
+    children: [
+      {
+        icon: MessageSquare,
+        label: 'All Messages',
+        path: '/app/messages',
+        description: 'View all conversations'
+      },
+      {
+        icon: Users,
+        label: 'Group Messages',
+        path: '/app/messages/groups',
+        description: 'Create and manage group conversations'
+      },
+      {
+        icon: Users,
+        label: 'Contacts',
+        path: '/app/messages/contacts',
+        description: 'Manage messaging contacts'
+      }
+    ]
   },
   {
     icon: Settings,

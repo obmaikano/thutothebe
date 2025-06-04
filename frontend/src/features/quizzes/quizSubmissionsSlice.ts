@@ -112,6 +112,18 @@ export const updateQuizSubmission = createAsyncThunk(
   }
 );
 
+export const startQuiz = createAsyncThunk(
+  'quizSubmissions/startQuiz',
+  async ({ quizId, studentId }: { quizId: number; studentId: number }, { rejectWithValue }) => {
+    try {
+      const response = await quizSubmissionApi.startQuiz(quizId, studentId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to start quiz');
+    }
+  }
+);
+
 export const submitQuiz = createAsyncThunk(
   'quizSubmissions/submitQuiz',
   async (id: number, { rejectWithValue }) => {
@@ -277,6 +289,25 @@ const quizSubmissionsSlice = createSlice({
       .addCase(updateQuizSubmission.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to update quiz submission';
+      })
+
+      // Start quiz
+      .addCase(startQuiz.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(startQuiz.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        const startedQuiz = action.payload as QuizSubmission;
+        const index = state.submissions.findIndex(submission => submission.id === startedQuiz.id);
+        if (index !== -1) {
+          state.submissions[index] = startedQuiz;
+        }
+        state.currentSubmission = startedQuiz;
+      })
+      .addCase(startQuiz.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to start quiz';
       })
 
       // Submit quiz

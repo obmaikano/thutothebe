@@ -130,6 +130,76 @@ public class ScheduleServiceImpl extends BaseServiceImpl<Schedule, ScheduleDTO, 
 
     @Override
     @Transactional(readOnly = true)
+    public ScheduleDTO getNextClassForStudent(Long studentId, UserRole userRole, Long userId, Long userRegionId, Long userSchoolId) {
+        validateUserCanViewStudentSchedules(studentId, userRole, userId, userRegionId, userSchoolId);
+        
+        // Get all schedules for the student
+        List<Schedule> schedules = getScheduleRepository().findSchedulesForStudent(studentId);
+        
+        LocalDateTime now = LocalDateTime.now();
+        DayOfWeek currentDay = DayOfWeek.valueOf(now.getDayOfWeek().name());
+        LocalTime currentTime = now.toLocalTime();
+        
+        // Find the next upcoming class
+        Schedule nextClass = schedules.stream()
+                .filter(schedule -> schedule.isActive())
+                .filter(schedule -> {
+                    // Check if schedule is effective
+                    if (schedule.getEffectiveDate().isAfter(now)) {
+                        return false;
+                    }
+                    if (schedule.getExpiryDate() != null && schedule.getExpiryDate().isBefore(now)) {
+                        return false;
+                    }
+                    
+                    // Check if it's today and after current time, or a future day
+                    if (schedule.getDayOfWeek() == currentDay) {
+                        return schedule.getStartTime().isAfter(currentTime);
+                    } else {
+                        // For future days in the week
+                        int currentDayValue = currentDay.ordinal();
+                        int scheduleDayValue = schedule.getDayOfWeek().ordinal();
+                        return scheduleDayValue > currentDayValue;
+                    }
+                })
+                .min((s1, s2) -> {
+                    // Sort by day of week first, then by start time
+                    int dayComparison = Integer.compare(s1.getDayOfWeek().ordinal(), s2.getDayOfWeek().ordinal());
+                    if (dayComparison != 0) {
+                        return dayComparison;
+                    }
+                    return s1.getStartTime().compareTo(s2.getStartTime());
+                })
+                .orElse(null);
+        
+        if (nextClass == null) {
+            // If no class found for this week, look for next week's first class
+            nextClass = schedules.stream()
+                    .filter(schedule -> schedule.isActive())
+                    .filter(schedule -> {
+                        if (schedule.getEffectiveDate().isAfter(now.plusWeeks(1))) {
+                            return false;
+                        }
+                        if (schedule.getExpiryDate() != null && schedule.getExpiryDate().isBefore(now.plusWeeks(1))) {
+                            return false;
+                        }
+                        return true;
+                    })
+                    .min((s1, s2) -> {
+                        int dayComparison = Integer.compare(s1.getDayOfWeek().ordinal(), s2.getDayOfWeek().ordinal());
+                        if (dayComparison != 0) {
+                            return dayComparison;
+                        }
+                        return s1.getStartTime().compareTo(s2.getStartTime());
+                    })
+                    .orElse(null);
+        }
+        
+        return nextClass != null ? scheduleMapper.toDto(nextClass) : null;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ScheduleDTO> getSchedulesForParent(Long parentId, UserRole userRole, Long userId, Long userRegionId, Long userSchoolId) {
         if (!userRole.equals(UserRole.PARENT) || !userId.equals(parentId)) {
             throw new IllegalArgumentException("Access denied: Can only view own children's schedules");

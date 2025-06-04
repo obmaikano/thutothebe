@@ -216,6 +216,20 @@ const attendanceApi = {
   },
 
   getByDateRange: async (startDate: string, endDate: string, filters?: Omit<AttendanceFilters, 'startDate' | 'endDate'>): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
+    // If studentEntityId is provided in filters, use the student-specific endpoint
+    if (filters?.studentEntityId) {
+      const params = new URLSearchParams({ startDate, endDate });
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '' && key !== 'studentEntityId') {
+            params.append(key, value.toString());
+          }
+        });
+      }
+      return api.get(`/api/attendance/student/${filters.studentEntityId}/date-range?${params}`);
+    }
+    
+    // Otherwise use the general range endpoint
     const params = new URLSearchParams({ startDate, endDate });
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {

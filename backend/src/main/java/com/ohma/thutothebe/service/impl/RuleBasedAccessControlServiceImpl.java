@@ -46,7 +46,7 @@ public class RuleBasedAccessControlServiceImpl {
 
     @Autowired
     private ClassRepository classRepository;
-
+    
     @Autowired
     private RegionRepository regionRepository;
 
@@ -61,7 +61,7 @@ public class RuleBasedAccessControlServiceImpl {
      */
     @Cacheable(value = "accessControl", key = "#userId + '_' + #targetScope + '_' + #targetScopeId")
     public boolean hasAccess(Long userId, AccessScope targetScope, Long targetScopeId) {
-        log.debug("Checking access for user: {}, scope: {}-{}", userId, targetScope, targetScopeId);
+        log.warn("Checking access for user: {}, scope: {}-{}", userId, targetScope, targetScopeId);
         
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
@@ -174,6 +174,21 @@ public class RuleBasedAccessControlServiceImpl {
     private boolean hasStudentAccess(User user, AccessScope targetScope, Long targetScopeId) {
         return switch (targetScope) {
             case CLASS -> isStudentEnrolledInClass(user.getId(), targetScopeId);
+            case SCHOOL -> {
+                // Students can access their own school
+                if (user.getSchool() != null && user.getSchool().getId().equals(targetScopeId)) {
+                    yield true;
+                }
+                yield false;
+            }
+            case REGION -> {
+                // Students can access their own region
+                if (user.getSchool() != null && user.getSchool().getRegion() != null && 
+                    user.getSchool().getRegion().getId().equals(targetScopeId)) {
+                    yield true;
+                }
+                yield false;
+            }
             case USER -> {
                 if (targetScopeId.equals(user.getId())) yield true; // Self access
                 yield areStudentsInSameClass(user.getId(), targetScopeId);
@@ -269,6 +284,20 @@ public class RuleBasedAccessControlServiceImpl {
     private List<Long> getStudentScopeIds(User user, AccessScope scopeType) {
         return switch (scopeType) {
             case CLASS -> getStudentClassIds(user.getId());
+            case SCHOOL -> {
+                // Students can access their own school
+                if (user.getSchool() != null) {
+                    yield List.of(user.getSchool().getId());
+                }
+                yield Collections.emptyList();
+            }
+            case REGION -> {
+                // Students can access their own region
+                if (user.getSchool() != null && user.getSchool().getRegion() != null) {
+                    yield List.of(user.getSchool().getRegion().getId());
+                }
+                yield Collections.emptyList();
+            }
             case USER -> getStudentAccessibleUserIds(user.getId());
             default -> Collections.emptyList();
         };

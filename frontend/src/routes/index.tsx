@@ -35,6 +35,11 @@ const TeacherAssignments = lazy(() => import('../pages/protected/TeacherAssignme
 const TeacherResources = lazy(() => import('../pages/protected/TeacherResources'));
 const TeacherSubmissions = lazy(() => import('../pages/protected/TeacherSubmissions'));
 
+// Teacher Quiz pages
+const TeacherQuizzes = lazy(() => import('../pages/protected/TeacherQuizzes'));
+const TeacherQuizCreation = lazy(() => import('../pages/protected/TeacherQuizCreation'));
+const TeacherQuizAnalytics = lazy(() => import('../pages/protected/TeacherQuizAnalytics'));
+
 // Grade Management pages
 const Grades = lazy(() => import('../pages/protected/Grades'));
 const Gradebook = lazy(() => import('../pages/protected/Gradebook'));
@@ -61,6 +66,11 @@ const Announcements = lazy(() => import('../pages/protected/Announcements'));
 const MyAnnouncements = lazy(() => import('../pages/protected/MyAnnouncements'));
 const AnnouncementDetails = lazy(() => import('../pages/protected/AnnouncementDetails'));
 
+// Role-specific announcement pages
+const StudentAnnouncements = lazy(() => import('../pages/protected/StudentAnnouncements'));
+const TeacherAnnouncements = lazy(() => import('../pages/protected/TeacherAnnouncements'));
+const ParentAnnouncements = lazy(() => import('../pages/protected/ParentAnnouncements'));
+
 // Quiz Management pages
 const Quizzes = lazy(() => import('../pages/protected/Quizzes'));
 const QuizCreation = lazy(() => import('../pages/protected/QuizCreation'));
@@ -74,6 +84,7 @@ const AttendanceReports = lazy(() => import('../pages/protected/AttendanceReport
 const AttendanceCalendar = lazy(() => import('../pages/protected/AttendanceCalendar'));
 const MyAttendance = lazy(() => import('../pages/protected/MyAttendance'));
 const ChildAttendance = lazy(() => import('../pages/protected/ChildAttendance'));
+const TeacherAttendanceMarking = lazy(() => import('../pages/protected/TeacherAttendanceMarking'));
 
 // Calendar pages
 const Calendar = lazy(() => import('../pages/protected/Calendar'));
@@ -83,9 +94,11 @@ const StudentDashboard = lazy(() => import('../pages/protected/StudentDashboard'
 const StudentCourses = lazy(() => import('../pages/protected/StudentCourses'));
 const StudentAssignments = lazy(() => import('../pages/protected/StudentAssignments'));
 const StudentGrades = lazy(() => import('../pages/protected/StudentGrades'));
+const StudentAttendance = lazy(() => import('../pages/protected/StudentAttendance'));
 const StudentMessages = lazy(() => import('../pages/protected/StudentMessages'));
 const StudentSchedule = lazy(() => import('../pages/protected/StudentSchedule'));
 const StudentHelp = lazy(() => import('../pages/protected/StudentHelp'));
+const StudentQuizzes = lazy(() => import('../pages/protected/StudentQuizzes'));
 
 // School Admin role pages
 const SchoolAdminDashboard = lazy(() => import('../pages/protected/SchoolAdminDashboard'));
@@ -114,6 +127,15 @@ const ThreadDetailPage = lazy(() => import('../pages/protected/forums/ThreadDeta
 // Analytics pages
 const PerformanceDashboardPage = lazy(() => import('../features/analytics/pages/PerformanceDashboardPage'));
 const StudentPerformancePage = lazy(() => import('../features/analytics/pages/StudentPerformancePage'));
+
+// Messaging pages
+const MessagingPage = lazy(() => import('../features/messaging/pages/MessagingPage'));
+const ConversationPage = lazy(() => import('../features/messaging/pages/ConversationPage'));
+const GroupMessagingPage = lazy(() => import('../features/messaging/pages/GroupMessagingPage'));
+const ContactsPage = lazy(() => import('../features/messaging/pages/ContactsPage'));
+
+// Notification pages
+const NotificationListPage = lazy(() => import('../features/notifications/pages/NotificationListPage'));
 
 const NotFoundPage = lazy(() => import('../pages/protected/404'));
 
@@ -236,6 +258,23 @@ export const appRoutes = [
     path: 'teacher-submissions',
     element: TeacherSubmissions
   },
+  // Teacher Quiz pages
+  {
+    path: 'teacher-quizzes',
+    element: TeacherQuizzes
+  },
+  {
+    path: 'teacher-quiz-creation',
+    element: TeacherQuizCreation
+  },
+  {
+    path: 'teacher-quiz-creation/:id',
+    element: TeacherQuizCreation
+  },
+  {
+    path: 'teacher-quiz-analytics',
+    element: TeacherQuizAnalytics
+  },
   // Grade Management routes
   {
     path: 'grades',
@@ -316,6 +355,19 @@ export const appRoutes = [
     path: 'announcement-details/:id',
     element: AnnouncementDetails
   },
+  // Role-specific announcement routes
+  {
+    path: 'student-announcements',
+    element: StudentAnnouncements
+  },
+  {
+    path: 'teacher-announcements',
+    element: TeacherAnnouncements
+  },
+  {
+    path: 'parent-announcements',
+    element: ParentAnnouncements
+  },
   // Quiz Management routes
   {
     path: 'quizzes',
@@ -366,6 +418,22 @@ export const appRoutes = [
     path: 'child-attendance',
     element: ChildAttendance
   },
+  {
+    path: 'teacher-attendance',
+    element: TeacherAttendanceMarking
+  },
+  {
+    path: 'teacher-attendance/mark',
+    element: TeacherAttendanceMarking
+  },
+  {
+    path: 'teacher-attendance/reports',
+    element: AttendanceReports
+  },
+  {
+    path: 'teacher-attendance/calendar',
+    element: AttendanceCalendar
+  },
   // Calendar routes
   {
     path: 'calendar',
@@ -389,6 +457,10 @@ export const appRoutes = [
     element: StudentGrades
   },
   {
+    path: 'student-attendance',
+    element: StudentAttendance
+  },
+  {
     path: 'student-messages',
     element: StudentMessages
   },
@@ -399,6 +471,10 @@ export const appRoutes = [
   {
     path: 'student-help',
     element: StudentHelp
+  },
+  {
+    path: 'student-quizzes',
+    element: StudentQuizzes
   },
   // School Admin role routes
   {
@@ -491,6 +567,32 @@ export const appRoutes = [
   {
     path: 'analytics/performance',
     element: StudentPerformancePage
+  },
+  // Messaging routes
+  {
+    path: 'messages',
+    element: MessagingPage
+  },
+  {
+    path: 'messages/conversation/:conversationId',
+    element: ConversationPage
+  },
+  {
+    path: 'messages/groups',
+    element: GroupMessagingPage
+  },
+  {
+    path: 'messages/group/:groupId',
+    element: ConversationPage
+  },
+  {
+    path: 'messages/contacts',
+    element: ContactsPage
+  },
+  // Notification routes
+  {
+    path: 'notifications',
+    element: NotificationListPage
   },
   // Catch all route
   {

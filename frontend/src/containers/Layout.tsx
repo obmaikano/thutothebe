@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+import Header from './Header';
 import { GlobalModal } from '../features/common/components/GlobalModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getMenuItemsByRole } from '../routes/roleSidebar';
@@ -16,22 +17,25 @@ export function Layout() {
   return (
     <div className="flex h-screen bg-gray-50">
         <Sidebar menuItems={menuItems} />
-        <main className="flex-1 overflow-auto">
-          <Suspense fallback={<div className="flex justify-center items-center min-h-64">Loading...</div>}>
-            <Routes>
-              {appRoutes.map((route, index) => {
-                const Element = route.element;
-                return (
-                  <Route 
-                    key={index} 
-                    path={route.path} 
-                    element={<Element />} 
-                  />
-                );
-              })}
-            </Routes>
-          </Suspense>
-        </main>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-auto">
+            <Suspense fallback={<div className="flex justify-center items-center min-h-64">Loading...</div>}>
+              <Routes>
+                {appRoutes.map((route, index) => {
+                  const Element = route.element;
+                  return (
+                    <Route 
+                      key={index} 
+                      path={route.path} 
+                      element={<Element />} 
+                    />
+                  );
+                })}
+              </Routes>
+            </Suspense>
+          </main>
+        </div>
         <GlobalModal />
     </div>
   );
