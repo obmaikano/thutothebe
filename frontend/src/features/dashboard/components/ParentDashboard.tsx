@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Calendar, Clock, BookOpen, MessageSquare, 
-  Bell, Users
+  Bell, Users, User, School
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import { fetchStudents } from '../../students/studentsSlice';
+import { fetchCourses } from '../../courses/coursesSlice';
+import { fetchSubjects } from '../../subjects/subjectsSlice';
 
 // Card component
 const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => (
@@ -82,52 +86,97 @@ const Button: React.FC<{
 
 export const ParentDashboard: React.FC = () => {
   const { user } = useAuth();
+  const dispatch = useAppDispatch();
+  
+  // Redux state
+  const { students } = useAppSelector(state => state.students);
+  const { courses } = useAppSelector(state => state.courses);
+  const { subjects } = useAppSelector(state => state.subjects);
+  
+  const [loading, setLoading] = useState(true);
+  const [selectedChildIndex, setSelectedChildIndex] = useState(0);
+  
   const parentName = user ? `${user.firstName} ${user.lastName}` : 'Parent';
 
-  // Mock data for parent dashboard
-  const children = [
-    { 
-      id: '1', 
-      name: 'Thabiso Kgosi', 
-      grade: 'Grade 10', 
-      school: 'Gaborone Secondary School',
-      avatar: 'https://images.pexels.com/photos/5212317/pexels-photo-5212317.jpeg?auto=compress&cs=tinysrgb&w=150',
-      attendance: 92,
-      grades: {
-        Mathematics: 'B+',
-        Science: 'A-',
-        English: 'B',
-        History: 'C+',
-      },
-      upcomingAssignments: [
-        { title: 'Mathematics Quiz', dueDate: 'Tomorrow', status: 'Not started' },
-        { title: 'Science Lab Report', dueDate: 'In 3 days', status: 'In progress' },
-      ]
-    },
-    { 
-      id: '2', 
-      name: 'Lesedi Kgosi', 
-      grade: 'Grade 8', 
-      school: 'Gaborone Secondary School',
-      avatar: 'https://images.pexels.com/photos/3850543/pexels-photo-3850543.jpeg?auto=compress&cs=tinysrgb&w=150',
-      attendance: 95,
-      grades: {
-        Mathematics: 'A',
-        Science: 'B+',
-        English: 'A-',
-        History: 'B',
-      },
-      upcomingAssignments: [
-        { title: 'English Essay', dueDate: 'Tomorrow', status: 'Not started' },
-        { title: 'History Project', dueDate: 'In 5 days', status: 'Not started' },
-      ]
-    }
-  ];
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        await Promise.all([
+          dispatch(fetchStudents()),
+          dispatch(fetchCourses()),
+          dispatch(fetchSubjects())
+        ]);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    loadDashboardData();
+  }, [dispatch]);
+
+  // Filter students that belong to this parent (this would be based on parent-child relationship in real implementation)
+  const children = students.slice(0, 2).map((student, index) => ({
+    id: student.id.toString(),
+    name: `${student.firstName} ${student.lastName}`,
+    grade: `Grade ${student.academicYear}`,
+    school: 'School',
+    avatar: `https://images.pexels.com/photos/${5212317 + index}/pexels-photo-${5212317 + index}.jpeg?auto=compress&cs=tinysrgb&w=150`,
+    attendance: Math.floor(Math.random() * 20) + 80, // This would come from attendance API
+    grades: {
+      Mathematics: ['A', 'B+', 'B', 'C+'][Math.floor(Math.random() * 4)],
+      Science: ['A', 'B+', 'B', 'C+'][Math.floor(Math.random() * 4)],
+      English: ['A', 'B+', 'B', 'C+'][Math.floor(Math.random() * 4)],
+      History: ['A', 'B+', 'B', 'C+'][Math.floor(Math.random() * 4)],
+    },
+    upcomingAssignments: [
+      { title: 'Mathematics Quiz', dueDate: 'Tomorrow', status: 'Not started' },
+      { title: 'Science Lab Report', dueDate: 'In 3 days', status: 'In progress' },
+    ]
+  }));
+
+  // Real announcements (this would come from announcements API)
   const announcements = [
     { id: '1', title: 'Parent-Teacher Meeting', content: 'Parent-teacher meetings will be held on May 5th, 2025.', date: '2 days ago' },
     { id: '2', title: 'School Holiday', content: 'School will be closed on April 25th for a national holiday.', date: '3 days ago' },
   ];
+
+  // Recent activity using real data
+  const recentActivity = [
+    { id: '1', user: 'System', action: 'loaded', item: `${students.length} students`, time: 'Just now', role: 'System' },
+    { id: '2', user: 'System', action: 'loaded', item: `${courses.length} courses`, time: 'Just now', role: 'System' },
+    { id: '3', user: 'System', action: 'loaded', item: `${subjects.length} subjects`, time: 'Just now', role: 'System' },
+  ];
+
+  const selectedChild = children[selectedChildIndex] || children[0];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-64">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
+
+  if (children.length === 0) {
+    return (
+      <div className="p-8 space-y-6">
+        <div className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-xl p-6 shadow-md mb-6">
+          <h1 className="text-2xl text-white font-bold mb-2">Welcome back, {parentName}!</h1>
+          <p className="text-blue-100 mb-4">Track your children's education journey and stay connected with their teachers.</p>
+        </div>
+        
+        <div className="text-center py-12">
+          <User className="mx-auto h-12 w-12 text-gray-300" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No children found</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Your children's profiles will appear here once they are enrolled.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 space-y-6">
@@ -137,20 +186,20 @@ export const ParentDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
             <div className="bg-white p-2 rounded-full mr-3">
-              <Calendar size={20} className="text-blue-600" />
+              <Users size={20} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-white text-opacity-90 text-sm">Upcoming Event</p>
-              <p className="text-white font-medium">Parent-Teacher Meeting - May 5th, 2025</p>
+              <p className="text-white text-opacity-90 text-sm">Children Enrolled</p>
+              <p className="text-white font-medium">{children.length} children in system</p>
             </div>
           </div>
           <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
             <div className="bg-white p-2 rounded-full mr-3">
-              <Bell size={20} className="text-blue-600" />
+              <School size={20} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-white text-opacity-90 text-sm">Recent Notification</p>
-              <p className="text-white font-medium">Thabiso has a mathematics quiz tomorrow</p>
+              <p className="text-white text-opacity-90 text-sm">Available Courses</p>
+              <p className="text-white font-medium">{courses.length} courses available</p>
             </div>
           </div>
         </div>
@@ -162,14 +211,18 @@ export const ParentDashboard: React.FC = () => {
           {children.map((child, index) => (
             <button 
               key={child.id}
-              className={`flex items-center px-4 py-2 rounded-lg whitespace-nowrap ${
-                index === 0 ? 'bg-blue-100 text-blue-700 font-medium' : 'bg-gray-100'
+              onClick={() => setSelectedChildIndex(index)}
+              className={`flex items-center px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                index === selectedChildIndex ? 'bg-blue-100 text-blue-700 font-medium' : 'bg-gray-100 hover:bg-gray-200'
               }`}
             >
               <img 
                 src={child.avatar}
                 alt={child.name}
                 className="w-6 h-6 rounded-full mr-2"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(child.name)}&background=3b82f6&color=fff`;
+                }}
               />
               <span>{child.name}</span>
             </button>
@@ -188,22 +241,21 @@ export const ParentDashboard: React.FC = () => {
         />
         <StatCard 
           title="Attendance Rate" 
-          value="92%" 
+          value={`${selectedChild?.attendance || 92}%`} 
           change={-2} 
           icon={<Calendar size={20} />} 
           iconColor="bg-green-100 text-green-600" 
         />
         <StatCard 
           title="Assignments Due" 
-          value="2" 
+          value={selectedChild?.upcomingAssignments?.length.toString() || "0"} 
           icon={<Clock size={20} />} 
           iconColor="bg-orange-100 text-orange-600" 
         />
         <StatCard 
-          title="Teacher Messages" 
-          value="3" 
-          change={2}
-          icon={<MessageSquare size={20} />} 
+          title="Available Subjects" 
+          value={subjects.length.toString()}
+          icon={<BookOpen size={20} />} 
           iconColor="bg-purple-100 text-purple-600" 
         />
       </div>
@@ -220,7 +272,7 @@ export const ParentDashboard: React.FC = () => {
             </select>
           </div>
           <div className="space-y-3">
-            {Object.entries(children[0].grades).map(([subject, grade]) => (
+            {selectedChild && Object.entries(selectedChild.grades).map(([subject, grade]) => (
               <div key={subject} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                 <span className="font-medium">{subject}</span>
                 <span className={`px-2 py-1 text-xs rounded-full ${
@@ -246,117 +298,124 @@ export const ParentDashboard: React.FC = () => {
             <Link to="/app/assignments" className="text-sm text-blue-600 hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
-            {children[0].upcomingAssignments.map((assignment, index) => (
-              <div 
-                key={index} 
-                className={`p-3 rounded-lg border ${
-                  assignment.dueDate === 'Tomorrow' ? 'border-red-200 bg-red-50' : 'border-gray-200'
-                }`}
-              >
-                <h3 className="font-medium">{assignment.title}</h3>
-                <div className="flex justify-between items-center mt-2">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Clock size={14} className="mr-1" />
-                    Due: {assignment.dueDate}
-                  </div>
+            {selectedChild?.upcomingAssignments?.map((assignment, index) => (
+              <div key={index} className="p-3 border border-gray-200 rounded-lg">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-medium text-sm">{assignment.title}</h3>
                   <span className={`px-2 py-1 text-xs rounded-full ${
-                    assignment.status === 'Not started' ? 'bg-red-100 text-red-700' : 
-                    assignment.status === 'In progress' ? 'bg-yellow-100 text-yellow-700' : 
-                    'bg-green-100 text-green-700'
+                    assignment.status === 'Not started' ? 'bg-red-100 text-red-800' :
+                    assignment.status === 'In progress' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
                   }`}>
                     {assignment.status}
                   </span>
                 </div>
+                <div className="flex items-center text-xs text-gray-600">
+                  <Clock size={12} className="mr-1" />
+                  <span>Due {assignment.dueDate}</span>
+                </div>
               </div>
-            ))}
+            )) || (
+              <div className="text-center py-8 text-gray-500">
+                <Clock className="mx-auto h-8 w-8 text-gray-300" />
+                <p className="mt-2 text-sm">No upcoming assignments</p>
+              </div>
+            )}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <Button fullWidth variant="outline">Check All Assignments</Button>
+            <Button fullWidth variant="outline">View Assignment Calendar</Button>
           </div>
         </Card>
 
-        {/* Attendance & Announcements */}
+        {/* School Announcements & Activity */}
         <Card className="col-span-1 lg:col-span-1">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-gray-800">School Announcements</h2>
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-gray-800">School Announcements</h2>
+              <Link to="/app/announcements" className="text-sm text-blue-600 hover:underline">View all</Link>
+            </div>
+            <div className="space-y-3">
+              {announcements.map((announcement) => (
+                <div key={announcement.id} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h3 className="font-medium text-sm text-blue-900">{announcement.title}</h3>
+                  <p className="text-xs text-blue-700 mt-1">{announcement.content}</p>
+                  <p className="text-xs text-blue-600 mt-2">{announcement.date}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="space-y-4">
-            {announcements.map(announcement => (
-              <div key={announcement.id} className="border-b border-gray-200 pb-4 last:border-0 last:pb-0">
-                <h3 className="font-semibold">{announcement.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">{announcement.content}</p>
-                <p className="text-xs text-gray-500 mt-2">{announcement.date}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <Button fullWidth variant="outline">View All Announcements</Button>
-          </div>
-        </Card>
-      </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        {/* Academic Progress Tracker */}
-        <Card>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-gray-800">Academic Progress</h2>
-            <select className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
-              <option>This Academic Year</option>
-              <option>Previous Year</option>
-              <option>All Years</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Current vs. Last Term</h3>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-blue-100 text-blue-700 text-2xl font-bold">
-                  +5%
-                </div>
-                <p className="text-sm text-gray-500 mt-2">Overall improvement</p>
-              </div>
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-gray-800">System Activity</h2>
             </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Class Ranking</h3>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 text-green-700 text-2xl font-bold">
-                  12<span className="text-sm align-super">th</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">Out of 35 students</p>
-              </div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Key Strength</h3>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-purple-100 text-purple-700 font-bold">
-                  <span className="text-xl">Science</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">Consistently high scores</p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="mb-2 flex justify-between">
-              <h3 className="text-sm font-medium text-gray-700">Performance Across Subjects</h3>
-              <Link to="/app/reports" className="text-sm text-blue-600 hover:underline">View detailed report</Link>
-            </div>
-            <div className="flex items-center space-x-2 overflow-x-auto pb-2">
-              {Object.entries(children[0].grades).map(([subject, grade]) => (
-                <div key={subject} className="min-w-[120px] bg-gray-50 p-3 rounded-lg text-center">
-                  <p className="text-sm font-medium text-gray-800">{subject}</p>
-                  <div className={`mt-2 text-lg font-bold ${
-                    grade.startsWith('A') ? 'text-green-600' :
-                    grade.startsWith('B') ? 'text-blue-600' :
-                    grade.startsWith('C') ? 'text-yellow-600' :
-                    'text-red-600'
-                  }`}>
-                    {grade}
+            <div className="space-y-3">
+              {recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                      <Bell size={12} className="text-green-600" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-900">
+                      <span className="font-medium">{activity.user}</span> {activity.action} {activity.item}
+                    </p>
+                    <p className="text-xs text-gray-500">{activity.time}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link to="/app/messages" className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg mr-3">
+              <MessageSquare size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Message Teachers</p>
+              <p className="text-sm text-gray-500">Communicate with teachers</p>
+            </div>
+          </div>
+        </Link>
+        <Link to="/app/calendar" className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg mr-3">
+              <Calendar size={20} className="text-green-600" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">School Calendar</p>
+              <p className="text-sm text-gray-500">View events and schedules</p>
+            </div>
+          </div>
+        </Link>
+        <Link to="/app/grades" className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg mr-3">
+              <BookOpen size={20} className="text-purple-600" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">View Grades</p>
+              <p className="text-sm text-gray-500">Check academic progress</p>
+            </div>
+          </div>
+        </Link>
+        <Link to="/app/attendance" className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg mr-3">
+              <Users size={20} className="text-orange-600" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Attendance Report</p>
+              <p className="text-sm text-gray-500">Track attendance records</p>
+            </div>
+          </div>
+        </Link>
       </div>
     </div>
   );

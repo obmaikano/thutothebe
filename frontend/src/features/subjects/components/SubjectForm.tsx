@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAppDispatch } from '../../../app/hooks';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { Subject, CreateSubjectRequest, UpdateSubjectRequest } from '../../../api/services/subjectApi';
 import { createSubject, updateSubject } from '../subjectsSlice';
+import { fetchDepartments } from '../../departments/departmentsSlice';
 
 interface SubjectFormProps {
   subject?: Subject | null;
@@ -17,14 +18,22 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
   mode = 'create'
 }) => {
   const dispatch = useAppDispatch();
-  const [formData, setFormData] = useState<CreateSubjectRequest>({
+  const { departments } = useAppSelector(state => state.departments);
+  
+  const [formData, setFormData] = useState<CreateSubjectRequest & { departmentId?: number }>({
     code: '',
     name: '',
     description: '',
+    departmentId: undefined,
     active: true
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Load departments when component mounts
+    dispatch(fetchDepartments());
+  }, [dispatch]);
 
   useEffect(() => {
     if (subject && mode === 'edit') {
@@ -32,6 +41,7 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
         code: subject.code,
         name: subject.name,
         description: subject.description || '',
+        departmentId: (subject as any).departmentId || undefined,
         active: subject.active
       });
     }
@@ -60,13 +70,15 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : 
+              name === 'departmentId' ? (value ? parseInt(value, 10) : undefined) : 
+              value
     }));
 
     // Clear error when user starts typing
@@ -153,6 +165,39 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
         )}
       </div>
 
+      {/* Department Selection */}
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text font-medium">Department</span>
+        </label>
+        <select
+          name="departmentId"
+          value={formData.departmentId || ''}
+          onChange={handleInputChange}
+          className={`select select-bordered ${errors.departmentId ? 'select-error' : ''}`}
+          disabled={isSubmitting}
+        >
+          <option value="">Select a department (optional)</option>
+          {departments
+            .filter(dept => dept.active)
+            .map(department => (
+              <option key={department.id} value={department.id}>
+                {department.name}
+              </option>
+            ))}
+        </select>
+        {errors.departmentId && (
+          <label className="label">
+            <span className="label-text-alt text-error">{errors.departmentId}</span>
+          </label>
+        )}
+        <label className="label">
+          <span className="label-text-alt">
+            Assign this subject to a specific department for better organization
+          </span>
+        </label>
+      </div>
+
       {/* Description */}
       <div className="form-control">
         <label className="label">
@@ -219,10 +264,17 @@ export const SubjectForm: React.FC<SubjectFormProps> = ({
         )}
         <button
           type="submit"
-          className={`btn btn-primary ${isSubmitting ? 'loading' : ''}`}
+          className="btn btn-primary"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Saving...' : mode === 'edit' ? 'Update Subject' : 'Create Subject'}
+          {isSubmitting ? (
+            <>
+              <span className="loading loading-spinner loading-sm"></span>
+              {mode === 'edit' ? 'Updating...' : 'Creating...'}
+            </>
+          ) : (
+            mode === 'edit' ? 'Update Subject' : 'Create Subject'
+          )}
         </button>
       </div>
     </form>

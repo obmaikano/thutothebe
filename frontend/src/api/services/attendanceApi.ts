@@ -146,36 +146,36 @@ const attendanceApi = {
         }
       });
     }
-    return api.get(`/api/attendance?${params}`);
+    return api.get(`/attendance?${params}`);
   },
 
   getById: async (id: number): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord>>> => {
-    return api.get(`/api/attendance/${id}`);
+    return api.get(`/attendance/${id}`);
   },
 
   create: async (attendanceData: CreateAttendanceRequest): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord>>> => {
-    return api.post('/api/attendance', attendanceData);
+    return api.post('/attendance', attendanceData);
   },
 
   update: async (id: number, attendanceData: Partial<CreateAttendanceRequest>): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord>>> => {
-    return api.put(`/api/attendance/${id}`, attendanceData);
+    return api.put(`/attendance/${id}`, attendanceData);
   },
 
   delete: async (id: number): Promise<AxiosResponse<AttendanceResponse<void>>> => {
-    return api.delete(`/api/attendance/${id}`);
+    return api.delete(`/attendance/${id}`);
   },
 
   // Bulk operations
   createBulk: async (bulkData: BulkAttendanceRequest): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
-    return api.post('/api/attendance/bulk', bulkData);
+    return api.post('/attendance/bulk', bulkData);
   },
 
   updateBulk: async (bulkData: BulkAttendanceRequest): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
-    return api.put('/api/attendance/bulk', bulkData);
+    return api.put('/attendance/bulk', bulkData);
   },
 
   deleteBulk: async (ids: number[]): Promise<AxiosResponse<AttendanceResponse<void>>> => {
-    return api.delete('/api/attendance/bulk', { data: { ids } });
+    return api.delete('/attendance/bulk', { data: { ids } });
   },
 
   // Query operations
@@ -188,7 +188,7 @@ const attendanceApi = {
         }
       });
     }
-    return api.get(`/api/attendance/student/${studentId}?${params}`);
+    return api.get(`/attendance/student/${studentId}?${params}`);
   },
 
   getByClass: async (classId: number, filters?: Omit<AttendanceFilters, 'classId'>): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
@@ -200,7 +200,7 @@ const attendanceApi = {
         }
       });
     }
-    return api.get(`/api/attendance/class/${classId}?${params}`);
+    return api.get(`/attendance/class/${classId}?${params}`);
   },
 
   getByTeacher: async (teacherId: number, filters?: AttendanceFilters): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
@@ -212,7 +212,7 @@ const attendanceApi = {
         }
       });
     }
-    return api.get(`/api/attendance/teacher/${teacherId}?${params}`);
+    return api.get(`/attendance/teacher/${teacherId}?${params}`);
   },
 
   getByDateRange: async (startDate: string, endDate: string, filters?: Omit<AttendanceFilters, 'startDate' | 'endDate'>): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
@@ -226,7 +226,7 @@ const attendanceApi = {
           }
         });
       }
-      return api.get(`/api/attendance/student/${filters.studentEntityId}/date-range?${params}`);
+      return api.get(`/attendance/student/${filters.studentEntityId}/date-range?${params}`);
     }
     
     // Otherwise use the general range endpoint
@@ -238,7 +238,7 @@ const attendanceApi = {
         }
       });
     }
-    return api.get(`/api/attendance/range?${params}`);
+    return api.get(`/attendance/range?${params}`);
   },
 
   // Statistics and analytics
@@ -251,7 +251,7 @@ const attendanceApi = {
         }
       });
     }
-    return api.get(`/api/attendance/stats?${params}`);
+    return api.get(`/attendance/stats?${params}`);
   },
 
   getAttendanceSummary: async (filters: AttendanceFilters): Promise<AxiosResponse<AttendanceResponse<AttendanceSummary>>> => {
@@ -261,7 +261,7 @@ const attendanceApi = {
         params.append(key, value.toString());
       }
     });
-    return api.get(`/api/attendance/summary?${params}`);
+    return api.get(`/attendance/summary?${params}`);
   },
 
   // Modification tracking
@@ -271,7 +271,7 @@ const attendanceApi = {
     reason: string, 
     modifiedById: number
   ): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord>>> => {
-    return api.put(`/api/attendance/${attendanceId}/modify`, {
+    return api.put(`/attendance/${attendanceId}/modify`, {
       ...updatedRecord,
       modificationReason: reason,
       modifiedById
@@ -279,7 +279,7 @@ const attendanceApi = {
   },
 
   getModificationHistory: async (attendanceId: number): Promise<AxiosResponse<AttendanceResponse<any[]>>> => {
-    return api.get(`/api/attendance/${attendanceId}/history`);
+    return api.get(`/attendance/${attendanceId}/history`);
   },
 
   // Quick actions
@@ -290,7 +290,7 @@ const attendanceApi = {
     periodNumber?: number, 
     markedById?: number
   ): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
-    return api.post('/api/attendance/quick/mark-all-present', {
+    return api.post('/attendance/quick/mark-all-present', {
       classId,
       date,
       type,
@@ -307,7 +307,7 @@ const attendanceApi = {
     markedById?: number, 
     absentType: 'ABSENT_EXCUSED' | 'ABSENT_UNEXCUSED' = 'ABSENT_UNEXCUSED'
   ): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
-    return api.post('/api/attendance/quick/mark-all-absent', {
+    return api.post('/attendance/quick/mark-all-absent', {
       classId,
       date,
       type,
@@ -330,14 +330,14 @@ const attendanceApi = {
     });
     params.append('format', format);
     
-    return api.get(`/api/attendance/export?${params}`, {
+    return api.get(`/attendance/export?${params}`, {
       responseType: 'blob'
     });
   },
 
   // Parent notifications
   notifyParents: async (attendanceIds: number[]): Promise<AxiosResponse<AttendanceResponse<void>>> => {
-    return api.post('/api/attendance/notify-parents', { attendanceIds });
+    return api.post('/attendance/notify-parents', { attendanceIds });
   },
 
   // Dashboard data
@@ -346,7 +346,7 @@ const attendanceApi = {
     startDate: string, 
     endDate: string
   ): Promise<AxiosResponse<AttendanceResponse<any>>> => {
-    return api.get(`/api/attendance/dashboard/teacher/${teacherId}?startDate=${startDate}&endDate=${endDate}`);
+    return api.get(`/attendance/dashboard/teacher/${teacherId}?startDate=${startDate}&endDate=${endDate}`);
   },
 
   getSchoolDashboard: async (
@@ -354,12 +354,12 @@ const attendanceApi = {
     startDate: string, 
     endDate: string
   ): Promise<AxiosResponse<AttendanceResponse<any>>> => {
-    return api.get(`/api/attendance/dashboard/school/${schoolId}?startDate=${startDate}&endDate=${endDate}`);
+    return api.get(`/attendance/dashboard/school/${schoolId}?startDate=${startDate}&endDate=${endDate}`);
   },
 
   // Validation
   validateAttendanceData: async (attendanceData: CreateAttendanceRequest): Promise<AxiosResponse<AttendanceResponse<{ valid: boolean; errors?: string[] }>>> => {
-    return api.post('/api/attendance/validate', attendanceData);
+    return api.post('/attendance/validate', attendanceData);
   },
 
   // Attendance patterns and analytics
@@ -367,7 +367,7 @@ const attendanceApi = {
     studentId: number, 
     academicYear: number
   ): Promise<AxiosResponse<AttendanceResponse<any>>> => {
-    return api.get(`/api/attendance/patterns/student/${studentId}?academicYear=${academicYear}`);
+    return api.get(`/attendance/patterns/student/${studentId}?academicYear=${academicYear}`);
   },
 
   getClassAttendanceTrends: async (
@@ -375,7 +375,7 @@ const attendanceApi = {
     startDate: string, 
     endDate: string
   ): Promise<AxiosResponse<AttendanceResponse<any>>> => {
-    return api.get(`/api/attendance/trends/class/${classId}?startDate=${startDate}&endDate=${endDate}`);
+    return api.get(`/attendance/trends/class/${classId}?startDate=${startDate}&endDate=${endDate}`);
   }
 };
 

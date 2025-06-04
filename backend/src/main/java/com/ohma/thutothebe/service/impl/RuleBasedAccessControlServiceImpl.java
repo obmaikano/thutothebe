@@ -46,7 +46,7 @@ public class RuleBasedAccessControlServiceImpl {
 
     @Autowired
     private ClassRepository classRepository;
-    
+
     @Autowired
     private RegionRepository regionRepository;
 
