@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -69,7 +70,8 @@ public class ScheduleServiceImpl extends BaseServiceImpl<Schedule, ScheduleDTO, 
     @Override
     @Transactional(readOnly = true)
     public Page<ScheduleDTO> getSchedulesForUser(UserRole userRole, Long userId, Long userRegionId, Long userSchoolId, Pageable pageable) {
-        Page<Schedule> schedules = getScheduleRepository().findSchedulesForUser(userRole, userId, userRegionId, userSchoolId, pageable);
+        List<Long> schoolIds = userSchoolId != null ? List.of(userSchoolId) : new ArrayList<>();
+        Page<Schedule> schedules = getScheduleRepository().findSchedulesForUser(userRole, userId, schoolIds, pageable);
         return schedules.map(scheduleMapper::toDto);
     }
 
@@ -297,7 +299,7 @@ public class ScheduleServiceImpl extends BaseServiceImpl<Schedule, ScheduleDTO, 
         Schedule versionSchedule = getScheduleRepository().findByParentIdAndVersion(
             currentSchedule.parentScheduleId() != null ? currentSchedule.parentScheduleId() : scheduleId, 
             version
-        );
+        ).orElse(null);
         
         if (versionSchedule == null) {
             throw new ResourceNotFoundException("Schedule version not found: " + version);

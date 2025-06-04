@@ -533,6 +533,84 @@ public class DepartmentController extends BaseController<DepartmentDTO, Long> {
         }
     }
 
+    // ==================== MISSING METHODS FOR TESTS ====================
+
+    @GetMapping("/active/school/{schoolId}")
+    @Operation(summary = "Get active departments by school ID with access validation")
+    public ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> getActiveDepartmentsBySchoolId(@PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<DepartmentDTO> departments = departmentService.getActiveDepartmentsBySchoolId(schoolId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Active departments retrieved successfully", departments, null));
+        } catch (Exception e) {
+            log.error("Error retrieving active departments by school: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/name/{name}/school/{schoolId}")
+    @Operation(summary = "Get department by name and school ID with access validation")
+    public ResponseEntity<OhmaApiResponse<DepartmentDTO>> getDepartmentByNameAndSchoolId(@PathVariable String name, @PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            DepartmentDTO department = departmentService.getDepartmentByNameAndSchoolId(name, schoolId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department retrieved successfully", department, null));
+        } catch (Exception e) {
+            log.error("Error retrieving department by name and school: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/count/active/school/{schoolId}")
+    @Operation(summary = "Count active departments by school ID with access validation")
+    public ResponseEntity<OhmaApiResponse<Long>> countActiveDepartmentsBySchoolId(@PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            Long count = departmentService.countActiveDepartmentsBySchoolId(schoolId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department count retrieved successfully", count, null));
+        } catch (Exception e) {
+            log.error("Error counting active departments by school: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/exists/name/{name}/school/{schoolId}")
+    @Operation(summary = "Check if department exists by name and school ID with access validation")
+    public ResponseEntity<OhmaApiResponse<Boolean>> existsByNameAndSchoolId(@PathVariable String name, @PathVariable Long schoolId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            Boolean exists = departmentService.existsByNameAndSchoolId(name, schoolId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Department existence checked successfully", exists, null));
+        } catch (Exception e) {
+            log.error("Error checking department existence by name and school: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     // ==================== STATISTICS ENDPOINTS ====================
 
     @GetMapping("/statistics/count")

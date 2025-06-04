@@ -3,6 +3,7 @@ package com.ohma.thutothebe.service;
 import com.ohma.thutothebe.dto.ScheduleDTO;
 import com.ohma.thutothebe.dto.ScheduleHistoryDTO;
 import com.ohma.thutothebe.entity.*;
+import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.ScheduleHistoryMapper;
 import com.ohma.thutothebe.mapper.ScheduleMapper;
 import com.ohma.thutothebe.repository.ScheduleHistoryRepository;
@@ -26,7 +27,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -103,7 +105,7 @@ class ScheduleServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         
         Page<Schedule> schedulePage = new PageImpl<>(Arrays.asList(testSchedule));
-        when(scheduleRepository.findSchedulesForUser(userRole, userId, userRegionId, userSchoolId, pageable))
+        when(scheduleRepository.findSchedulesForUser(userRole, userId, Arrays.asList(userSchoolId), pageable))
             .thenReturn(schedulePage);
         when(scheduleMapper.toDto(testSchedule)).thenReturn(testScheduleDTO);
 
@@ -114,7 +116,7 @@ class ScheduleServiceTest {
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         assertEquals(testScheduleDTO, result.getContent().get(0));
-        verify(scheduleRepository).findSchedulesForUser(userRole, userId, userRegionId, userSchoolId, pageable);
+        verify(scheduleRepository).findSchedulesForUser(userRole, userId, Arrays.asList(userSchoolId), pageable);
     }
 
     @Test

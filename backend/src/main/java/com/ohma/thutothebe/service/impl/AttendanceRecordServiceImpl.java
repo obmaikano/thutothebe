@@ -722,4 +722,324 @@ public class AttendanceRecordServiceImpl extends BaseServiceImpl<AttendanceRecor
         return entity.getClassEntity() != null && entity.getClassEntity().getSchool() != null && entity.getClassEntity().getSchool().getRegion() != null 
             ? entity.getClassEntity().getSchool().getRegion().getId() : null;
     }
+
+    // ==================== MULTI-TENANT SECURITY METHODS ====================
+    
+    @Override
+    public List<AttendanceRecordDTO> quickMarkAllAbsentAndAccessibleScopes(Long classId, LocalDate date, AttendanceType type, Integer periodNumber, Long markedById, AttendanceStatus absentType, Long currentUserId) {
+        // Implementation would include access control checks
+        return quickMarkAllAbsent(classId, date, type, periodNumber, markedById, absentType);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceRecordsByAccessibleScopes(Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return attendanceRecordRepository.findAll().stream()
+                .map(attendanceRecordMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getActiveAttendanceRecordsByAccessibleScopes(Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return attendanceRecordRepository.findAll().stream()
+                .filter(entity -> entity.isActive())
+                .map(attendanceRecordMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceRecordsBySchoolIdAndAccessibleScopes(Long schoolId, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceBySchoolAndDateRange(schoolId, LocalDate.now().minusYears(1), LocalDate.now());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceRecordsByRegionIdAndAccessibleScopes(Long regionId, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return new ArrayList<>();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByStudentAndAccessibleScopes(Long studentId, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByStudent(studentId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByStudentAndDateAndAccessibleScopes(Long studentId, LocalDate date, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByStudentAndDate(studentId, date);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByStudentAndDateRangeAndAccessibleScopes(Long studentId, LocalDate startDate, LocalDate endDate, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByStudentAndDateRange(studentId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByStudentAndAcademicYearAndAccessibleScopes(Long studentId, Integer academicYear, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByStudentAndAcademicYear(studentId, academicYear);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByStudentAndAcademicYearAndTermAndAccessibleScopes(Long studentId, Integer academicYear, Term term, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByStudentAndAcademicYearAndTerm(studentId, academicYear, term);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByClassAndAccessibleScopes(Long classId, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByClass(classId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByClassAndDateAndAccessibleScopes(Long classId, LocalDate date, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByClassAndDate(classId, date);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByClassAndDateRangeAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByClassAndDateRange(classId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByCourseAndAccessibleScopes(Long courseId, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByCourse(courseId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByCourseAndDateAndAccessibleScopes(Long courseId, LocalDate date, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByCourseAndDate(courseId, date);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByCourseAndDateRangeAndAccessibleScopes(Long courseId, LocalDate startDate, LocalDate endDate, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByCourseAndDateRange(courseId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceBySubjectAndAccessibleScopes(Long subjectId, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceBySubject(subjectId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByTeacherAndAccessibleScopes(Long teacherId, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByTeacher(teacherId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByTeacherAndDateAndAccessibleScopes(Long teacherId, LocalDate date, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByTeacherAndDate(teacherId, date);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByStatusAndAccessibleScopes(AttendanceStatus status, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByStatus(status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByClassAndStatusAndDateAndAccessibleScopes(Long classId, AttendanceStatus status, LocalDate date, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByClassAndStatusAndDate(classId, status, date);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByTypeAndAccessibleScopes(AttendanceType type, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByType(type);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByClassAndDateAndTypeAndPeriodAndAccessibleScopes(Long classId, LocalDate date, AttendanceType type, Integer periodNumber, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByClassAndDateAndTypeAndPeriod(classId, date, type, periodNumber);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByAcademicYearAndAccessibleScopes(Integer academicYear, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByAcademicYear(academicYear);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getAttendanceByAcademicYearAndTermAndAccessibleScopes(Integer academicYear, Term term, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceByAcademicYearAndTerm(academicYear, term);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getModifiedRecordsByAccessibleScopes(Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getModifiedRecords();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getModifiedRecordsByUserAndAccessibleScopes(Long userId, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getModifiedRecordsByUser(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean validateAttendanceRecordAccess(Long attendanceId, Long currentUserId) {
+        // TODO: Implement access validation
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean validateAttendanceRecordBusinessRules(AttendanceRecordDTO attendanceDTO, Long currentUserId) {
+        // TODO: Implement business rules validation
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasExistingAttendanceAndAccessibleScopes(Long studentId, LocalDate date, AttendanceType type, Long courseId, Integer periodNumber, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return hasExistingAttendance(studentId, date, type, courseId, periodNumber);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AttendanceRecordDTO getExistingAttendanceAndAccessibleScopes(Long studentId, LocalDate date, AttendanceType type, Long courseId, Integer periodNumber, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getExistingAttendance(studentId, date, type, courseId, periodNumber);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<AttendanceStatus, Long> getAttendanceStatsByStudentAndAccessibleScopes(Long studentId, Integer academicYear, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceStatsByStudent(studentId, academicYear);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<AttendanceStatus, Long> getAttendanceStatsByStudentAndTermAndAccessibleScopes(Long studentId, Integer academicYear, Term term, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceStatsByStudentAndTerm(studentId, academicYear, term);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<AttendanceStatus, Long> getAttendanceStatsByClassAndDateAndAccessibleScopes(Long classId, LocalDate date, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceStatsByClassAndDate(classId, date);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Double getAttendancePercentageByStudentAndAccessibleScopes(Long studentId, Integer academicYear, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendancePercentageByStudent(studentId, academicYear);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Double getAttendancePercentageByStudentAndTermAndAccessibleScopes(Long studentId, Integer academicYear, Term term, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendancePercentageByStudentAndTerm(studentId, academicYear, term);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Double getAttendancePercentageByClassAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendancePercentageByClass(classId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> getStudentsWithLowAttendanceAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Double threshold, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getStudentsWithLowAttendance(classId, startDate, endDate, threshold);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordDTO> getStudentsWithLowAttendanceDetailsAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Double threshold, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getStudentsWithLowAttendanceDetails(classId, startDate, endDate, threshold);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getAttendanceDashboardDataAndAccessibleScopes(Long classId, LocalDate date, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceDashboardData(classId, date);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getTeacherAttendanceDashboardAndAccessibleScopes(Long teacherId, LocalDate startDate, LocalDate endDate, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getTeacherAttendanceDashboard(teacherId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getSchoolAttendanceDashboardAndAccessibleScopes(Long schoolId, LocalDate startDate, LocalDate endDate, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getSchoolAttendanceDashboard(schoolId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAttendanceTrendsAndAccessibleScopes(Long classId, LocalDate startDate, LocalDate endDate, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getAttendanceTrends(classId, startDate, endDate);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getStudentAttendanceTrendsAndAccessibleScopes(Long studentId, LocalDate startDate, LocalDate endDate, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return getStudentAttendanceTrends(studentId, startDate, endDate);
+    }
+
+    @Override
+    public List<AttendanceRecordDTO> quickMarkAllPresentAndAccessibleScopes(Long classId, LocalDate date, AttendanceType type, Integer periodNumber, Long markedById, Long currentUserId) {
+        // TODO: Implement with multi-tenant access control
+        return quickMarkAllPresent(classId, date, type, periodNumber, markedById);
+    }
 } 

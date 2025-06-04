@@ -2,7 +2,10 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.DepartmentDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.service.DepartmentService;
+import com.ohma.thutothebe.service.impl.RuleBasedAccessControlServiceImpl;
+import com.ohma.thutothebe.util.AuthUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -27,6 +31,12 @@ class DepartmentControllerTest {
     @Mock
     private DepartmentService departmentService;
 
+    @Mock
+    private AuthUtils authUtils;
+
+    @Mock
+    private RuleBasedAccessControlServiceImpl accessControlService;
+
     @InjectMocks
     private DepartmentController departmentController;
 
@@ -34,6 +44,20 @@ class DepartmentControllerTest {
 
     @BeforeEach
     void setUp() {
+        // Manually inject the mocked dependencies into the controller using reflection
+        ReflectionTestUtils.setField(departmentController, "authUtils", authUtils);
+        ReflectionTestUtils.setField(departmentController, "accessControlService", accessControlService);
+        
+        // Mock the current user ID for authentication
+        lenient().when(authUtils.getCurrentUserId()).thenReturn(1L);
+        
+        // Mock access control service to allow all operations (lenient to avoid unnecessary stubbing warnings)
+        lenient().when(accessControlService.hasAccess(anyLong(), any(AccessScope.class), anyLong())).thenReturn(true);
+        lenient().when(accessControlService.getAccessibleScopeIds(anyLong(), any(AccessScope.class))).thenReturn(List.of(1L));
+        
+        // Mock department service access validation to allow all operations
+        lenient().when(departmentService.validateDepartmentAccess(anyLong(), anyLong())).thenReturn(true);
+        
         departmentDTO = new DepartmentDTO(
             1L,
             "Mathematics Department",
@@ -73,7 +97,7 @@ class DepartmentControllerTest {
     void getDepartmentsBySchoolId_ShouldReturnDepartmentsList() {
         // Given
         List<DepartmentDTO> departments = Arrays.asList(departmentDTO);
-        when(departmentService.getDepartmentsBySchoolId(1L)).thenReturn(departments);
+        when(departmentService.getDepartmentsBySchoolIdAndAccessibleScopes(1L, 1L)).thenReturn(departments);
 
         // When
         ResponseEntity<OhmaApiResponse<List<DepartmentDTO>>> response = departmentController.getDepartmentsBySchoolId(1L);
@@ -84,7 +108,7 @@ class DepartmentControllerTest {
         assertEquals("SUCCESS", response.getBody().getStatus());
         assertEquals("Departments retrieved successfully", response.getBody().getMessage());
         assertEquals(departments, response.getBody().getData());
-        verify(departmentService).getDepartmentsBySchoolId(1L);
+        verify(departmentService).getDepartmentsBySchoolIdAndAccessibleScopes(1L, 1L);
     }
 
     @Test

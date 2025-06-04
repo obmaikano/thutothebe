@@ -312,4 +312,81 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     Long countByCreatorIdAndSchoolIdInAndActive(@Param("creatorId") Long creatorId,
                                                @Param("schoolIds") List<Long> schoolIds,
                                                @Param("active") boolean active);
+    
+    // ==================== MISSING METHODS FROM SERVICE IMPLEMENTATION ====================
+    
+    // User role-based schedule queries
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s WHERE " +
+           "(:role = 'SUPER_ADMIN' OR :role = 'MINISTRY_EXECUTIVE' OR s.school.id IN :schoolIds) " +
+           "AND s.active = true " +
+           "AND (:userId IS NULL OR s.createdBy.id = :userId OR s.teacher.id = :userId)")
+    Page<Schedule> findSchedulesForUser(@Param("role") UserRole role,
+                                      @Param("userId") Long userId,
+                                      @Param("schoolIds") List<Long> schoolIds,
+                                      Pageable pageable);
+    
+    // School-specific queries
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s WHERE s.school.id = :schoolId AND s.active = true")
+    List<Schedule> findBySchoolIdAndActive(@Param("schoolId") Long schoolId);
+    
+    // Class-specific queries
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s WHERE s.classEntity.id = :classId AND s.active = true")
+    List<Schedule> findByClassIdAndActive(@Param("classId") Long classId);
+    
+    // Teacher-specific queries
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s WHERE s.teacher.id = :teacherId AND s.active = true")
+    List<Schedule> findByTeacherIdAndActive(@Param("teacherId") Long teacherId);
+    
+    // Day of week and date filtering
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s WHERE s.dayOfWeek = :dayOfWeek AND s.effectiveDate <= :currentDate AND (s.expiryDate IS NULL OR s.expiryDate >= :currentDate) AND s.active = true")
+    List<Schedule> findActiveSchedulesForDayOfWeek(@Param("dayOfWeek") DayOfWeek dayOfWeek,
+                                                  @Param("currentDate") LocalDateTime currentDate);
+    
+    // Student schedule queries
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s JOIN s.classEntity c JOIN c.students st WHERE st.id = :studentId AND s.active = true")
+    List<Schedule> findSchedulesForStudent(@Param("studentId") Long studentId);
+    
+    // Parent schedule queries
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s JOIN s.classEntity c JOIN c.students st JOIN st.user u WHERE u.parent.id = :parentId AND s.active = true")
+    List<Schedule> findSchedulesForParent(@Param("parentId") Long parentId);
+    
+    // Conflict detection queries
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s WHERE s.classEntity.id = :classId AND s.dayOfWeek = :dayOfWeek AND s.startTime < :endTime AND s.endTime > :startTime AND s.effectiveDate <= :currentDate AND (s.expiryDate IS NULL OR s.expiryDate >= :currentDate) AND (:excludeId IS NULL OR s.id != :excludeId) AND s.active = true")
+    List<Schedule> findConflictingSchedulesForClass(@Param("classId") Long classId,
+                                                   @Param("dayOfWeek") DayOfWeek dayOfWeek,
+                                                   @Param("startTime") LocalTime startTime,
+                                                   @Param("endTime") LocalTime endTime,
+                                                   @Param("currentDate") LocalDateTime currentDate,
+                                                   @Param("excludeId") Long excludeId);
+    
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s WHERE s.teacher.id = :teacherId AND s.dayOfWeek = :dayOfWeek AND s.startTime < :endTime AND s.endTime > :startTime AND s.effectiveDate <= :currentDate AND (s.expiryDate IS NULL OR s.expiryDate >= :currentDate) AND (:excludeId IS NULL OR s.id != :excludeId) AND s.active = true")
+    List<Schedule> findConflictingSchedulesForTeacher(@Param("teacherId") Long teacherId,
+                                                     @Param("dayOfWeek") DayOfWeek dayOfWeek,
+                                                     @Param("startTime") LocalTime startTime,
+                                                     @Param("endTime") LocalTime endTime,
+                                                     @Param("currentDate") LocalDateTime currentDate,
+                                                     @Param("excludeId") Long excludeId);
+    
+    // Version history queries
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher", "scheduleHistories"})
+    @Query("SELECT s FROM Schedule s WHERE s.parentScheduleId = :parentId ORDER BY s.version DESC")
+    List<Schedule> findVersionHistory(@Param("parentId") Long parentId);
+    
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s WHERE s.parentScheduleId = :parentId AND s.version = :version")
+    Optional<Schedule> findByParentIdAndVersion(@Param("parentId") Long parentId, @Param("version") Integer version);
+    
+    // Date-specific active schedules
+    @EntityGraph(attributePaths = {"course", "classEntity", "school", "school.region", "region", "createdBy", "teacher"})
+    @Query("SELECT s FROM Schedule s WHERE s.effectiveDate <= :date AND (s.expiryDate IS NULL OR s.expiryDate >= :date) AND s.active = true")
+    List<Schedule> findActiveSchedulesForDate(@Param("date") LocalDateTime date);
 } 

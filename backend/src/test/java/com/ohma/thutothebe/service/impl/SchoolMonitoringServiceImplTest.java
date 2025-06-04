@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.SchoolMonitoringDTO;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.School;
 import com.ohma.thutothebe.entity.SchoolMonitoring;
 import com.ohma.thutothebe.entity.UserActivityType;
@@ -8,6 +9,7 @@ import com.ohma.thutothebe.mapper.SchoolMonitoringMapper;
 import com.ohma.thutothebe.repository.SchoolMonitoringRepository;
 import com.ohma.thutothebe.repository.SchoolRepository;
 import com.ohma.thutothebe.repository.UserActivityLogRepository;
+import com.ohma.thutothebe.util.AuthUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,12 @@ class SchoolMonitoringServiceImplTest {
     @Mock
     private UserActivityLogRepository userActivityLogRepository;
 
+    @Mock
+    private AuthUtils authUtils;
+
+    @Mock
+    private RuleBasedAccessControlServiceImpl accessControlService;
+
     private SchoolMonitoringServiceImpl schoolMonitoringService;
 
     private SchoolMonitoring schoolMonitoring;
@@ -61,6 +69,15 @@ class SchoolMonitoringServiceImplTest {
         ReflectionTestUtils.setField(schoolMonitoringService, "schoolMonitoringMapper", schoolMonitoringMapper);
         ReflectionTestUtils.setField(schoolMonitoringService, "schoolRepository", schoolRepository);
         ReflectionTestUtils.setField(schoolMonitoringService, "userActivityLogRepository", userActivityLogRepository);
+        
+        // Inject BaseServiceImpl dependencies
+        ReflectionTestUtils.setField(schoolMonitoringService, "authUtils", authUtils);
+        ReflectionTestUtils.setField(schoolMonitoringService, "accessControlService", accessControlService);
+        
+        // Mock authentication and access control
+        lenient().when(authUtils.getCurrentUserId()).thenReturn(1L);
+        lenient().when(accessControlService.hasAccess(anyLong(), any(AccessScope.class), anyLong())).thenReturn(true);
+        lenient().when(accessControlService.getAccessibleScopeIds(anyLong(), any(AccessScope.class))).thenReturn(List.of(1L));
 
         testDate = LocalDate.now();
         pageable = PageRequest.of(0, 10);
@@ -497,25 +514,27 @@ class SchoolMonitoringServiceImplTest {
     @DisplayName("Test BaseServiceImpl inherited methods - update")
     void update_ShouldUpdateMonitoringData_WhenExists() {
         when(schoolMonitoringRepository.findById(1L)).thenReturn(Optional.of(schoolMonitoring));
+        when(schoolMonitoringMapper.toEntity(schoolMonitoringDTO)).thenReturn(schoolMonitoring);
         when(schoolMonitoringRepository.save(schoolMonitoring)).thenReturn(schoolMonitoring);
         when(schoolMonitoringMapper.toDto(schoolMonitoring)).thenReturn(schoolMonitoringDTO);
 
         SchoolMonitoringDTO result = schoolMonitoringService.update(1L, schoolMonitoringDTO);
 
         assertNotNull(result);
+        assertEquals(1L, result.id());
         verify(schoolMonitoringRepository).findById(1L);
-        verify(schoolMonitoringMapper).updateEntity(schoolMonitoring, schoolMonitoringDTO);
         verify(schoolMonitoringRepository).save(schoolMonitoring);
     }
 
     @Test
     @DisplayName("Test BaseServiceImpl inherited methods - delete")
     void delete_ShouldDeleteMonitoringData_WhenExists() {
-        when(schoolMonitoringRepository.existsById(1L)).thenReturn(true);
+        when(schoolMonitoringRepository.findById(1L)).thenReturn(Optional.of(schoolMonitoring));
+        doNothing().when(schoolMonitoringRepository).deleteById(1L);
 
-        schoolMonitoringService.delete(1L);
+        assertDoesNotThrow(() -> schoolMonitoringService.delete(1L));
 
-        verify(schoolMonitoringRepository).existsById(1L);
+        verify(schoolMonitoringRepository).findById(1L);
         verify(schoolMonitoringRepository).deleteById(1L);
     }
 

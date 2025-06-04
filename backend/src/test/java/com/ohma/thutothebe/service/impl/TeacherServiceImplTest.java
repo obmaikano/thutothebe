@@ -1,12 +1,14 @@
 package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.TeacherDTO;
+import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.CourseInstructor;
 import com.ohma.thutothebe.entity.Teacher;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.TeacherMapper;
 import com.ohma.thutothebe.repository.CourseInstructorRepository;
 import com.ohma.thutothebe.repository.TeacherRepository;
+import com.ohma.thutothebe.util.AuthUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +38,15 @@ class TeacherServiceImplTest {
     @Mock
     private TeacherMapper teacherMapper;
 
+    @Mock
+    private AuthUtils authUtils;
+
+    @Mock
+    private RuleBasedAccessControlServiceImpl accessControlService;
+
+    @Mock
+    private com.ohma.thutothebe.repository.SchoolRepository schoolRepository;
+
     @InjectMocks
     private TeacherServiceImpl teacherService;
 
@@ -44,6 +56,16 @@ class TeacherServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // Inject BaseServiceImpl dependencies
+        ReflectionTestUtils.setField(teacherService, "authUtils", authUtils);
+        ReflectionTestUtils.setField(teacherService, "accessControlService", accessControlService);
+        ReflectionTestUtils.setField(teacherService, "schoolRepository", schoolRepository);
+        
+        // Mock authentication and access control
+        lenient().when(authUtils.getCurrentUserId()).thenReturn(1L);
+        lenient().when(accessControlService.hasAccess(anyLong(), any(AccessScope.class), anyLong())).thenReturn(true);
+        lenient().when(accessControlService.getAccessibleScopeIds(anyLong(), any(AccessScope.class))).thenReturn(List.of(1L));
+
         // Setup test data
         teacher = new Teacher();
         teacher.setId(1L);
@@ -198,27 +220,20 @@ class TeacherServiceImplTest {
     @DisplayName("Test updateTeacher when teacher exists and staffId and email are unique")
     void updateTeacher_ShouldUpdateTeacher_WhenExistsAndStaffIdAndEmailAreUnique() {
         // Arrange
-        when(teacherRepository.findById(anyLong())).thenReturn(Optional.of(teacher));
+        when(teacherRepository.findById(1L)).thenReturn(Optional.of(teacher));
+        when(teacherRepository.existsByStaffId(anyString())).thenReturn(false);
+        when(teacherRepository.existsByEmail(anyString())).thenReturn(false);
         when(teacherMapper.toEntity(any(TeacherDTO.class))).thenReturn(teacher);
         when(teacherRepository.save(any(Teacher.class))).thenReturn(teacher);
         when(teacherMapper.toDto(any(Teacher.class))).thenReturn(teacherDTO);
 
         // Act
-        TeacherDTO updatedDTO = new TeacherDTO(
-                1L,
-                "TCH001",
-                "John",
-                "Doe",
-                "john.doe@example.com",
-                "Updated qualification",
-                1L,
-                1L,
-                true
-        );
-        TeacherDTO result = teacherService.updateTeacher(1L, updatedDTO);
+        TeacherDTO result = teacherService.updateTeacher(1L, teacherDTO);
 
         // Assert
         assertNotNull(result);
+        assertEquals("TCH001", result.staffId());
+        assertEquals("john.doe@example.com", result.email());
         verify(teacherRepository, times(1)).findById(1L);
         verify(teacherRepository, times(1)).save(any(Teacher.class));
     }
@@ -310,15 +325,15 @@ class TeacherServiceImplTest {
     @DisplayName("Test deleteTeacher when teacher exists")
     void deleteTeacher_ShouldDeleteTeacher_WhenExists() {
         // Arrange
-        when(teacherRepository.existsById(anyLong())).thenReturn(true);
-        doNothing().when(teacherRepository).deleteById(anyLong());
+        when(teacherRepository.findById(1L)).thenReturn(Optional.of(teacher));
+        doNothing().when(teacherRepository).delete(teacher);
 
         // Act
-        teacherService.deleteTeacher(1L);
+        assertDoesNotThrow(() -> teacherService.deleteTeacher(1L));
 
         // Assert
-        verify(teacherRepository, times(1)).existsById(1L);
-        verify(teacherRepository, times(1)).deleteById(1L);
+        verify(teacherRepository, times(1)).findById(1L);
+        verify(teacherRepository, times(1)).delete(teacher);
     }
 
     @Test
