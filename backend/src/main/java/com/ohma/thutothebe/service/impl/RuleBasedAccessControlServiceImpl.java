@@ -74,6 +74,7 @@ public class RuleBasedAccessControlServiceImpl {
         return switch (user.getRole()) {
             case SUPER_ADMIN, MINISTRY_EXECUTIVE -> true; // Global access
             case MINISTRY_STAFF -> hasMinistryStaffAccess(user, targetScope, targetScopeId);
+            case DATA_PROTECTION_OFFICER -> hasDataProtectionOfficerAccess(user, targetScope, targetScopeId);
             case REGIONAL_ADMIN, REGIONAL_OFFICER -> hasRegionalAdminAccess(user, targetScope, targetScopeId);
             case SCHOOL_ADMIN, SCHOOL_HEAD -> hasSchoolAdminAccess(user, targetScope, targetScopeId);
             case DEPARTMENT_HEAD -> hasDepartmentHeadAccess(user, targetScope, targetScopeId);
@@ -98,6 +99,7 @@ public class RuleBasedAccessControlServiceImpl {
         return switch (user.getRole()) {
             case SUPER_ADMIN, MINISTRY_EXECUTIVE -> getAllScopeIds(scopeType);
             case MINISTRY_STAFF -> getMinistryStaffScopeIds(user, scopeType);
+            case DATA_PROTECTION_OFFICER -> getDataProtectionOfficerScopeIds(user, scopeType);
             case REGIONAL_ADMIN, REGIONAL_OFFICER -> getRegionalAdminScopeIds(user, scopeType);
             case SCHOOL_ADMIN, SCHOOL_HEAD -> getSchoolAdminScopeIds(user, scopeType);
             case DEPARTMENT_HEAD -> getDepartmentHeadScopeIds(user, scopeType);
@@ -114,6 +116,12 @@ public class RuleBasedAccessControlServiceImpl {
     private boolean hasMinistryStaffAccess(User user, AccessScope targetScope, Long targetScopeId) {
         // Ministry staff can access all scopes except individual users and parents
         return targetScope != AccessScope.USER && targetScope != AccessScope.PARENT;
+    }
+
+    private boolean hasDataProtectionOfficerAccess(User user, AccessScope targetScope, Long targetScopeId) {
+        // Data Protection Officers have comprehensive access to all data for protection purposes
+        // They can access all scopes including user data for data protection compliance
+        return true;
     }
 
     private boolean hasRegionalAdminAccess(User user, AccessScope targetScope, Long targetScopeId) {
@@ -626,5 +634,10 @@ public class RuleBasedAccessControlServiceImpl {
             .filter(Objects::nonNull)
             .distinct()
             .collect(Collectors.toList());
+    }
+
+    private List<Long> getDataProtectionOfficerScopeIds(User user, AccessScope scopeType) {
+        // Data Protection Officers have access to all scope IDs for data protection purposes
+        return getAllScopeIds(scopeType);
     }
 } 

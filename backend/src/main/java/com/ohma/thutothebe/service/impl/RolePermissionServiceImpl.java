@@ -210,6 +210,9 @@ public class RolePermissionServiceImpl extends BaseServiceImpl<RolePermission, R
             case MINISTRY_STAFF:
                 return List.of("USER", "SCHEDULE", "ANNOUNCEMENT", "COURSE", "ASSIGNMENT", "GRADE", "MESSAGE", "SCHOOL", "REGION")
                     .contains(resource);
+            case DATA_PROTECTION_OFFICER:
+                return List.of("USER", "SCHEDULE", "ANNOUNCEMENT", "COURSE", "ASSIGNMENT", "GRADE", "MESSAGE", "SCHOOL", "REGION", "AUDIT", "LOG", "PRIVACY", "PERSONAL_DATA")
+                    .contains(resource);
             case DIRECTOR:
                 return List.of("USER", "SCHEDULE", "ANNOUNCEMENT", "COURSE", "ASSIGNMENT", "GRADE", "MESSAGE", "SCHOOL", "REGION")
                     .contains(resource);
