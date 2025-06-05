@@ -99,6 +99,8 @@ const StudentMessages = lazy(() => import('../pages/protected/StudentMessages'))
 const StudentSchedule = lazy(() => import('../pages/protected/StudentSchedule'));
 const StudentHelp = lazy(() => import('../pages/protected/StudentHelp'));
 const StudentQuizzes = lazy(() => import('../pages/protected/StudentQuizzes'));
+const StudentForumList = lazy(() => import('../pages/protected/StudentForumList'));
+const StudentCalendar = lazy(() => import('../pages/protected/StudentCalendar'));
 
 // School Admin role pages
 const SchoolAdminDashboard = lazy(() => import('../pages/protected/SchoolAdminDashboard'));
@@ -475,6 +477,14 @@ export const appRoutes = [
   {
     path: 'student-quizzes',
     element: StudentQuizzes
+  },
+  {
+    path: 'student-forum-list',
+    element: StudentForumList
+  },
+  {
+    path: 'student-calendar',
+    element: StudentCalendar
   },
   // School Admin role routes
   {

@@ -172,7 +172,10 @@ public class RuleBasedAccessControlServiceImpl {
     }
 
     private boolean hasStudentAccess(User user, AccessScope targetScope, Long targetScopeId) {
-        return switch (targetScope) {
+        log.debug("Checking student access for user: {}, targetScope: {}, targetScopeId: {}", 
+                 user.getId(), targetScope, targetScopeId);
+        
+        boolean hasAccess = switch (targetScope) {
             case CLASS -> isStudentEnrolledInClass(user.getId(), targetScopeId);
             case SCHOOL -> {
                 // Students can access their own school
@@ -190,11 +193,20 @@ public class RuleBasedAccessControlServiceImpl {
                 yield false;
             }
             case USER -> {
-                if (targetScopeId.equals(user.getId())) yield true; // Self access
-                yield areStudentsInSameClass(user.getId(), targetScopeId);
+                if (targetScopeId.equals(user.getId())) {
+                    log.debug("Student {} accessing own user data", user.getId());
+                    yield true; // Self access
+                }
+                boolean sameClass = areStudentsInSameClass(user.getId(), targetScopeId);
+                log.debug("Student {} accessing user {}: same class = {}", user.getId(), targetScopeId, sameClass);
+                yield sameClass;
             }
             default -> false;
         };
+        
+        log.debug("Student access result for user: {}, targetScope: {}, targetScopeId: {} = {}", 
+                 user.getId(), targetScope, targetScopeId, hasAccess);
+        return hasAccess;
     }
 
     private boolean hasParentAccess(User user, AccessScope targetScope, Long targetScopeId) {
@@ -566,18 +578,36 @@ public class RuleBasedAccessControlServiceImpl {
     }
 
     private List<Long> getStudentAccessibleUserIds(Long studentId) {
+        log.debug("Getting accessible user IDs for student: {}", studentId);
+        
         // Get classmates (students in the same class)
-        return studentRepository.findByUser_Id(studentId)
+        List<Long> accessibleUserIds = studentRepository.findByUser_Id(studentId)
             .map(student -> {
+                List<Long> userIds = new ArrayList<>();
+                
+                // Always include the student's own user ID
+                userIds.add(studentId);
+                log.debug("Added student's own ID: {}", studentId);
+                
                 if (student.getStudentClass() != null) {
-                    return studentRepository.findByStudentClass_Id(student.getStudentClass().getId()).stream()
+                    log.debug("Student {} is in class: {}", studentId, student.getStudentClass().getId());
+                    List<Long> classmateIds = studentRepository.findByStudentClass_Id(student.getStudentClass().getId()).stream()
                         .map(classmate -> classmate.getUser() != null ? classmate.getUser().getId() : null)
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
+                    
+                    log.debug("Found {} classmates for student {}: {}", classmateIds.size(), studentId, classmateIds);
+                    userIds.addAll(classmateIds);
+                } else {
+                    log.debug("Student {} has no class assignment", studentId);
                 }
-                return Collections.<Long>emptyList();
+                
+                return userIds.stream().distinct().collect(Collectors.toList());
             })
-            .orElse(Collections.emptyList());
+            .orElse(List.of(studentId)); // If no student record found, at least return own ID
+        
+        log.debug("Student {} can access user IDs: {}", studentId, accessibleUserIds);
+        return accessibleUserIds;
     }
 
     private List<Long> getClassIdsByStudents(List<Long> studentIds) {

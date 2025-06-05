@@ -3,11 +3,21 @@ package com.ohma.thutothebe.controller;
 import com.ohma.thutothebe.dto.AttendanceRecordDTO;
 import com.ohma.thutothebe.dto.BulkAttendanceDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
+import com.ohma.thutothebe.dto.StudentDTO;
 import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.AttendanceStatus;
 import com.ohma.thutothebe.entity.AttendanceType;
 import com.ohma.thutothebe.entity.Term;
+import com.ohma.thutothebe.entity.User;
+import com.ohma.thutothebe.entity.UserRole;
+import com.ohma.thutothebe.entity.Student;
+import com.ohma.thutothebe.repository.UserRepository;
+import com.ohma.thutothebe.repository.StudentRepository;
 import com.ohma.thutothebe.service.AttendanceRecordService;
+import com.ohma.thutothebe.service.StudentService;
+import com.ohma.thutothebe.controller.BaseController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +30,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.HashMap;
 
 @Slf4j
 @RestController
@@ -27,6 +38,15 @@ import java.util.stream.Collectors;
 public class AttendanceController extends BaseController<AttendanceRecordDTO, Long> {
 
     private final AttendanceRecordService attendanceRecordService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private StudentRepository studentRepository;
+
+    @Autowired
+    private StudentService studentService;
 
     @Autowired
     public AttendanceController(AttendanceRecordService attendanceRecordService) {
@@ -220,10 +240,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this student's attendance
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            // Get the student entity to extract the user ID for access control
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
+            // Check if user has access to view attendance for this student's user ID
+            Long studentUserId = student.userId();
+            if (studentUserId == null) {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
+            } else {
+                // Check access using the student's user ID
+                if (!hasAccess(AccessScope.USER, studentUserId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
             }
 
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudent(studentId);
@@ -245,10 +282,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view this student's attendance on this date
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data on this date", null, null));
+            // Get the student entity to extract the user ID for access control
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
+            // Check if user has access to view attendance for this student's user ID
+            Long studentUserId = student.userId();
+            if (studentUserId == null) {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data on this date", null, null));
+                }
+            } else {
+                // Check access using the student's user ID
+                if (!hasAccess(AccessScope.USER, studentUserId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data on this date", null, null));
+                }
             }
 
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudentAndDate(studentId, date);
@@ -271,10 +325,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view attendance for this student in this date range
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this date range", null, null));
+            // Get the student entity to extract the user ID for access control
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
+            // Check if user has access to view attendance for this student's user ID
+            Long studentUserId = student.userId();
+            if (studentUserId == null) {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this date range", null, null));
+                }
+            } else {
+                // Check access using the student's user ID
+                if (!hasAccess(AccessScope.USER, studentUserId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this date range", null, null));
+                }
             }
 
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudentAndDateRange(studentId, startDate, endDate);
@@ -296,10 +367,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view attendance for this student in this academic year
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year", null, null));
+            // Get the student entity to extract the user ID for access control
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
+            // Check if user has access to view attendance for this student's user ID
+            Long studentUserId = student.userId();
+            if (studentUserId == null) {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year", null, null));
+                }
+            } else {
+                // Check access using the student's user ID
+                if (!hasAccess(AccessScope.USER, studentUserId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year", null, null));
+                }
             }
 
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudentAndAcademicYear(studentId, academicYear);
@@ -322,10 +410,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view attendance for this student in this academic year and term
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year and term", null, null));
+            // Get the student entity to extract the user ID for access control
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
+            // Check if user has access to view attendance for this student's user ID
+            Long studentUserId = student.userId();
+            if (studentUserId == null) {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year and term", null, null));
+                }
+            } else {
+                // Check access using the student's user ID
+                if (!hasAccess(AccessScope.USER, studentUserId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year and term", null, null));
+                }
             }
 
             List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByStudentAndAcademicYearAndTerm(studentId, academicYear, term);
@@ -751,10 +856,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view attendance statistics for this student
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            // Get the student entity to extract the user ID for access control
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
+            // Check if user has access to view attendance statistics for this student's user ID
+            Long studentUserId = student.userId();
+            if (studentUserId == null) {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
+            } else {
+                // Check access using the student's user ID
+                if (!hasAccess(AccessScope.USER, studentUserId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                }
             }
 
             Map<AttendanceStatus, Long> stats = attendanceRecordService.getAttendanceStatsByStudent(studentId, academicYear);
@@ -777,10 +899,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                         .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
             }
 
-            // Check if user has access to view attendance statistics for this student in this academic year and term
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year and term", null, null));
+            // Get the student entity to extract the user ID for access control
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+            }
+
+            // Check if user has access to view attendance statistics for this student's user ID
+            Long studentUserId = student.userId();
+            if (studentUserId == null) {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year and term", null, null));
+                }
+            } else {
+                // Check access using the student's user ID
+                if (!hasAccess(AccessScope.USER, studentUserId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to student data in this academic year and term", null, null));
+                }
             }
 
             Map<AttendanceStatus, Long> stats = attendanceRecordService.getAttendanceStatsByStudentAndTerm(studentId, academicYear, term);
@@ -1251,10 +1390,27 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                         .body(new byte[0]);
             }
 
-            // Check if user has access to export student attendance report for this student
-            if (!hasAccess(AccessScope.USER, studentId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            // Get the student entity to extract the user ID for access control
+            StudentDTO student = studentService.getById(studentId);
+            if (student == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new byte[0]);
+            }
+
+            // Check if user has access to export student attendance report for this student's user ID
+            Long studentUserId = student.userId();
+            if (studentUserId == null) {
+                // If student has no associated user, only allow admin-level access
+                if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new byte[0]);
+                }
+            } else {
+                // Check access using the student's user ID
+                if (!hasAccess(AccessScope.USER, studentUserId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new byte[0]);
+                }
             }
 
             byte[] reportData = attendanceRecordService.exportStudentAttendanceReport(studentId, academicYear, term);
@@ -1266,6 +1422,52 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
         } catch (Exception e) {
             log.error("Error exporting student attendance report: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(new byte[0]);
+        }
+    }
+
+    // Diagnostic endpoint for troubleshooting access issues
+    @GetMapping("/debug/access-check")
+    public ResponseEntity<OhmaApiResponse<Map<String, Object>>> debugAccessCheck() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            Map<String, Object> debugInfo = new HashMap<>();
+            debugInfo.put("currentUserId", currentUserId);
+            
+            // Get accessible user IDs
+            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
+            debugInfo.put("accessibleUserIds", accessibleUserIds);
+            
+            // Check self access
+            boolean canAccessSelf = hasAccess(AccessScope.USER, currentUserId);
+            debugInfo.put("canAccessSelf", canAccessSelf);
+            
+            // Get user details
+            User currentUser = userRepository.findById(currentUserId).orElse(null);
+            if (currentUser != null) {
+                debugInfo.put("userRole", currentUser.getRole());
+                debugInfo.put("userSchool", currentUser.getSchool() != null ? currentUser.getSchool().getId() : null);
+                
+                // Check if student record exists
+                if (currentUser.getRole() == UserRole.STUDENT) {
+                    Student studentRecord = studentRepository.findByUser_Id(currentUserId).orElse(null);
+                    debugInfo.put("hasStudentRecord", studentRecord != null);
+                    if (studentRecord != null) {
+                        debugInfo.put("studentClass", studentRecord.getStudentClass() != null ? studentRecord.getStudentClass().getId() : null);
+                        debugInfo.put("studentSchool", studentRecord.getSchool() != null ? studentRecord.getSchool().getId() : null);
+                    }
+                }
+            }
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Debug information retrieved", debugInfo, null));
+        } catch (Exception e) {
+            log.error("Error in debug access check: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }
     }
 } 
