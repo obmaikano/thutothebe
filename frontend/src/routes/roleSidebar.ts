@@ -208,6 +208,12 @@ export const teacherMenuItems: MenuItem[] = [
         description: 'View attendance analytics and reports'
       },
       {
+        icon: BarChart3,
+        label: 'Attendance Analytics',
+        path: '/app/attendance-analytics',
+        description: 'Comprehensive attendance analytics dashboard'
+      },
+      {
         icon: Calendar,
         label: 'Attendance Calendar',
         path: '/app/teacher-attendance/calendar',

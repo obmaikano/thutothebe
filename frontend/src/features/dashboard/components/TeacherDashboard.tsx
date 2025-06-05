@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Book, Users, FileText, Calendar, Clock, BarChart2, 
-  BookOpen, FilePen, User, MessageSquare 
+  BookOpen, FilePen, User, MessageSquare, RefreshCw,
+  AlertTriangle, X
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import courseApi, { Course } from '../../../api/services/courseApi';
@@ -10,6 +11,8 @@ import studentApi, { Student } from '../../../api/services/studentApi';
 import teacherApi, { Teacher } from '../../../api/services/teacherApi';
 import assignmentApi, { Assignment } from '../../../api/services/assignmentApi';
 import submissionApi, { Submission } from '../../../api/services/submissionApi';
+import scheduleApi, { Schedule, ClassInfo } from '../../../api/services/scheduleApi';
+import messageApi, { Message } from '../../../api/services/messageApi';
 
 // Card component
 const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => (
@@ -93,117 +96,222 @@ export const TeacherDashboard: React.FC = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [teacher, setTeacher] = useState<Teacher | null>(null);
+  const [teachingSchedule, setTeachingSchedule] = useState<any[]>([]);
+  const [studentMessages, setStudentMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Permission checks
+  const canViewDashboard = user && [
+    'TEACHER',
+    'SENIOR_TEACHER',
+    'DEPARTMENT_HEAD',
+    'SCHOOL_HEAD',
+    'SCHOOL_ADMIN'
+  ].includes(user.role);
 
   useEffect(() => {
-    const fetchTeacherData = async () => {
-      if (!user?.id) {
-        setError('User information not found');
+    if (canViewDashboard) {
+      fetchTeacherData();
+    }
+  }, [user?.id, canViewDashboard]);
+
+  const fetchTeacherData = async () => {
+    if (!user?.id) {
+      setError('User information not available');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setError(null);
+      
+      // Get teacher entity by user ID
+      const teacherResponse = await teacherApi.getByUserId(user.id);
+      const teacherData = Array.isArray(teacherResponse.data.data) 
+        ? teacherResponse.data.data[0] 
+        : teacherResponse.data.data;
+      
+      if (!teacherData) {
+        setError('Teacher profile not found. Please contact your administrator to set up your teacher profile.');
         setLoading(false);
         return;
       }
 
-      try {
-        setLoading(true);
-        
-        // First, fetch the teacher record using the user ID
-        const teacherResponse = await teacherApi.getByUserId(user.id);
-        const teacherData = Array.isArray(teacherResponse.data.data) 
-          ? teacherResponse.data.data[0] 
-          : teacherResponse.data.data;
-        
-        if (!teacherData) {
-          setError('Teacher profile not found. Please contact your administrator.');
-          setLoading(false);
-          return;
-        }
-        
-        setTeacher(teacherData);
-        
-        // Now fetch teacher's courses using the teacher ID
-        const coursesResponse = await courseApi.getActiveByTeacher(teacherData.id);
-        const teacherCourses = Array.isArray(coursesResponse.data.data) 
-          ? coursesResponse.data.data 
-          : [];
-        setCourses(teacherCourses);
+      setTeacher(teacherData);
 
-        // Fetch students from teacher's courses
-        const studentsResponse = await studentApi.getActiveByTeacher(teacherData.id);
-        const teacherStudents = Array.isArray(studentsResponse.data.data) 
-          ? studentsResponse.data.data 
-          : [];
-        setStudents(teacherStudents);
+      // Fetch all teacher data in parallel
+      await Promise.all([
+        fetchStudents(teacherData.id),
+        fetchCourses(teacherData.id),
+        fetchAssignments(teacherData.id),
+        fetchSchedule(teacherData.id),
+        fetchMessages(user.id)
+      ]);
 
-        // Fetch teacher's assignments
-        const assignmentsResponse = await assignmentApi.getByTeacher(teacherData.id);
-        const teacherAssignments = Array.isArray(assignmentsResponse.data.data) 
-          ? assignmentsResponse.data.data 
-          : [];
-        setAssignments(teacherAssignments);
+    } catch (err: any) {
+      console.error('Error fetching teacher data:', err);
+      if (err.response?.status === 404) {
+        setError('Teacher profile not found. Please contact your administrator to set up your teacher profile.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to load teacher data');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        // Fetch submissions for teacher's assignments
-        const allSubmissions: Submission[] = [];
-        for (const assignment of teacherAssignments) {
-          try {
+  const fetchStudents = async (teacherId: number) => {
+    try {
+      const studentsResponse = await studentApi.getByTeacher(teacherId);
+      const teacherStudents = Array.isArray(studentsResponse.data.data) 
+        ? studentsResponse.data.data 
+        : [];
+      setStudents(teacherStudents);
+    } catch (err) {
+      console.error('Error fetching students:', err);
+    }
+  };
+
+  const fetchCourses = async (teacherId: number) => {
+    try {
+      const coursesResponse = await courseApi.getByTeacher(teacherId);
+      const teacherCourses = Array.isArray(coursesResponse.data.data) 
+        ? coursesResponse.data.data 
+        : [];
+      setCourses(teacherCourses);
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+    }
+  };
+
+  const fetchAssignments = async (teacherId: number) => {
+    try {
+      const assignmentsResponse = await assignmentApi.getByTeacher(teacherId);
+      const teacherAssignments = Array.isArray(assignmentsResponse.data.data) 
+        ? assignmentsResponse.data.data 
+        : [];
+      setAssignments(teacherAssignments);
+
+      // Fetch submissions for teacher's assignments
+      const allSubmissions: Submission[] = [];
+      for (const assignment of teacherAssignments) {
+        try {
+          if (assignment.id) {
             const submissionsResponse = await submissionApi.getByAssignment(assignment.id);
             const assignmentSubmissions = Array.isArray(submissionsResponse.data.data) 
               ? submissionsResponse.data.data 
               : [];
             allSubmissions.push(...assignmentSubmissions);
-          } catch (err) {
-            console.error(`Error fetching submissions for assignment ${assignment.id}:`, err);
           }
+        } catch (err) {
+          console.error(`Error fetching submissions for assignment ${assignment.id}:`, err);
         }
-        setSubmissions(allSubmissions);
-
-      } catch (err: any) {
-        console.error('Error fetching teacher data:', err);
-        if (err.response?.status === 404) {
-          setError('Teacher profile not found. Please contact your administrator to set up your teacher profile.');
-        } else {
-          setError(err.response?.data?.message || 'Failed to load teacher data');
-        }
-      } finally {
-        setLoading(false);
       }
-    };
+      setSubmissions(allSubmissions);
+    } catch (err) {
+      console.error('Error fetching assignments:', err);
+    }
+  };
 
-    fetchTeacherData();
-  }, [user?.id]);
-  
-  // Calculate real assignment data
-  const assignmentsToGrade = assignments
-    .filter(assignment => assignment.status === 'PUBLISHED')
-    .map(assignment => {
-      const assignmentSubmissions = submissions.filter(s => s.assignmentId === assignment.id);
-      const pendingSubmissions = assignmentSubmissions.filter(s => s.status === 'PENDING');
-      
-      return {
-        id: assignment.id.toString(),
-        title: assignment.title,
-        course: courses.find(c => c.id === assignment.courseId)?.name || 'Unknown Course',
-        submissions: assignmentSubmissions.length,
-        totalStudents: students.length, // This could be more accurate with course-specific student counts
-        dueDate: new Date(assignment.dueDate) > new Date() ? 'Due ' + formatRelativeDate(assignment.dueDate) : 'Overdue',
-        pendingCount: pendingSubmissions.length
-      };
-    })
-    .filter(assignment => assignment.pendingCount > 0)
-    .slice(0, 3); // Show top 3 assignments needing attention
+  const fetchSchedule = async (teacherId: number) => {
+    try {
+      if (!user?.role || !user?.id) return;
 
-  // Mock data for schedule (this would come from a schedule/timetable API)
-  const teachingSchedule = [
-    { id: '1', class: 'Mathematics', time: '08:00 AM - 09:30 AM', room: 'Room 101', students: 30 },
-    { id: '2', title: 'Physics', time: '10:00 AM - 11:30 AM', room: 'Room 105', students: 28 },
-    { id: '3', title: 'Chemistry', time: '01:00 PM - 02:30 PM', room: 'Lab 3', students: 25 },
-  ];
+      const scheduleResponse = await scheduleApi.getByTeacher(
+        teacherId,
+        user.role,
+        user.id,
+        user.regionId,
+        user.schoolId
+      );
 
-  // Mock data for student messages (this would come from a messaging API)
-  const studentMessages = [
-    { id: '1', student: 'Thabiso Mokgwathi', message: 'Sir, I need help with the homework question 5.', time: '30 minutes ago', avatar: 'https://images.pexels.com/photos/5212317/pexels-photo-5212317.jpeg?auto=compress&cs=tinysrgb&w=150' },
-    { id: '2', student: 'Lesedi Molefe', message: 'When will you upload the lecture notes?', time: '2 hours ago', avatar: 'https://images.pexels.com/photos/5212307/pexels-photo-5212307.jpeg?auto=compress&cs=tinysrgb&w=150' },
-  ];
+      let scheduleData = Array.isArray(scheduleResponse.data.data) 
+        ? scheduleResponse.data.data 
+        : [];
+
+      // Filter for today's schedule and format for display
+      const today = new Date();
+      const todaySchedule = scheduleData
+        .filter(schedule => {
+          const scheduleDate = new Date(schedule.startTime);
+          return scheduleDate.toDateString() === today.toDateString() && 
+                 schedule.status === 'ACTIVE' &&
+                 schedule.type === 'CLASS';
+        })
+        .map(schedule => ({
+          id: schedule.id.toString(),
+          class: schedule.courseName || schedule.title,
+          title: schedule.courseName || schedule.title,
+          time: `${formatTime(schedule.startTime)} - ${formatTime(schedule.endTime)}`,
+          room: schedule.location || 'TBA',
+          students: 30 // This would come from class enrollment data
+        }))
+        .sort((a, b) => {
+          const timeA = new Date(`1970-01-01 ${a.time.split(' - ')[0]}`);
+          const timeB = new Date(`1970-01-01 ${b.time.split(' - ')[0]}`);
+          return timeA.getTime() - timeB.getTime();
+        });
+
+      setTeachingSchedule(todaySchedule);
+    } catch (err) {
+      console.error('Error fetching schedule:', err);
+      // Set fallback schedule if API fails
+      setTeachingSchedule([]);
+    }
+  };
+
+  const fetchMessages = async (userId: number) => {
+    try {
+      const messagesResponse = await messageApi.getUserActiveMessages(userId, true);
+      let messagesData = Array.isArray(messagesResponse.data.data) 
+        ? messagesResponse.data.data 
+        : [];
+
+      // Format messages for display and get recent ones
+      const recentMessages = messagesData
+        .filter(message => message.senderId !== userId) // Only messages from others
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 3)
+        .map(message => ({
+          id: message.id.toString(),
+          student: message.senderName || 'Unknown Student',
+          message: message.content,
+          time: formatRelativeTime(message.createdAt),
+          avatar: `https://images.pexels.com/photos/5212317/pexels-photo-5212317.jpeg?auto=compress&cs=tinysrgb&w=150`
+        }));
+
+      setStudentMessages(recentMessages);
+    } catch (err) {
+      console.error('Error fetching messages:', err);
+      setStudentMessages([]);
+    }
+  };
+
+  const formatTime = (dateTimeString: string) => {
+    const date = new Date(dateTimeString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
+  const formatRelativeTime = (dateTimeString: string) => {
+    const date = new Date(dateTimeString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
 
   const formatRelativeDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -218,13 +326,56 @@ export const TeacherDashboard: React.FC = () => {
     return `${Math.abs(diffDays)} days ago`;
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchTeacherData();
+    setRefreshing(false);
+  };
+
+  const clearError = () => {
+    setError(null);
+  };
+
+  // Calculate real assignment data
+  const assignmentsToGrade = assignments
+    .filter(assignment => assignment.status === 'PUBLISHED')
+    .map(assignment => {
+      if (!assignment.id) return null;
+      
+      const assignmentSubmissions = submissions.filter(s => s.assignmentId === assignment.id);
+      const pendingSubmissions = assignmentSubmissions.filter(s => s.status === 'SUBMITTED');
+      
+      return {
+        id: assignment.id.toString(),
+        title: assignment.title,
+        course: courses.find(c => c.id === assignment.courseId)?.name || 'Unknown Course',
+        submissions: assignmentSubmissions.length,
+        totalStudents: students.length, // This could be more accurate with course-specific student counts
+        dueDate: new Date(assignment.dueDate) > new Date() ? 'Due ' + formatRelativeDate(assignment.dueDate) : 'Overdue',
+        pendingCount: pendingSubmissions.length
+      };
+    })
+    .filter((assignment): assignment is NonNullable<typeof assignment> => assignment !== null && assignment.pendingCount > 0)
+    .slice(0, 3); // Show top 3 assignments needing attention
+
   // Calculate statistics
-  const pendingSubmissions = submissions.filter(s => s.status === 'PENDING').length;
+  const pendingSubmissions = submissions.filter(s => s.status === 'SUBMITTED').length;
   const gradedSubmissions = submissions.filter(s => s.status === 'GRADED').length;
   const totalSubmissions = submissions.length;
   const averageScore = gradedSubmissions > 0 
     ? Math.round(submissions.filter(s => s.score !== undefined).reduce((sum, s) => sum + (s.score || 0), 0) / gradedSubmissions)
     : 0;
+
+  if (!canViewDashboard) {
+    return (
+      <div className="p-6">
+        <div className="alert alert-warning">
+          <AlertTriangle className="w-5 h-5" />
+          <span>You don't have permission to view the teacher dashboard.</span>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -236,53 +387,64 @@ export const TeacherDashboard: React.FC = () => {
 
   return (
     <div className="p-8 space-y-6">
+      {/* Error Alert */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          <div className="flex justify-between items-center">
-            <span>{error}</span>
-            <button
-              onClick={() => setError(null)}
-              className="text-red-500 hover:text-red-700"
-            >
-              ✕
-            </button>
-          </div>
+        <div className="alert alert-error">
+          <AlertTriangle className="w-5 h-5" />
+          <span>{error}</span>
+          <button 
+            onClick={clearError}
+            className="btn btn-sm btn-ghost"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-xl p-6 shadow-md mb-6">
-        <h1 className="text-2xl text-white font-bold mb-2">Welcome back, {teacherName}!</h1>
-        <p className="text-blue-100 mb-4">You have {pendingSubmissions} submissions to grade and {teachingSchedule.length} classes scheduled today.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
-            <div className="bg-white p-2 rounded-full mr-3">
-              <Calendar size={20} className="text-blue-600" />
+      {/* Header with Refresh */}
+      <div className="flex justify-between items-center">
+        <div className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-xl p-6 shadow-md flex-1 mr-4">
+          <h1 className="text-2xl text-white font-bold mb-2">Welcome back, {teacherName}!</h1>
+          <p className="text-blue-100 mb-4">You have {pendingSubmissions} submissions to grade and {teachingSchedule.length} classes scheduled today.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
+              <div className="bg-white p-2 rounded-full mr-3">
+                <Calendar size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="text-white text-opacity-90 text-sm">Next class</p>
+                <p className="text-white font-medium">
+                  {teachingSchedule.length > 0 
+                    ? `${teachingSchedule[0].class || teachingSchedule[0].title} - ${teachingSchedule[0].room}, ${teachingSchedule[0].time.split(' - ')[0]}`
+                    : 'No classes scheduled'
+                  }
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-white text-opacity-90 text-sm">Next class</p>
-              <p className="text-white font-medium">
-                {teachingSchedule.length > 0 
-                  ? `${teachingSchedule[0].class || teachingSchedule[0].title} - ${teachingSchedule[0].room}, ${teachingSchedule[0].time.split(' - ')[0]}`
-                  : 'No classes scheduled'
-                }
-              </p>
-            </div>
-          </div>
-          <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
-            <div className="bg-white p-2 rounded-full mr-3">
-              <FilePen size={20} className="text-blue-600" />
-            </div>
-            <div>
-              <p className="text-white text-opacity-90 text-sm">Grading needed</p>
-              <p className="text-white font-medium">
-                {assignmentsToGrade.length > 0 
-                  ? `${assignmentsToGrade[0].title} - ${assignmentsToGrade[0].pendingCount} submissions`
-                  : 'No assignments to grade'
-                }
-              </p>
+            <div className="bg-white bg-opacity-10 rounded-lg p-4 flex items-center">
+              <div className="bg-white p-2 rounded-full mr-3">
+                <FilePen size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="text-white text-opacity-90 text-sm">Grading needed</p>
+                <p className="text-white font-medium">
+                  {assignmentsToGrade.length > 0 
+                    ? `${assignmentsToGrade[0].title} - ${assignmentsToGrade[0].pendingCount} submissions`
+                    : 'No assignments to grade'
+                  }
+                </p>
+              </div>
             </div>
           </div>
         </div>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="btn btn-outline btn-sm"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -363,7 +525,7 @@ export const TeacherDashboard: React.FC = () => {
             <Link to="/app/calendar" className="text-sm text-blue-600 hover:underline">Full calendar</Link>
           </div>
           <div className="space-y-3">
-            {teachingSchedule.map((schedule, index) => (
+            {teachingSchedule.length > 0 ? teachingSchedule.map((schedule, index) => (
               <div 
                 key={schedule.id} 
                 className={`p-3 rounded-lg border ${index === 0 ? 'border-blue-200 bg-blue-50' : 'border-gray-200'}`}
@@ -387,7 +549,12 @@ export const TeacherDashboard: React.FC = () => {
                   {schedule.room}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-6">
+                <Calendar className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500">No classes scheduled today</p>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -398,7 +565,7 @@ export const TeacherDashboard: React.FC = () => {
             <Link to="/app/messages" className="text-sm text-blue-600 hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
-            {studentMessages.map(message => (
+            {studentMessages.length > 0 ? studentMessages.map(message => (
               <div key={message.id} className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200">
                 <img 
                   src={message.avatar} 
@@ -419,8 +586,7 @@ export const TeacherDashboard: React.FC = () => {
                   </p>
                 </div>
               </div>
-            ))}
-            {studentMessages.length === 0 && (
+            )) : (
               <div className="text-center py-6">
                 <MessageSquare className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                 <p className="text-sm text-gray-500">No recent messages</p>

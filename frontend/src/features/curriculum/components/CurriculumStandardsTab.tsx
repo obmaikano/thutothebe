@@ -1,22 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import { useAuth } from '../../../contexts/AuthContext';
+import curriculumApi, { Curriculum } from '../../../api/services/curriculumApi';
 import {
   Plus,
   BookOpen,
   Target,
-  CheckCircle,
-  AlertCircle,
   Edit3,
   Trash2,
   Search,
   Filter,
   RefreshCw,
-  FileText,
   Award,
-  TrendingUp,
-  Users,
   Clock,
-  X
+  Users,
+  X,
+  Eye,
+  CheckCircle,
+  AlertTriangle,
+  Calendar
 } from 'lucide-react';
 
 interface CurriculumStandard {
@@ -25,8 +27,8 @@ interface CurriculumStandard {
   code: string;
   title: string;
   description: string;
-  category: 'KNOWLEDGE' | 'SKILLS' | 'ATTITUDES' | 'COMPETENCIES';
-  level: 'BASIC' | 'INTERMEDIATE' | 'ADVANCED' | 'MASTERY';
+  category: 'KNOWLEDGE' | 'SKILLS' | 'UNDERSTANDING' | 'APPLICATION' | 'ANALYSIS' | 'SYNTHESIS' | 'EVALUATION' | 'COMPETENCIES';
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   assessmentCriteria: string;
   learningOutcomes: string[];
   prerequisites: string[];
@@ -43,16 +45,20 @@ interface CurriculumStandardsTabProps {
 
 const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curriculumId }) => {
   const dispatch = useAppDispatch();
+  const { user } = useAuth();
   
   // Local state
+  const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
   const [standards, setStandards] = useState<CurriculumStandard[]>([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedStandard, setSelectedStandard] = useState<CurriculumStandard | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
     message: string;
@@ -63,8 +69,8 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
     code: string;
     title: string;
     description: string;
-    category: 'KNOWLEDGE' | 'SKILLS' | 'ATTITUDES' | 'COMPETENCIES';
-    level: 'BASIC' | 'INTERMEDIATE' | 'ADVANCED' | 'MASTERY';
+    category: 'KNOWLEDGE' | 'SKILLS' | 'UNDERSTANDING' | 'APPLICATION' | 'ANALYSIS' | 'SYNTHESIS' | 'EVALUATION' | 'COMPETENCIES';
+    level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
     assessmentCriteria: string;
     learningOutcomes: string[];
     prerequisites: string[];
@@ -75,98 +81,87 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
     title: '',
     description: '',
     category: 'KNOWLEDGE',
-    level: 'BASIC',
+    level: 'INTERMEDIATE',
     assessmentCriteria: '',
-    learningOutcomes: [''],
-    prerequisites: [''],
+    learningOutcomes: [],
+    prerequisites: [],
     isCore: true,
-    weightPercentage: 10
+    weightPercentage: 25
   });
+
+  // Permission checks
+  const canManageStandards = user && [
+    'SUPER_ADMIN',
+    'MINISTRY_EXECUTIVE',
+    'MINISTRY_STAFF',
+    'DIRECTOR',
+    'REGIONAL_ADMIN',
+    'SCHOOL_ADMIN',
+    'SCHOOL_HEAD',
+    'DEPARTMENT_HEAD'
+  ].includes(user.role);
 
   const showNotification = useCallback((type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 5000);
   }, []);
 
-  // Mock data - replace with actual API calls
-  const mockStandards: CurriculumStandard[] = [
-    {
-      id: 1,
-      curriculumId,
-      code: 'STD-001',
-      title: 'Reading Comprehension',
-      description: 'Students will demonstrate the ability to read and understand various types of texts.',
-      category: 'SKILLS',
-      level: 'INTERMEDIATE',
-      assessmentCriteria: 'Students can identify main ideas, supporting details, and make inferences from text.',
-      learningOutcomes: [
-        'Identify main ideas in texts',
-        'Recognize supporting details',
-        'Make logical inferences',
-        'Summarize key points'
-      ],
-      prerequisites: ['Basic reading skills', 'Vocabulary knowledge'],
-      isCore: true,
-      weightPercentage: 25,
-      active: true,
-      createdAt: '2024-01-15T10:00:00Z',
-      modifiedAt: '2024-01-20T14:30:00Z'
-    },
-    {
-      id: 2,
-      curriculumId,
-      code: 'STD-002',
-      title: 'Mathematical Problem Solving',
-      description: 'Students will apply mathematical concepts to solve real-world problems.',
-      category: 'COMPETENCIES',
-      level: 'ADVANCED',
-      assessmentCriteria: 'Students can analyze problems, select appropriate strategies, and justify solutions.',
-      learningOutcomes: [
-        'Analyze complex problems',
-        'Select appropriate mathematical strategies',
-        'Execute problem-solving procedures',
-        'Justify and communicate solutions'
-      ],
-      prerequisites: ['Basic arithmetic', 'Algebraic thinking'],
-      isCore: true,
-      weightPercentage: 30,
-      active: true,
-      createdAt: '2024-01-16T09:15:00Z',
-      modifiedAt: '2024-01-22T11:45:00Z'
-    },
-    {
-      id: 3,
-      curriculumId,
-      code: 'STD-003',
-      title: 'Scientific Inquiry',
-      description: 'Students will demonstrate understanding of scientific methods and inquiry processes.',
-      category: 'KNOWLEDGE',
-      level: 'INTERMEDIATE',
-      assessmentCriteria: 'Students can formulate hypotheses, design experiments, and analyze results.',
-      learningOutcomes: [
-        'Formulate testable hypotheses',
-        'Design controlled experiments',
-        'Collect and analyze data',
-        'Draw evidence-based conclusions'
-      ],
-      prerequisites: ['Basic scientific concepts', 'Observation skills'],
-      isCore: false,
-      weightPercentage: 20,
-      active: true,
-      createdAt: '2024-01-17T13:20:00Z',
-      modifiedAt: '2024-01-23T16:10:00Z'
-    }
-  ];
-
-  const loadStandards = useCallback(async () => {
+  const loadCurriculumAndStandards = useCallback(async () => {
+    if (!curriculumId) return;
+    
     setLoading(true);
+    setError(null);
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setStandards(mockStandards);
-      showNotification('success', 'Standards loaded successfully');
-    } catch (error) {
-      showNotification('error', 'Failed to load standards');
+      const response = await curriculumApi.getById(curriculumId);
+      const curriculumData = response.data.data as Curriculum;
+      
+      if (!curriculumData) {
+        throw new Error('Curriculum not found');
+      }
+      
+      setCurriculum(curriculumData);
+      
+      // Parse standards from metadata
+      if (curriculumData.metadata) {
+        try {
+          const metadata = JSON.parse(curriculumData.metadata);
+          const standardsData = metadata.learningStandards || [];
+          
+          // Convert metadata standards to proper format
+          const formattedStandards: CurriculumStandard[] = standardsData.map((standard: any, index: number) => ({
+            id: standard.id || (Date.now() + index),
+            curriculumId,
+            code: standard.code || `STD-${String(index + 1).padStart(3, '0')}`,
+            title: standard.title || '',
+            description: standard.description || '',
+            category: standard.category || 'KNOWLEDGE',
+            level: standard.level || 'INTERMEDIATE',
+            assessmentCriteria: standard.assessmentCriteria || '',
+            learningOutcomes: Array.isArray(standard.learningOutcomes) ? standard.learningOutcomes : [],
+            prerequisites: Array.isArray(standard.prerequisites) ? standard.prerequisites : [],
+            isCore: standard.isCore !== undefined ? standard.isCore : true,
+            weightPercentage: standard.weightPercentage || 25,
+            active: standard.active !== undefined ? standard.active : true,
+            createdAt: standard.createdAt || new Date().toISOString(),
+            modifiedAt: standard.modifiedAt || new Date().toISOString()
+          }));
+          
+          setStandards(formattedStandards);
+          showNotification('success', 'Standards loaded successfully');
+        } catch (parseError) {
+          console.error('Failed to parse curriculum metadata:', parseError);
+          setStandards([]);
+          showNotification('info', 'No standards found in curriculum metadata');
+        }
+      } else {
+        setStandards([]);
+        showNotification('info', 'No standards defined for this curriculum');
+      }
+    } catch (err: any) {
+      console.error('Failed to load curriculum and standards:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to load curriculum data');
+      showNotification('error', 'Failed to load curriculum data');
     } finally {
       setLoading(false);
     }
@@ -174,9 +169,53 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
 
   useEffect(() => {
     if (curriculumId) {
-      loadStandards();
+      loadCurriculumAndStandards();
     }
-  }, [curriculumId, loadStandards]);
+  }, [curriculumId, loadCurriculumAndStandards]);
+
+  const saveStandardsToBackend = async (updatedStandards: CurriculumStandard[]) => {
+    if (!curriculum) return;
+    
+    try {
+      setSaving(true);
+      
+      // Update metadata with new standards
+      const currentMetadata = curriculum.metadata ? JSON.parse(curriculum.metadata) : {};
+      const updatedMetadata = {
+        ...currentMetadata,
+        learningStandards: updatedStandards.map(standard => ({
+          id: standard.id,
+          code: standard.code,
+          title: standard.title,
+          description: standard.description,
+          category: standard.category,
+          level: standard.level,
+          assessmentCriteria: standard.assessmentCriteria,
+          learningOutcomes: standard.learningOutcomes,
+          prerequisites: standard.prerequisites,
+          isCore: standard.isCore,
+          weightPercentage: standard.weightPercentage,
+          active: standard.active,
+          createdAt: standard.createdAt,
+          modifiedAt: standard.modifiedAt
+        }))
+      };
+      
+      // Update curriculum with new metadata
+      await curriculumApi.update(curriculumId, {
+        metadata: JSON.stringify(updatedMetadata)
+      });
+      
+      // Update local state
+      setCurriculum(prev => prev ? { ...prev, metadata: JSON.stringify(updatedMetadata) } : null);
+      
+    } catch (err: any) {
+      console.error('Failed to save standards:', err);
+      throw new Error(err.response?.data?.message || 'Failed to save standards');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Filter standards
   const filteredStandards = standards.filter(standard => {
@@ -185,7 +224,7 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
                          standard.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || standard.category === filterCategory;
     const matchesLevel = filterLevel === 'all' || standard.level === filterLevel;
-    return matchesSearch && matchesCategory && matchesLevel;
+    return matchesSearch && matchesCategory && matchesLevel && standard.active;
   });
 
   const resetForm = () => {
@@ -194,21 +233,30 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
       title: '',
       description: '',
       category: 'KNOWLEDGE',
-      level: 'BASIC',
+      level: 'INTERMEDIATE',
       assessmentCriteria: '',
-      learningOutcomes: [''],
-      prerequisites: [''],
+      learningOutcomes: [],
+      prerequisites: [],
       isCore: true,
-      weightPercentage: 10
+      weightPercentage: 25
     });
   };
 
   const handleAddStandard = () => {
+    if (!canManageStandards) {
+      showNotification('error', 'You do not have permission to add standards');
+      return;
+    }
     resetForm();
     setShowAddModal(true);
   };
 
   const handleEditStandard = (standard: CurriculumStandard) => {
+    if (!canManageStandards) {
+      showNotification('error', 'You do not have permission to edit standards');
+      return;
+    }
+    
     setSelectedStandard(standard);
     setFormData({
       code: standard.code,
@@ -226,17 +274,21 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
   };
 
   const handleSaveStandard = async () => {
+    if (!curriculum) return;
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const now = new Date().toISOString();
       
       if (showEditModal && selectedStandard) {
         // Update existing standard
-        setStandards(prev => prev.map(s => 
-          s.id === selectedStandard.id 
-            ? { ...s, ...formData, modifiedAt: new Date().toISOString() }
-            : s
-        ));
+        const updatedStandards = standards.map(std => 
+          std.id === selectedStandard.id 
+            ? { ...std, ...formData, modifiedAt: now }
+            : std
+        );
+        
+        await saveStandardsToBackend(updatedStandards);
+        setStandards(updatedStandards);
         showNotification('success', 'Standard updated successfully');
       } else {
         // Add new standard
@@ -245,10 +297,13 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
           curriculumId,
           ...formData,
           active: true,
-          createdAt: new Date().toISOString(),
-          modifiedAt: new Date().toISOString()
+          createdAt: now,
+          modifiedAt: now
         };
-        setStandards(prev => [...prev, newStandard]);
+        
+        const updatedStandards = [...standards, newStandard];
+        await saveStandardsToBackend(updatedStandards);
+        setStandards(updatedStandards);
         showNotification('success', 'Standard created successfully');
       }
       
@@ -256,263 +311,182 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
       setShowEditModal(false);
       setSelectedStandard(null);
       resetForm();
-    } catch (error) {
-      showNotification('error', 'Failed to save standard');
+    } catch (err: any) {
+      showNotification('error', err.message || 'Failed to save standard');
     }
   };
 
   const handleDeleteStandard = async (standardId: number) => {
+    if (!canManageStandards) {
+      showNotification('error', 'You do not have permission to delete standards');
+      return;
+    }
+    
     if (window.confirm('Are you sure you want to delete this standard? This action cannot be undone.')) {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setStandards(prev => prev.filter(s => s.id !== standardId));
+        const updatedStandards = standards.map(std => 
+          std.id === standardId ? { ...std, active: false, modifiedAt: new Date().toISOString() } : std
+        );
+        
+        await saveStandardsToBackend(updatedStandards);
+        setStandards(updatedStandards);
         showNotification('success', 'Standard deleted successfully');
-      } catch (error) {
-        showNotification('error', 'Failed to delete standard');
+      } catch (err: any) {
+        showNotification('error', err.message || 'Failed to delete standard');
       }
     }
   };
 
-  const addLearningOutcome = () => {
-    setFormData(prev => ({
-      ...prev,
-      learningOutcomes: [...prev.learningOutcomes, '']
-    }));
+  const clearError = () => {
+    setError(null);
   };
 
-  const removeLearningOutcome = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      learningOutcomes: prev.learningOutcomes.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateLearningOutcome = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      learningOutcomes: prev.learningOutcomes.map((outcome, i) => i === index ? value : outcome)
-    }));
-  };
-
-  const addPrerequisite = () => {
-    setFormData(prev => ({
-      ...prev,
-      prerequisites: [...prev.prerequisites, '']
-    }));
-  };
-
-  const removePrerequisite = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      prerequisites: prev.prerequisites.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updatePrerequisite = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      prerequisites: prev.prerequisites.map((prereq, i) => i === index ? value : prereq)
-    }));
+  const handleRefresh = () => {
+    loadCurriculumAndStandards();
   };
 
   const getCategoryBadge = (category: string) => {
-    const config = {
-      'KNOWLEDGE': { color: 'bg-blue-100 text-blue-800', icon: BookOpen },
-      'SKILLS': { color: 'bg-green-100 text-green-800', icon: Target },
-      'ATTITUDES': { color: 'bg-purple-100 text-purple-800', icon: Users },
-      'COMPETENCIES': { color: 'bg-orange-100 text-orange-800', icon: Award }
+    const categoryConfig = {
+      'KNOWLEDGE': { color: 'bg-blue-100 text-blue-800', label: 'Knowledge' },
+      'SKILLS': { color: 'bg-green-100 text-green-800', label: 'Skills' },
+      'UNDERSTANDING': { color: 'bg-purple-100 text-purple-800', label: 'Understanding' },
+      'APPLICATION': { color: 'bg-orange-100 text-orange-800', label: 'Application' },
+      'ANALYSIS': { color: 'bg-yellow-100 text-yellow-800', label: 'Analysis' },
+      'SYNTHESIS': { color: 'bg-pink-100 text-pink-800', label: 'Synthesis' },
+      'EVALUATION': { color: 'bg-red-100 text-red-800', label: 'Evaluation' },
+      'COMPETENCIES': { color: 'bg-indigo-100 text-indigo-800', label: 'Competencies' }
     };
-    const { color, icon: Icon } = config[category as keyof typeof config] || config.KNOWLEDGE;
     
+    const config = categoryConfig[category as keyof typeof categoryConfig] || categoryConfig.KNOWLEDGE;
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${color}`}>
-        <Icon className="h-3 w-3 mr-1" />
-        {category}
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+        {config.label}
       </span>
     );
   };
 
   const getLevelBadge = (level: string) => {
-    const config = {
-      'BASIC': { color: 'bg-gray-100 text-gray-800' },
-      'INTERMEDIATE': { color: 'bg-yellow-100 text-yellow-800' },
-      'ADVANCED': { color: 'bg-red-100 text-red-800' },
-      'MASTERY': { color: 'bg-indigo-100 text-indigo-800' }
+    const levelConfig = {
+      'BEGINNER': { color: 'bg-gray-100 text-gray-800', label: 'Beginner' },
+      'INTERMEDIATE': { color: 'bg-blue-100 text-blue-800', label: 'Intermediate' },
+      'ADVANCED': { color: 'bg-purple-100 text-purple-800', label: 'Advanced' }
     };
-    const { color } = config[level as keyof typeof config] || config.BASIC;
     
+    const config = levelConfig[level as keyof typeof levelConfig] || levelConfig.INTERMEDIATE;
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${color}`}>
-        {level}
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+        {config.label}
       </span>
     );
   };
 
-  const getStats = () => {
-    return {
-      total: standards.length,
-      core: standards.filter(s => s.isCore).length,
-      knowledge: standards.filter(s => s.category === 'KNOWLEDGE').length,
-      skills: standards.filter(s => s.category === 'SKILLS').length,
-      competencies: standards.filter(s => s.category === 'COMPETENCIES').length,
-      totalWeight: standards.reduce((sum, s) => sum + s.weightPercentage, 0)
-    };
-  };
-
-  const stats = getStats();
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-64">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full flex flex-col space-y-6">
-      {/* Notification */}
-      {notification && (
-        <div className={`rounded-lg border p-3 flex-shrink-0 ${
-          notification.type === 'success' ? 'bg-green-50 border-green-200' : 
-          notification.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {notification.type === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
-              {notification.type === 'error' && <AlertCircle className="h-4 w-4 text-red-600" />}
-              {notification.type === 'info' && <AlertCircle className="h-4 w-4 text-blue-600" />}
-              <span className={`text-sm font-medium ${
-                notification.type === 'success' ? 'text-green-800' : 
-                notification.type === 'error' ? 'text-red-800' : 'text-blue-800'
-              }`}>
-                {notification.message}
-              </span>
-            </div>
-            <button
-              onClick={() => setNotification(null)}
-              className={`p-1 rounded-md transition-colors ${
-                notification.type === 'success' ? 'hover:bg-green-100 text-green-600' : 
-                notification.type === 'error' ? 'hover:bg-red-100 text-red-600' : 'hover:bg-blue-100 text-blue-600'
-              }`}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+    <div className="h-full flex flex-col gap-4 p-4">
+      {/* Error Alert */}
+      {error && (
+        <div className="alert alert-error">
+          <AlertTriangle className="w-5 h-5" />
+          <span>{error}</span>
+          <button onClick={clearError} className="btn btn-sm btn-ghost">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* Header Section */}
+      {/* Notification */}
+      {notification && (
+        <div className={`alert ${
+          notification.type === 'success' ? 'alert-success' : 
+          notification.type === 'error' ? 'alert-error' : 'alert-info'
+        }`}>
+          {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : 
+           notification.type === 'error' ? <AlertTriangle className="w-5 h-5" /> : 
+           <AlertTriangle className="w-5 h-5" />}
+          <span>{notification.message}</span>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex-shrink-0">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Curriculum Standards</h2>
-            <p className="text-sm text-gray-600">Define and manage learning standards for this curriculum</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Learning Standards</h2>
+            <p className="text-sm text-gray-600">Define and manage curriculum standards and competencies</p>
+            {curriculum && (
+              <p className="text-xs text-gray-500 mt-1">
+                Curriculum: {curriculum.title} • {curriculum.gradeLevel.replace('_', ' ')}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={loadStandards}
+              onClick={handleRefresh}
               className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              disabled={loading}
+              disabled={loading || saving}
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Loading...' : 'Refresh'}
             </button>
-            <button
-              onClick={handleAddStandard}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Add Standard
-            </button>
+            {canManageStandards && (
+              <button
+                onClick={handleAddStandard}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                disabled={saving}
+              >
+                <Plus className="h-4 w-4" />
+                Add Standard
+              </button>
+            )}
           </div>
         </div>
 
         {/* Search and Filters */}
-        <div className="mt-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search standards..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>
+          
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-3 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
           >
             <option value="all">All Categories</option>
             <option value="KNOWLEDGE">Knowledge</option>
             <option value="SKILLS">Skills</option>
-            <option value="ATTITUDES">Attitudes</option>
+            <option value="UNDERSTANDING">Understanding</option>
+            <option value="APPLICATION">Application</option>
+            <option value="ANALYSIS">Analysis</option>
+            <option value="SYNTHESIS">Synthesis</option>
+            <option value="EVALUATION">Evaluation</option>
             <option value="COMPETENCIES">Competencies</option>
           </select>
+          
           <select
             value={filterLevel}
             onChange={(e) => setFilterLevel(e.target.value)}
-            className="px-3 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
           >
             <option value="all">All Levels</option>
-            <option value="BASIC">Basic</option>
+            <option value="BEGINNER">Beginner</option>
             <option value="INTERMEDIATE">Intermediate</option>
             <option value="ADVANCED">Advanced</option>
-            <option value="MASTERY">Mastery</option>
           </select>
-        </div>
-
-        {/* Statistics */}
-        <div className="mt-4 grid grid-cols-2 lg:grid-cols-6 gap-3">
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-blue-600 mb-1">Total Standards</p>
-                <p className="text-lg font-bold text-blue-900">{stats.total}</p>
-              </div>
-              <FileText className="h-4 w-4 text-blue-600" />
-            </div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3 border border-green-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-green-600 mb-1">Core Standards</p>
-                <p className="text-lg font-bold text-green-900">{stats.core}</p>
-              </div>
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </div>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-purple-600 mb-1">Knowledge</p>
-                <p className="text-lg font-bold text-purple-900">{stats.knowledge}</p>
-              </div>
-              <BookOpen className="h-4 w-4 text-purple-600" />
-            </div>
-          </div>
-          <div className="bg-orange-50 rounded-lg p-3 border border-orange-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-orange-600 mb-1">Skills</p>
-                <p className="text-lg font-bold text-orange-900">{stats.skills}</p>
-              </div>
-              <Target className="h-4 w-4 text-orange-600" />
-            </div>
-          </div>
-          <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-indigo-600 mb-1">Competencies</p>
-                <p className="text-lg font-bold text-indigo-900">{stats.competencies}</p>
-              </div>
-              <Award className="h-4 w-4 text-indigo-600" />
-            </div>
-          </div>
-          <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-yellow-600 mb-1">Total Weight</p>
-                <p className="text-lg font-bold text-yellow-900">{stats.totalWeight}%</p>
-              </div>
-              <TrendingUp className="h-4 w-4 text-yellow-600" />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -523,25 +497,18 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
         </div>
         
         <div className="flex-1 p-4 overflow-y-auto">
-          {loading ? (
+          {filteredStandards.length === 0 ? (
             <div className="flex justify-center items-center h-full min-h-[200px]">
               <div className="text-center">
-                <div className="loading loading-spinner loading-lg text-blue-600"></div>
-                <p className="mt-3 text-sm text-gray-600">Loading standards...</p>
-              </div>
-            </div>
-          ) : filteredStandards.length === 0 ? (
-            <div className="flex justify-center items-center h-full min-h-[200px]">
-              <div className="text-center">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <Target className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                 <h4 className="text-base font-medium text-gray-900 mb-2">No standards found</h4>
                 <p className="text-sm text-gray-500 mb-4">
                   {searchTerm || filterCategory !== 'all' || filterLevel !== 'all'
                     ? 'Try adjusting your search or filter criteria.'
-                    : 'No standards have been defined for this curriculum yet.'
+                    : 'No learning standards have been defined for this curriculum yet.'
                   }
                 </p>
-                {(!searchTerm && filterCategory === 'all' && filterLevel === 'all') && (
+                {(!searchTerm && filterCategory === 'all' && filterLevel === 'all' && canManageStandards) && (
                   <button
                     onClick={handleAddStandard}
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
@@ -555,61 +522,86 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
           ) : (
             <div className="space-y-4">
               {filteredStandards.map((standard) => (
-                <div
-                  key={standard.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200"
-                >
+                <div key={standard.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h4 className="font-semibold text-gray-900">{standard.title}</h4>
-                        <span className="text-sm text-gray-500 font-mono">({standard.code})</span>
-                        {getCategoryBadge(standard.category)}
-                        {getLevelBadge(standard.level)}
-                        {standard.isCore && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Core
-                          </span>
-                        )}
+                        <h4 className="text-lg font-semibold text-gray-900">{standard.title}</h4>
+                        <div className="flex items-center gap-2">
+                          {getCategoryBadge(standard.category)}
+                          {getLevelBadge(standard.level)}
+                          {standard.isCore && (
+                            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                              Core
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">{standard.description}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                        <span className="font-mono">{standard.code}</span>
+                        <span>{standard.weightPercentage}% weight</span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Modified: {new Date(standard.modifiedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    {canManageStandards && (
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={() => handleEditStandard(standard)}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit standard"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStandard(standard.id)}
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete standard"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <p className="text-gray-700 mb-3">{standard.description}</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <h5 className="font-medium text-gray-900 mb-2">Assessment Criteria:</h5>
+                      <p className="text-gray-600 mb-3">{standard.assessmentCriteria}</p>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      {standard.prerequisites.length > 0 && (
                         <div>
-                          <h5 className="font-medium text-gray-900 mb-2">Learning Outcomes:</h5>
-                          <ul className="list-disc list-inside space-y-1 text-gray-600">
-                            {standard.learningOutcomes.map((outcome, index) => (
-                              <li key={index}>{outcome}</li>
+                          <h5 className="font-medium text-gray-900 mb-1">Prerequisites:</h5>
+                          <ul className="text-gray-600 text-xs space-y-1">
+                            {standard.prerequisites.map((prereq, index) => (
+                              <li key={index} className="flex items-start gap-1">
+                                <span className="text-gray-400">•</span>
+                                {prereq}
+                              </li>
                             ))}
                           </ul>
                         </div>
-                        <div>
-                          <h5 className="font-medium text-gray-900 mb-2">Assessment Criteria:</h5>
-                          <p className="text-gray-600">{standard.assessmentCriteria}</p>
-                          <div className="mt-2 flex items-center gap-4">
-                            <span className="text-xs text-gray-500">Weight: {standard.weightPercentage}%</span>
-                            <span className="text-xs text-gray-500">
-                              Modified: {new Date(standard.modifiedAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                      )}
                     </div>
-                    <div className="flex gap-1 ml-3 flex-shrink-0">
-                      <button
-                        onClick={() => handleEditStandard(standard)}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                        title="Edit standard"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStandard(standard.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                        title="Delete standard"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                    
+                    <div>
+                      <h5 className="font-medium text-gray-900 mb-2">Learning Outcomes:</h5>
+                      {standard.learningOutcomes.length > 0 ? (
+                        <ul className="text-gray-600 text-xs space-y-1">
+                          {standard.learningOutcomes.map((outcome, index) => (
+                            <li key={index} className="flex items-start gap-1">
+                              <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                              {outcome}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-gray-500 text-xs">No learning outcomes defined</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -619,171 +611,135 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
         </div>
       </div>
 
-      {/* Add/Edit Standard Modal */}
+      {/* Add/Edit Modal */}
       {(showAddModal || showEditModal) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 {showEditModal ? 'Edit Standard' : 'Add New Standard'}
               </h3>
               
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Code</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Code
+                    </label>
                     <input
                       type="text"
                       value={formData.code}
                       onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="STD-001"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., STD-001"
                     />
                   </div>
+                  
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Weight (%)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Weight Percentage
+                    </label>
                     <input
                       type="number"
                       min="0"
                       max="100"
                       value={formData.weightPercentage}
-                      onChange={(e) => setFormData(prev => ({ ...prev, weightPercentage: parseInt(e.target.value) || 0 }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onChange={(e) => setFormData(prev => ({ ...prev, weightPercentage: Number(e.target.value) }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
-
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title
+                  </label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Standard title"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter standard title"
                   />
                 </div>
-
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent h-20 resize-none"
-                    placeholder="Describe what this standard covers..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter standard description"
                   />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category
+                    </label>
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="KNOWLEDGE">Knowledge</option>
                       <option value="SKILLS">Skills</option>
-                      <option value="ATTITUDES">Attitudes</option>
+                      <option value="UNDERSTANDING">Understanding</option>
+                      <option value="APPLICATION">Application</option>
+                      <option value="ANALYSIS">Analysis</option>
+                      <option value="SYNTHESIS">Synthesis</option>
+                      <option value="EVALUATION">Evaluation</option>
                       <option value="COMPETENCIES">Competencies</option>
                     </select>
                   </div>
+                  
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Level
+                    </label>
                     <select
                       value={formData.level}
                       onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="BASIC">Basic</option>
+                      <option value="BEGINNER">Beginner</option>
                       <option value="INTERMEDIATE">Intermediate</option>
                       <option value="ADVANCED">Advanced</option>
-                      <option value="MASTERY">Mastery</option>
                     </select>
                   </div>
-                  <div className="flex items-center">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.isCore}
-                        onChange={(e) => setFormData(prev => ({ ...prev, isCore: e.target.checked }))}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">Core Standard</span>
-                    </label>
-                  </div>
                 </div>
-
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Assessment Criteria</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Assessment Criteria
+                  </label>
                   <textarea
                     value={formData.assessmentCriteria}
                     onChange={(e) => setFormData(prev => ({ ...prev, assessmentCriteria: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent h-20 resize-none"
-                    placeholder="How will this standard be assessed?"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter assessment criteria"
                   />
                 </div>
-
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Learning Outcomes</label>
-                  {formData.learningOutcomes.map((outcome, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={outcome}
-                        onChange={(e) => updateLearningOutcome(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder={`Learning outcome ${index + 1}`}
-                      />
-                      {formData.learningOutcomes.length > 1 && (
-                        <button
-                          onClick={() => removeLearningOutcome(index)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={addLearningOutcome}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    + Add Learning Outcome
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Prerequisites</label>
-                  {formData.prerequisites.map((prereq, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={prereq}
-                        onChange={(e) => updatePrerequisite(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder={`Prerequisite ${index + 1}`}
-                      />
-                      {formData.prerequisites.length > 1 && (
-                        <button
-                          onClick={() => removePrerequisite(index)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={addPrerequisite}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    + Add Prerequisite
-                  </button>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.isCore}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isCore: e.target.checked }))}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Core Standard</span>
+                  </label>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3 mt-6">
+              
+              <div className="mt-6 flex justify-end gap-3">
                 <button
                   onClick={() => {
                     setShowAddModal(false);
@@ -791,15 +747,16 @@ const CurriculumStandardsTab: React.FC<CurriculumStandardsTabProps> = ({ curricu
                     setSelectedStandard(null);
                     resetForm();
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveStandard}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                  disabled={saving || !formData.title || !formData.description}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {showEditModal ? 'Update Standard' : 'Create Standard'}
+                  {saving ? 'Saving...' : showEditModal ? 'Update Standard' : 'Create Standard'}
                 </button>
               </div>
             </div>

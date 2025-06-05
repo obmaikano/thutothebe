@@ -1,157 +1,155 @@
 import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState, AppDispatch } from '../../../store';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import { useAuth } from '../../../contexts/AuthContext';
 import { 
-  fetchSchoolAttendanceDashboard,
-  fetchAttendanceStatsByClassAndDate,
-  clearAttendanceError
+  fetchAttendanceStats,
+  fetchAttendanceSummary,
+  fetchAttendanceByDateRange,
+  clearError
 } from '../attendanceSlice';
-import { AttendanceFilters } from '../components';
+import { fetchClasses } from '../../classes/classesSlice';
+import { fetchSubjects } from '../../subjects/subjectsSlice';
+import { AttendanceFilters } from '../components/AttendanceFilters';
 import { 
-  BarChart3, 
   TrendingUp, 
+  TrendingDown, 
+  Users, 
   Calendar, 
-  Download, 
-  Filter,
-  RefreshCw,
-  AlertTriangle,
-  Users,
-  CheckSquare,
-  X,
+  CheckCircle, 
+  XCircle, 
   Clock,
-  Eye,
+  AlertTriangle,
+  BarChart3,
+  Download,
   FileText,
-  Mail,
-  Settings
+  RefreshCw,
+  Eye,
+  X
 } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
-const AttendanceAnalyticsPage: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { user } = useSelector((state: RootState) => state.auth);
-  
-  // Provide default values to prevent undefined errors
-  const attendanceState = useSelector((state: RootState) => state.attendance);
-  const {
-    attendanceDashboard,
-    attendanceRecords = [],
-    error = null
-  } = attendanceState || {};
-  
-  const status = attendanceState?.status || 'idle';
+interface AttendanceAnalyticsPageProps {}
 
+const AttendanceAnalyticsPage: React.FC<AttendanceAnalyticsPageProps> = () => {
+  const dispatch = useAppDispatch();
+  const { user } = useAuth();
+  const { 
+    attendanceStats, 
+    attendanceSummary, 
+    attendanceRecords,
+    status, 
+    error 
+  } = useAppSelector(state => state.attendance);
+  const { classes } = useAppSelector(state => state.classes);
+  const { subjects } = useAppSelector(state => state.subjects);
+
+  // State management
+  const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'trends'>('overview');
   const [selectedDateRange, setSelectedDateRange] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days ago
-    endDate: new Date().toISOString().split('T')[0] // today
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
   });
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'trends'>('overview');
 
-  // Role-based permissions
-  const userRole = user?.role;
-  const canViewAnalytics = [
+  // Permission checks
+  const canViewAnalytics = user && [
     'SUPER_ADMIN',
-    'SCHOOL_ADMIN',
-    'SCHOOL_HEAD',
-    'DEPARTMENT_HEAD'
-  ].includes(userRole || '');
-
-  const canExportData = [
-    'SUPER_ADMIN',
-    'SCHOOL_ADMIN',
-    'SCHOOL_HEAD'
-  ].includes(userRole || '');
-
-  const canNotifyParents = [
-    'SUPER_ADMIN',
+    'MINISTRY_EXECUTIVE',
+    'MINISTRY_STAFF', 
+    'DIRECTOR',
+    'REGIONAL_ADMIN',
+    'REGIONAL_OFFICER',
     'SCHOOL_ADMIN',
     'SCHOOL_HEAD',
     'DEPARTMENT_HEAD',
     'SENIOR_TEACHER',
     'TEACHER'
-  ].includes(userRole || '');
+  ].includes(user.role);
 
-  // Mock data for classes - replace with actual data from your store
-  const classes = [
-    { id: 1, name: 'Grade 1A', students: 25 },
-    { id: 2, name: 'Grade 1B', students: 23 },
-    { id: 3, name: 'Grade 2A', students: 28 },
-    { id: 4, name: 'Grade 3A', students: 26 },
-    { id: 5, name: 'Grade 4A', students: 24 },
-  ];
+  const canExportData = user && [
+    'SUPER_ADMIN',
+    'MINISTRY_EXECUTIVE',
+    'MINISTRY_STAFF',
+    'DIRECTOR', 
+    'REGIONAL_ADMIN',
+    'SCHOOL_ADMIN',
+    'SCHOOL_HEAD',
+    'DEPARTMENT_HEAD'
+  ].includes(user.role);
 
-  const subjects = [
-    { id: 1, name: 'Mathematics' },
-    { id: 2, name: 'English' },
-    { id: 3, name: 'Science' },
-    { id: 4, name: 'History' },
-    { id: 5, name: 'Geography' },
-  ];
+  const canNotifyParents = user && [
+    'SCHOOL_ADMIN',
+    'SCHOOL_HEAD',
+    'DEPARTMENT_HEAD',
+    'SENIOR_TEACHER',
+    'TEACHER'
+  ].includes(user.role);
 
-  // Mock dashboard data - replace with actual data from your store
-  const mockDashboardData = {
-    totalStudents: 126,
-    presentToday: 118,
-    absentToday: 6,
-    lateToday: 2,
-    attendanceRate: 93.7,
-    weeklyTrend: 2.3,
-    monthlyTrend: -0.8,
-    classesWithLowAttendance: 1,
-    perfectAttendanceStudents: 89
+  useEffect(() => {
+    if (canViewAnalytics) {
+      // Load initial data
+      dispatch(fetchClasses());
+      dispatch(fetchSubjects());
+      loadAttendanceData();
+    }
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch, canViewAnalytics]);
+
+  const loadAttendanceData = () => {
+    if (!canViewAnalytics) return;
+
+    const filters = {
+      startDate: selectedDateRange.startDate,
+      endDate: selectedDateRange.endDate,
+      ...(selectedClass && { classId: selectedClass }),
+      ...(selectedSubject && { subjectId: selectedSubject }),
+      ...(user?.schoolId && { schoolId: user.schoolId })
+    };
+
+    dispatch(fetchAttendanceStats(filters));
+    dispatch(fetchAttendanceSummary(filters));
+    dispatch(fetchAttendanceByDateRange({
+      startDate: selectedDateRange.startDate,
+      endDate: selectedDateRange.endDate,
+      filters
+    }));
   };
 
   useEffect(() => {
     if (canViewAnalytics) {
-      dispatch(fetchSchoolAttendanceDashboard({ 
-        schoolId: user?.schoolId || 1,
-        startDate: selectedDateRange.startDate, 
-        endDate: selectedDateRange.endDate 
-      }));
+      loadAttendanceData();
     }
-    return () => {
-      dispatch(clearAttendanceError());
-    };
-  }, [dispatch, canViewAnalytics, user?.schoolId, selectedDateRange.startDate, selectedDateRange.endDate]);
+  }, [selectedDateRange, selectedClass, selectedSubject]);
 
   const handleDateRangeChange = (startDate: string, endDate: string) => {
     setSelectedDateRange({ startDate, endDate });
-    if (selectedClass) {
-      dispatch(fetchAttendanceStatsByClassAndDate({
-        classId: selectedClass,
-        date: endDate
-      }));
-    }
   };
 
   const handleClassChange = (classId: number | null) => {
     setSelectedClass(classId);
-    if (classId) {
-      dispatch(fetchAttendanceStatsByClassAndDate({
-        classId,
-        date: selectedDateRange.endDate
-      }));
-    }
+  };
+
+  const handleSubjectChange = (subjectId: number | null) => {
+    setSelectedSubject(subjectId);
   };
 
   const handleExportData = (format: 'pdf' | 'excel' | 'csv') => {
     if (!canExportData) return;
     console.log(`Exporting attendance analytics data as ${format}`);
+    // TODO: Implement actual export functionality
   };
 
   const handleNotifyParents = () => {
     if (!canNotifyParents) return;
     console.log('Notifying parents of absent students');
+    // TODO: Implement parent notification functionality
   };
 
   const refreshData = () => {
-    if (canViewAnalytics) {
-      dispatch(fetchSchoolAttendanceDashboard({ 
-        schoolId: user?.schoolId || 1,
-        startDate: selectedDateRange.startDate, 
-        endDate: selectedDateRange.endDate 
-      }));
-    }
+    loadAttendanceData();
   };
 
   const clearFilters = () => {
@@ -162,6 +160,41 @@ const AttendanceAnalyticsPage: React.FC = () => {
       endDate: new Date().toISOString().split('T')[0]
     });
   };
+
+  // Calculate dashboard metrics from real data
+  const dashboardData = attendanceSummary ? {
+    totalStudents: attendanceSummary.totalStudents,
+    presentToday: attendanceSummary.presentToday,
+    absentToday: attendanceSummary.absentToday,
+    lateToday: attendanceSummary.lateToday,
+    attendanceRate: Number(attendanceSummary.attendanceRate.toFixed(1)),
+    classesWithLowAttendance: 0, // TODO: Calculate from attendanceStats
+    perfectAttendanceStudents: 0 // TODO: Calculate from attendanceRecords
+  } : {
+    totalStudents: 0,
+    presentToday: 0,
+    absentToday: 0,
+    lateToday: 0,
+    attendanceRate: 0,
+    classesWithLowAttendance: 0,
+    perfectAttendanceStudents: 0
+  };
+
+  // Prepare chart data from real attendance trends
+  const trendChartData = attendanceSummary?.trends?.map(trend => ({
+    date: new Date(trend.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    present: trend.presentCount,
+    absent: trend.absentCount,
+    late: trend.lateCount,
+    total: trend.totalCount,
+    attendanceRate: ((trend.presentCount / trend.totalCount) * 100).toFixed(1)
+  })) || [];
+
+  const statusDistributionData = [
+    { name: 'Present', value: dashboardData.presentToday, color: '#10B981' },
+    { name: 'Absent', value: dashboardData.absentToday, color: '#EF4444' },
+    { name: 'Late', value: dashboardData.lateToday, color: '#F59E0B' }
+  ];
 
   if (!canViewAnalytics) {
     return (
@@ -245,7 +278,7 @@ const AttendanceAnalyticsPage: React.FC = () => {
           <AlertTriangle className="w-5 h-5" />
           <span>{error}</span>
           <button 
-            onClick={() => dispatch(clearAttendanceError())}
+            onClick={() => dispatch(clearError())}
             className="btn btn-sm btn-ghost"
           >
             <X className="w-4 h-4" />
@@ -264,13 +297,13 @@ const AttendanceAnalyticsPage: React.FC = () => {
         selectedType=""
         onTypeChange={() => {}}
         startDate={selectedDateRange.startDate}
-        onStartDateChange={(date) => handleDateRangeChange(date, selectedDateRange.endDate)}
+        onStartDateChange={(date: string) => handleDateRangeChange(date, selectedDateRange.endDate)}
         endDate={selectedDateRange.endDate}
-        onEndDateChange={(date) => handleDateRangeChange(selectedDateRange.startDate, date)}
+        onEndDateChange={(date: string) => handleDateRangeChange(selectedDateRange.startDate, date)}
         classes={classes}
         subjects={subjects}
         selectedSubject={selectedSubject}
-        onSubjectChange={setSelectedSubject}
+        onSubjectChange={handleSubjectChange}
         onClearFilters={clearFilters}
       />
 
@@ -283,179 +316,94 @@ const AttendanceAnalyticsPage: React.FC = () => {
               {canNotifyParents && (
                 <button
                   onClick={handleNotifyParents}
-                  className="btn btn-outline btn-sm"
+                  className="btn btn-warning btn-sm"
                 >
-                  <Mail className="w-4 h-4 mr-2" />
+                  <AlertTriangle className="w-4 h-4 mr-2" />
                   Notify Parents
                 </button>
               )}
-              <button className="btn btn-outline btn-sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
+              <button
+                onClick={() => window.location.href = '/app/attendance'}
+                className="btn btn-primary btn-sm"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Mark Attendance
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Dashboard Content */}
-      {viewMode === 'overview' && (
-        <div className="space-y-6">
-          {/* Dashboard Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="card bg-base-100 shadow-sm">
-              <div className="card-body">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Students</p>
-                    <p className="text-3xl font-bold text-primary">{mockDashboardData.totalStudents}</p>
-                  </div>
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <Users className="w-8 h-8 text-primary" />
-                  </div>
-                </div>
-              </div>
-            </div>
+      {/* Loading State */}
+      {status === 'loading' && (
+        <div className="flex justify-center items-center py-12">
+          <div className="loading loading-spinner loading-lg"></div>
+        </div>
+      )}
 
-            <div className="card bg-base-100 shadow-sm">
-              <div className="card-body">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Present Today</p>
-                    <p className="text-3xl font-bold text-success">{mockDashboardData.presentToday}</p>
-                    <p className="text-xs text-gray-500">
-                      {((mockDashboardData.presentToday / mockDashboardData.totalStudents) * 100).toFixed(1)}% of total
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-full bg-success/10">
-                    <CheckSquare className="w-8 h-8 text-success" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="card bg-base-100 shadow-sm">
-              <div className="card-body">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Absent Today</p>
-                    <p className="text-3xl font-bold text-error">{mockDashboardData.absentToday}</p>
-                    <p className="text-xs text-gray-500">
-                      {((mockDashboardData.absentToday / mockDashboardData.totalStudents) * 100).toFixed(1)}% of total
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-full bg-error/10">
-                    <X className="w-8 h-8 text-error" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="card bg-base-100 shadow-sm">
-              <div className="card-body">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Late Arrivals</p>
-                    <p className="text-3xl font-bold text-warning">{mockDashboardData.lateToday}</p>
-                    <p className="text-xs text-gray-500">
-                      {((mockDashboardData.lateToday / mockDashboardData.totalStudents) * 100).toFixed(1)}% of total
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-full bg-warning/10">
-                    <Clock className="w-8 h-8 text-warning" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Attendance Rate Overview */}
+      {/* Overview Cards */}
+      {status !== 'loading' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="card bg-base-100 shadow-sm">
             <div className="card-body">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="card-title">School Attendance Rate</h3>
-                  <p className="text-sm text-gray-600">Overall attendance performance</p>
+                  <p className="text-sm font-medium text-gray-600">Total Students</p>
+                  <p className="text-3xl font-bold text-primary">{dashboardData.totalStudents}</p>
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-primary">{mockDashboardData.attendanceRate}%</div>
-                  <div className="badge badge-success">Excellent</div>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="w-full">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Attendance Rate</span>
-                  <span>{mockDashboardData.attendanceRate}%</span>
-                </div>
-                <progress 
-                  className="progress progress-success w-full" 
-                  value={mockDashboardData.attendanceRate} 
-                  max="100"
-                ></progress>
-              </div>
-
-              {/* Attendance Rate Breakdown */}
-              <div className="grid grid-cols-3 gap-4 mt-4 text-center">
-                <div>
-                  <div className="text-lg font-semibold text-success">
-                    {Math.round((mockDashboardData.presentToday / mockDashboardData.totalStudents) * 100)}%
-                  </div>
-                  <div className="text-xs text-gray-500">Present</div>
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-error">
-                    {Math.round((mockDashboardData.absentToday / mockDashboardData.totalStudents) * 100)}%
-                  </div>
-                  <div className="text-xs text-gray-500">Absent</div>
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-warning">
-                    {Math.round((mockDashboardData.lateToday / mockDashboardData.totalStudents) * 100)}%
-                  </div>
-                  <div className="text-xs text-gray-500">Late</div>
+                <div className="p-3 bg-primary/10 rounded-full">
+                  <Users className="h-8 w-8 text-primary" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Additional Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="card bg-base-100 shadow-sm">
-              <div className="card-body">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-warning/10">
-                      <AlertTriangle className="w-5 h-5 text-warning" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600">Classes Needing Attention</div>
-                      <div className="text-2xl font-bold">{mockDashboardData.classesWithLowAttendance}</div>
-                    </div>
-                  </div>
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Present Today</p>
+                  <p className="text-3xl font-bold text-success">{dashboardData.presentToday}</p>
+                  <p className="text-sm text-gray-500">
+                    {((dashboardData.presentToday / dashboardData.totalStudents) * 100).toFixed(1)}% of total
+                  </p>
                 </div>
-                <div className="mt-2 text-xs text-gray-500">
-                  Classes with &lt;85% attendance rate
+                <div className="p-3 bg-success/10 rounded-full">
+                  <CheckCircle className="h-8 w-8 text-success" />
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="card bg-base-100 shadow-sm">
-              <div className="card-body">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-success/10">
-                      <TrendingUp className="w-5 h-5 text-success" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600">Perfect Attendance</div>
-                      <div className="text-2xl font-bold">{mockDashboardData.perfectAttendanceStudents}</div>
-                    </div>
-                  </div>
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Absent Today</p>
+                  <p className="text-3xl font-bold text-error">{dashboardData.absentToday}</p>
+                  <p className="text-sm text-gray-500">
+                    {((dashboardData.absentToday / dashboardData.totalStudents) * 100).toFixed(1)}% of total
+                  </p>
                 </div>
-                <div className="mt-2 text-xs text-gray-500">
-                  Students with 100% attendance this term
+                <div className="p-3 bg-error/10 rounded-full">
+                  <XCircle className="h-8 w-8 text-error" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Late Today</p>
+                  <p className="text-3xl font-bold text-warning">{dashboardData.lateToday}</p>
+                  <p className="text-sm text-gray-500">
+                    {((dashboardData.lateToday / dashboardData.totalStudents) * 100).toFixed(1)}% of total
+                  </p>
+                </div>
+                <div className="p-3 bg-warning/10 rounded-full">
+                  <Clock className="h-8 w-8 text-warning" />
                 </div>
               </div>
             </div>
@@ -463,156 +411,124 @@ const AttendanceAnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {viewMode === 'detailed' && (
-        <div className="space-y-6">
-          {/* Class Performance Summary */}
+      {/* Charts Section */}
+      {status !== 'loading' && viewMode === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Attendance Rate Card */}
           <div className="card bg-base-100 shadow-sm">
             <div className="card-body">
-              <h3 className="card-title mb-4">Class Performance Summary</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {classes.map(cls => (
-                  <div key={cls.id} className="card bg-base-200 shadow-sm">
-                    <div className="card-body p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium">{cls.name}</h4>
-                        <span className="text-sm text-gray-500">{cls.students} students</span>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Attendance Rate</span>
-                          <span className="font-medium text-success">94.2%</span>
-                        </div>
-                        <progress className="progress progress-success w-full" value="94.2" max="100"></progress>
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          <div className="text-center">
-                            <div className="font-medium text-success">{Math.floor(cls.students * 0.942)}</div>
-                            <div className="text-gray-500">Present</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-medium text-error">{Math.floor(cls.students * 0.058)}</div>
-                            <div className="text-gray-500">Absent</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-medium text-warning">1</div>
-                            <div className="text-gray-500">Late</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+              <h3 className="card-title mb-4">Overall Attendance Rate</h3>
+              <div className="flex items-center justify-center">
+                <div className="radial-progress text-primary" style={{"--value": dashboardData.attendanceRate} as React.CSSProperties}>
+                  <span>{dashboardData.attendanceRate}%</span>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-around text-sm">
+                <div className="text-center">
+                  <div className="font-semibold text-success">
+                    {Math.round((dashboardData.presentToday / dashboardData.totalStudents) * 100)}%
                   </div>
-                ))}
+                  <div className="text-gray-500">Present</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-error">
+                    {Math.round((dashboardData.absentToday / dashboardData.totalStudents) * 100)}%
+                  </div>
+                  <div className="text-gray-500">Absent</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-warning">
+                    {Math.round((dashboardData.lateToday / dashboardData.totalStudents) * 100)}%
+                  </div>
+                  <div className="text-gray-500">Late</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Statistics */}
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <h3 className="card-title mb-4">Additional Statistics</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                  <span className="text-gray-700">Classes with Low Attendance</span>
+                  <div className="text-2xl font-bold">{dashboardData.classesWithLowAttendance}</div>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                  <span className="text-gray-700">Perfect Attendance Students</span>
+                  <div className="text-2xl font-bold">{dashboardData.perfectAttendanceStudents}</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {viewMode === 'trends' && (
-        <div className="space-y-6">
-          {/* Trend Analysis */}
+      {/* Trends View */}
+      {status !== 'loading' && viewMode === 'trends' && trendChartData.length > 0 && (
+        <div className="grid grid-cols-1 gap-6">
           <div className="card bg-base-100 shadow-sm">
             <div className="card-body">
-              <h3 className="card-title mb-4">Attendance Trends Analysis</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium mb-3">Weekly Trends</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">This Week</span>
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-success" />
-                        <span className="text-sm font-medium text-success">+2.3%</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Last Week</span>
-                      <span className="text-sm font-medium">91.4%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">2 Weeks Ago</span>
-                      <span className="text-sm font-medium">89.8%</span>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-3">Monthly Trends</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">This Month</span>
-                      <span className="text-sm font-medium">93.7%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Last Month</span>
-                      <span className="text-sm font-medium">94.5%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">2 Months Ago</span>
-                      <span className="text-sm font-medium">92.1%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <h3 className="card-title mb-4">Attendance Trends</h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={trendChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="present" stroke="#10B981" strokeWidth={2} name="Present" />
+                  <Line type="monotone" dataKey="absent" stroke="#EF4444" strokeWidth={2} name="Absent" />
+                  <Line type="monotone" dataKey="late" stroke="#F59E0B" strokeWidth={2} name="Late" />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Attendance Patterns */}
+          {/* Status Distribution */}
           <div className="card bg-base-100 shadow-sm">
             <div className="card-body">
-              <h3 className="card-title mb-4">Attendance Patterns</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <h4 className="font-medium mb-3">By Day of Week</h4>
-                  <div className="space-y-2">
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day, index) => {
-                      const rate = [95.2, 94.8, 93.1, 94.5, 92.8][index];
-                      return (
-                        <div key={day} className="flex justify-between items-center">
-                          <span className="text-sm">{day}</span>
-                          <div className="flex items-center gap-2">
-                            <progress className="progress progress-primary w-16" value={rate} max="100"></progress>
-                            <span className="text-sm font-medium w-12">{rate}%</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-3">Peak Absence Times</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Fridays</span>
-                      <span className="text-error font-medium">7.2% absent</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>After Holidays</span>
-                      <span className="text-error font-medium">12.1% absent</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Exam Periods</span>
-                      <span className="text-success font-medium">2.3% absent</span>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-3">Late Arrivals</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Average Daily</span>
-                      <span className="text-warning font-medium">2.1%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Monday Peak</span>
-                      <span className="text-warning font-medium">3.8%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Improvement</span>
-                      <span className="text-success font-medium">-0.5%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <h3 className="card-title mb-4">Today's Status Distribution</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusDistributionData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {statusDistributionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* No Data State */}
+      {status !== 'loading' && (!attendanceSummary || dashboardData.totalStudents === 0) && (
+        <div className="card bg-base-100 shadow-sm">
+          <div className="card-body text-center py-12">
+            <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Attendance Data Available</h3>
+            <p className="text-gray-500 mb-4">
+              No attendance records found for the selected date range and filters.
+            </p>
+            <button 
+              onClick={clearFilters}
+              className="btn btn-primary"
+            >
+              Clear Filters
+            </button>
           </div>
         </div>
       )}
