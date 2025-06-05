@@ -54,6 +54,15 @@ export const CURRICULUM_STATUS_LABELS: Record<string, string> = {
   'DEPRECATED': 'Deprecated'
 };
 
+// Nationality mapping from backend Nationality.java enum
+export const NATIONALITY_LABELS: Record<string, string> = {
+  'CITIZEN': 'Citizen',
+  'PERMANENT_RESIDENT': 'Permanent Resident',
+  'TEMPORARY_RESIDENT': 'Temporary Resident',
+  'REFUGEE': 'Refugee',
+  'OTHER': 'Other'
+};
+
 /**
  * API service for fetching enum values from the backend
  */

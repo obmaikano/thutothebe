@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -110,11 +111,11 @@ public abstract class BaseController<D, ID> {
             // Note: Specific access control logic should be implemented in individual controllers
             // to filter results based on user permissions
             List<D> resources = service.getAll();
-            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Resources retrieved successfully", resources, null));
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Resources retrieved successfully", resources, LocalDateTime.now()));
         } catch (Exception e) {
             log.error("Error retrieving resources: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
-                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, LocalDateTime.now()));
         }
     }
 

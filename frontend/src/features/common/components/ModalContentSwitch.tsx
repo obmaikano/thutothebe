@@ -34,6 +34,8 @@ const DeleteRegionModal = lazy(() => import('../../regions/modals/DeleteRegionMo
 const CreateUserModal = lazy(() => import('../../users/modals/CreateUserModal'));
 const EditUserModal = lazy(() => import('../../users/modals/EditUserModal'));
 const DeleteUserModal = lazy(() => import('../../users/modals/DeleteUserModal'));
+const BulkOperationsModal = lazy(() => import('../../users/modals/BulkOperationsModal'));
+const ExportUsersModal = lazy(() => import('../../users/modals/ExportUsersModal'));
 
 // Course management modals
 const CreateCourseModal = lazy(() => import('../../courses/modals/CreateCourseModal'));
@@ -305,6 +307,20 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DeleteUserModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.USER_BULK_OPERATIONS:
+      return (
+        <Suspense fallback={fallback}>
+          <BulkOperationsModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.USER_EXPORT:
+      return (
+        <Suspense fallback={fallback}>
+          <ExportUsersModal extraObject={contentProps} />
         </Suspense>
       );
 

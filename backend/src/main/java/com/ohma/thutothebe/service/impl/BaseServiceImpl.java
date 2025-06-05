@@ -13,6 +13,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -96,10 +98,12 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
             throw new SecurityException("Authentication required for update operations");
         }
         
-        // Validate access to existing entity
         Long existingSchoolId = extractSchoolId(existingEntity);
         Long existingRegionId = extractRegionId(existingEntity);
+        Long newSchoolId = extractSchoolId(updatedEntity);
+        Long newRegionId = extractRegionId(updatedEntity);
         
+        // Validate access to existing entity
         if (existingSchoolId != null && !accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, existingSchoolId)) {
             log.error("SECURITY VIOLATION: User {} attempted to update entity in unauthorized school {}", 
                      currentUserId, existingSchoolId);
@@ -112,10 +116,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
             throw new SecurityException("Access denied: Cannot update entity in region " + existingRegionId);
         }
         
-        // Validate access to new tenant if changed
-        Long newSchoolId = extractSchoolId(updatedEntity);
-        Long newRegionId = extractRegionId(updatedEntity);
-        
+        // Validate access to new school/region if changed
         if (newSchoolId != null && !newSchoolId.equals(existingSchoolId) && 
             !accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, newSchoolId)) {
             log.error("SECURITY VIOLATION: User {} attempted to move entity to unauthorized school {}", 
@@ -167,6 +168,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
     // ==================== SECURE CRUD OPERATIONS ====================
 
     @Override
+    @CacheEvict(value = {"accessControl", "accessibleScopes"}, allEntries = true)
     public D create(D dto) {
         E entity = mapToEntity(dto);
         
@@ -236,6 +238,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
 
     @Override
     @Transactional
+    @CacheEvict(value = {"accessControl", "accessibleScopes"}, allEntries = true)
     public D update(ID id, D dto) {
         E existingEntity = repository.findById(id)
                 .orElseThrow(() -> notFoundException((Long) id));
@@ -270,6 +273,7 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
     }
 
     @Override
+    @CacheEvict(value = {"accessControl", "accessibleScopes"}, allEntries = true)
     public void delete(ID id) {
         E entity = repository.findById(id)
             .orElseThrow(() -> notFoundException((Long) id));

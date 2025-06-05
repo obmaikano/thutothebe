@@ -29,6 +29,10 @@ public class School extends BaseEntity {
     @JoinColumn(name = "region_id", nullable = false)
     private Region region;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_head_id")
+    private User schoolHead;
+    
     @OneToMany(mappedBy = "school", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Class> classes = new HashSet<>();
     
@@ -91,5 +95,15 @@ public class School extends BaseEntity {
     public void removeDepartment(Department department) {
         departments.remove(department);
         department.setSchool(null);
+    }
+
+    public void setSchoolHead(User user) {
+        if (user != null) {
+            UserRole role = user.getRole();
+            if (role != UserRole.SCHOOL_HEAD && role != UserRole.SCHOOL_ADMIN && role != UserRole.DIRECTOR) {
+                throw new IllegalArgumentException("School head must have SCHOOL_HEAD, SCHOOL_ADMIN, or DIRECTOR role");
+            }
+        }
+        this.schoolHead = user;
     }
 } 

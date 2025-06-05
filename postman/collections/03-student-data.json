@@ -1,0 +1,99 @@
+{
+  "info": {
+    "name": "03 - Student Data",
+    "description": "Collection for generating student and parent/guardian data",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Parent/Guardian",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{$randomUsername}}\",\n  \"password\": \"{{$randomPassword}}\",\n  \"firstName\": \"{{$randomFirstName}}\",\n  \"lastName\": \"{{$randomLastName}}\",\n  \"email\": \"{{$randomEmail}}\",\n  \"role\": \"PARENT\",\n  \"phone\": \"{{$randomPhone}}\",\n  \"person\": {\n    \"firstName\": \"{{$randomFirstName}}\",\n    \"surname\": \"{{$randomLastName}}\",\n    \"identityNumber\": \"{{$randomIdentityNumber}}\",\n    \"gender\": \"{{$randomGender}}\",\n    \"nationality\": \"BOTSWANA\",\n    \"dateOfBirth\": \"{{$randomDateOfBirth}}\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users"]
+        }
+      }
+    },
+    {
+      "name": "Create Student",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"admissionNumber\": \"{{$randomAdmissionNumber}}\",\n  \"firstName\": \"{{$randomFirstName}}\",\n  \"lastName\": \"{{$randomLastName}}\",\n  \"dateOfBirth\": \"{{$randomDateOfBirth}}\",\n  \"gender\": \"{{$randomGender}}\",\n  \"phone\": \"{{$randomPhone}}\",\n  \"email\": \"{{$randomEmail}}\",\n  \"address\": \"{{$randomAddress}}\",\n  \"academicYear\": {{$randomAcademicYear}},\n  \"classId\": \"{{classId}}\",\n  \"medicalConditions\": \"{{$randomMedicalConditions}}\",\n  \"disabilities\": \"{{$randomDisabilities}}\",\n  \"emergencyContactName\": \"{{$randomEmergencyContactName}}\",\n  \"emergencyContactPhone\": \"{{$randomEmergencyContactPhone}}\",\n  \"emergencyContactRelationship\": \"{{$randomEmergencyContactRelationship}}\",\n  \"status\": \"ACTIVE\",\n  \"schoolId\": \"{{schoolId}}\",\n  \"parentId\": \"{{parentId}}\",\n  \"onboardingNotes\": \"{{$randomOnboardingNotes}}\",\n  \"subjects\": [\"{{subjectIds}}\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/students",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "students"]
+        }
+      }
+    },
+    {
+      "name": "Create Student Performance",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"academicYear\": {{$randomAcademicYear}},\n  \"term\": \"{{$randomTerm}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"marks\": {{$randomMarks}},\n  \"grade\": \"{{$randomGrade}}\",\n  \"remarks\": \"{{$randomRemarks}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/student-performance",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "student-performance"]
+        }
+      }
+    },
+    {
+      "name": "Create Student Attendance",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"date\": \"{{$randomDate}}\",\n  \"status\": \"{{$randomAttendanceStatus}}\",\n  \"remarks\": \"{{$randomAttendanceRemarks}}\",\n  \"recordedBy\": \"{{userId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/attendance",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attendance"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+} 

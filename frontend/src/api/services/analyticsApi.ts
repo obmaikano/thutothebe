@@ -1,5 +1,7 @@
 import { api } from '../index';
 import { AxiosResponse } from 'axios';
+import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 export interface AnalyticsData {
   courseId?: number;
@@ -54,6 +56,29 @@ export interface AnalyticsResponse {
   timestamp: string | null;
 }
 
+interface DashboardParams {
+  timeframe: 'WEEK' | 'MONTH' | 'TERM' | 'YEAR';
+  schoolId?: number;
+  regionId?: number;
+  courseId?: number;
+  curriculumId: number;
+}
+
+export interface UserStats {
+  totalUsers: number;
+  activeUsers: number;
+  usersByRole: Record<string, number>;
+  todayActive: number;
+  weeklyActive: number;
+  monthlyActive: number;
+}
+
+export interface ApiResponse<T> {
+  status: string;
+  message: string;
+  data: T;
+}
+
 /**
  * API service for interacting with analytics endpoints
  */
@@ -63,13 +88,15 @@ const analyticsApi = {
    * @param params Dashboard parameters
    * @returns Response with dashboard analytics
    */
-  getDashboardData: async (params: {
-    timeframe?: 'WEEK' | 'MONTH' | 'TERM' | 'YEAR';
-    schoolId?: number;
-    regionId?: number;
-    courseId?: number;
-  }): Promise<AxiosResponse<AnalyticsResponse>> => {
-    return api.get('/analytics/dashboard', { params });
+  getDashboardData: async (params: DashboardParams): Promise<AxiosResponse> => {
+    return api.get(`/curriculum/${params.curriculumId}/analytics/dashboard`, {
+      params: {
+        timeframe: params.timeframe,
+        schoolId: params.schoolId,
+        regionId: params.regionId,
+        courseId: params.courseId
+      }
+    });
   },
 
   /**
@@ -172,6 +199,14 @@ const analyticsApi = {
     timeframe?: 'WEEK' | 'MONTH' | 'TERM' | 'YEAR';
   }): Promise<AxiosResponse<{ downloadUrl: string }>> => {
     return api.post('/analytics/export', params);
+  },
+
+  /**
+   * Get user statistics
+   * @returns Response with user statistics
+   */
+  getUserStats: async () => {
+    return api.get<ApiResponse<UserStats>>('/api/analytics/users/stats');
   },
 };
 

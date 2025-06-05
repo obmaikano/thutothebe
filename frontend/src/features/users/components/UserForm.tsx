@@ -3,6 +3,8 @@ import { useAppDispatch } from '../../../app/hooks';
 import { User, CreateUserRequest, UpdateUserRequest, USER_ROLE_OPTIONS, GENDER_OPTIONS } from '../../../api/services/userApi';
 import { createUser, updateUser } from '../usersSlice';
 import SearchableSchoolSelect from './SearchableSchoolSelect';
+import SearchableRegionSelect from './SearchableRegionSelect';
+import { NATIONALITY_LABELS } from '../../../api/services/enumApi';
 
 interface UserFormProps {
   user?: User | null;
@@ -35,6 +37,7 @@ const UserForm: React.FC<UserFormProps> = ({
     birthCertificateNumber: user?.birthCertificateNumber || '',
     qualification: user?.qualification || '',
     schoolId: user?.schoolId || null,
+    regionId: user?.regionId || null,
     parentId: user?.parentId || '',
     active: user?.active ?? true
   });
@@ -52,6 +55,14 @@ const UserForm: React.FC<UserFormProps> = ({
     setFormData(prev => ({
       ...prev,
       schoolId
+    }));
+    setError(null);
+  };
+
+  const handleRegionChange = (regionId: number | null) => {
+    setFormData(prev => ({
+      ...prev,
+      regionId
     }));
     setError(null);
   };
@@ -143,6 +154,7 @@ const UserForm: React.FC<UserFormProps> = ({
           birthCertificateNumber: formData.birthCertificateNumber || undefined,
           qualification: formData.qualification || undefined,
           schoolId: formData.schoolId || undefined,
+          regionId: formData.regionId || undefined,
           parentId: formData.parentId ? Number(formData.parentId) : undefined,
           active: formData.active
         };
@@ -162,6 +174,7 @@ const UserForm: React.FC<UserFormProps> = ({
           birthCertificateNumber: formData.birthCertificateNumber || undefined,
           qualification: formData.qualification || undefined,
           schoolId: formData.schoolId || undefined,
+          regionId: formData.regionId || undefined,
           parentId: formData.parentId ? Number(formData.parentId) : undefined,
           active: formData.active
         };
@@ -184,6 +197,7 @@ const UserForm: React.FC<UserFormProps> = ({
 
   const isStudentRole = formData.role === 'STUDENT';
   const isTeacherRole = ['TEACHER', 'SENIOR_TEACHER', 'DEPARTMENT_HEAD'].includes(formData.role);
+  const isRegionalRole = ['REGIONAL_ADMIN', 'REGIONAL_OFFICER', 'DIRECTOR'].includes(formData.role);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -335,15 +349,20 @@ const UserForm: React.FC<UserFormProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nationality *
             </label>
-            <input
-              type="text"
+            <select
               name="nationality"
               value={formData.nationality}
               onChange={handleInputChange}
-              placeholder="e.g., South African"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
-            />
+            >
+              <option value="">Select Nationality</option>
+              {Object.entries(NATIONALITY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
           
           <div>
@@ -412,6 +431,25 @@ const UserForm: React.FC<UserFormProps> = ({
               onChange={handleInputChange}
               placeholder="Parent's user ID (if applicable)"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Regional Information */}
+      {isRegionalRole && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900">Regional Information</h3>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Region {isRegionalRole ? '*' : ''}
+            </label>
+            <SearchableRegionSelect
+              value={formData.regionId || ''}
+              onChange={handleRegionChange}
+              placeholder="Select a region"
+              required={isRegionalRole}
             />
           </div>
         </div>

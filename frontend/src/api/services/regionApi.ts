@@ -9,6 +9,7 @@ export interface Region {
   active: boolean;
   // Optional computed fields that may be added by frontend logic
   schoolCount?: number;
+  activeSchoolCount?: number;
   studentCount?: number;
   teacherCount?: number;
   performance?: number;

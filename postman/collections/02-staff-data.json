@@ -1,0 +1,99 @@
+{
+  "info": {
+    "name": "02 - Staff Data",
+    "description": "Collection for generating staff data (ministry, regional, and school staff)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Ministry Staff",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{$randomUsername}}\",\n  \"password\": \"{{$randomPassword}}\",\n  \"firstName\": \"{{$randomFirstName}}\",\n  \"lastName\": \"{{$randomLastName}}\",\n  \"email\": \"{{$randomEmail}}\",\n  \"role\": \"MINISTRY_STAFF\",\n  \"qualification\": \"{{$randomQualification}}\",\n  \"person\": {\n    \"firstName\": \"{{$randomFirstName}}\",\n    \"surname\": \"{{$randomLastName}}\",\n    \"identityNumber\": \"{{$randomIdentityNumber}}\",\n    \"gender\": \"{{$randomGender}}\",\n    \"nationality\": \"BOTSWANA\",\n    \"dateOfBirth\": \"{{$randomDateOfBirth}}\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users"]
+        }
+      }
+    },
+    {
+      "name": "Create Regional Staff",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{$randomUsername}}\",\n  \"password\": \"{{$randomPassword}}\",\n  \"firstName\": \"{{$randomFirstName}}\",\n  \"lastName\": \"{{$randomLastName}}\",\n  \"email\": \"{{$randomEmail}}\",\n  \"role\": \"REGIONAL_STAFF\",\n  \"regionId\": \"{{regionId}}\",\n  \"qualification\": \"{{$randomQualification}}\",\n  \"person\": {\n    \"firstName\": \"{{$randomFirstName}}\",\n    \"surname\": \"{{$randomLastName}}\",\n    \"identityNumber\": \"{{$randomIdentityNumber}}\",\n    \"gender\": \"{{$randomGender}}\",\n    \"nationality\": \"BOTSWANA\",\n    \"dateOfBirth\": \"{{$randomDateOfBirth}}\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users"]
+        }
+      }
+    },
+    {
+      "name": "Create School Staff",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{$randomUsername}}\",\n  \"password\": \"{{$randomPassword}}\",\n  \"firstName\": \"{{$randomFirstName}}\",\n  \"lastName\": \"{{$randomLastName}}\",\n  \"email\": \"{{$randomEmail}}\",\n  \"role\": \"{{$randomSchoolStaffRole}}\",\n  \"schoolId\": \"{{schoolId}}\",\n  \"qualification\": \"{{$randomQualification}}\",\n  \"person\": {\n    \"firstName\": \"{{$randomFirstName}}\",\n    \"surname\": \"{{$randomLastName}}\",\n    \"identityNumber\": \"{{$randomIdentityNumber}}\",\n    \"gender\": \"{{$randomGender}}\",\n    \"nationality\": \"BOTSWANA\",\n    \"dateOfBirth\": \"{{$randomDateOfBirth}}\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users"]
+        }
+      }
+    },
+    {
+      "name": "Create Teachers",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"schoolId\": \"{{schoolId}}\",\n  \"departmentId\": \"{{departmentId}}\",\n  \"subjects\": [\"{{subjectIds}}\"],\n  \"qualification\": \"{{$randomQualification}}\",\n  \"specialization\": \"{{$randomSpecialization}}\",\n  \"yearsOfExperience\": {{$randomYearsOfExperience}},\n  \"isClassTeacher\": {{$randomIsClassTeacher}},\n  \"classId\": \"{{classId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/teachers",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "teachers"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+} 

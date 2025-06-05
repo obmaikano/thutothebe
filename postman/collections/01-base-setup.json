@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "01 - Base Setup",
+    "description": "Collection for setting up base data (regions, schools, departments, subjects)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Regions",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"{{$randomRegionCode}}\",\n  \"name\": \"{{$randomRegionName}}\",\n  \"description\": \"{{$randomRegionDescription}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/regions",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "regions"]
+        }
+      }
+    },
+    {
+      "name": "Create Schools",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"{{$randomSchoolCode}}\",\n  \"name\": \"{{$randomSchoolName}}\",\n  \"description\": \"{{$randomSchoolDescription}}\",\n  \"regionId\": \"{{regionId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/schools",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "schools"]
+        }
+      }
+    },
+    {
+      "name": "Create Departments",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{$randomDepartmentName}}\",\n  \"code\": \"{{$randomDepartmentCode}}\",\n  \"description\": \"{{$randomDepartmentDescription}}\",\n  \"schoolId\": \"{{schoolId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/departments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "departments"]
+        }
+      }
+    },
+    {
+      "name": "Create Subjects",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"{{$randomSubjectCode}}\",\n  \"name\": \"{{$randomSubjectName}}\",\n  \"description\": \"{{$randomSubjectDescription}}\",\n  \"departmentId\": \"{{departmentId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/subjects",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "subjects"]
+        }
+      }
+    },
+    {
+      "name": "Create Classes",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{$randomClassName}}\",\n  \"description\": \"{{$randomClassDescription}}\",\n  \"gradeLevel\": \"{{$randomGradeLevel}}\",\n  \"capacity\": {{$randomClassCapacity}},\n  \"schoolId\": \"{{schoolId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/classes",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "classes"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+} 

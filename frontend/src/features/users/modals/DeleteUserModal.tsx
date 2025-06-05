@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppDispatch } from '../../../app/hooks';
 import { closeModal } from '../../common/modalSlice';
-import { deleteUser, fetchUsers } from '../usersSlice';
+import { deleteUser, fetchUsers, fetchUserAnalytics } from '../usersSlice';
 import { User } from '../../../api/services/userApi';
 import { AlertTriangle, Trash2, Users } from 'lucide-react';
 
@@ -31,8 +31,9 @@ export const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ extraObject })
       await dispatch(deleteUser(user.id)).unwrap();
       setIsSuccess(true);
       
-      // Refresh the users list
-      await dispatch(fetchUsers());
+      // Refresh the users list and analytics
+      await dispatch(fetchUsers({}));
+      await dispatch(fetchUserAnalytics());
       
       // Show success briefly then close
       setTimeout(() => {

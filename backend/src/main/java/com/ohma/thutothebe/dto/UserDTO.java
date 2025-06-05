@@ -57,4 +57,8 @@ public class UserDTO {
 
     // Additional fields for students
     private Long parentId;
+
+    private Long regionId;
+
+    private Boolean active;
 } 

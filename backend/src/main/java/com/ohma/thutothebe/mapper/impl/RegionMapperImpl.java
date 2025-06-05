@@ -18,7 +18,9 @@ public class RegionMapperImpl implements RegionMapper {
             entity.getCode(),
             entity.getName(),
             entity.getDescription(),
-            entity.isActive()
+            entity.isActive(),
+            null, // schoolCount will be set by service
+            null  // activeSchoolCount will be set by service
         );
     }
 

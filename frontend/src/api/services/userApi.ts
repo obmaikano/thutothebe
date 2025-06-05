@@ -8,6 +8,7 @@ export interface User {
   email: string;
   role: string;
   schoolId?: number;
+  regionId?: number;
   surname: string;
   gender: 'MALE' | 'FEMALE' | 'OTHER';
   nationality: string;

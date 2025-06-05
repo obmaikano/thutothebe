@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppDispatch } from '../../../app/hooks';
 import { closeModal } from '../../common/modalSlice';
 import { fetchRegions } from '../regionsSlice';
+import { fetchLatestRegionMonitoringForAllRegions } from '../regionMonitoringSlice';
 import { Region } from '../../../api/services/regionApi';
 import RegionForm from '../components/RegionForm';
 import { MapPin, Plus } from 'lucide-react';
@@ -22,13 +23,14 @@ export const CreateRegionModal: React.FC<CreateRegionModalProps> = ({ extraObjec
     try {
       setIsSuccess(true);
       
-      // Refresh the regions list instead of reloading the page
-      await dispatch(fetchRegions());
+      // First refresh both regions list and monitoring data
+      await Promise.all([
+        dispatch(fetchRegions()),
+        dispatch(fetchLatestRegionMonitoringForAllRegions())
+      ]);
       
-      // Show success briefly then close
-      setTimeout(() => {
-        handleClose();
-      }, 1000);
+      // Only close the modal after data is refreshed
+      handleClose();
       
     } catch (error) {
       console.error('Failed to create region:', error);

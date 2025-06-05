@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "04 - Academic Data",
+    "description": "Collection for generating academic data (curriculum, assessments, schedules)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Curriculum",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{$randomCurriculumName}}\",\n  \"code\": \"{{$randomCurriculumCode}}\",\n  \"description\": \"{{$randomCurriculumDescription}}\",\n  \"academicYear\": {{$randomAcademicYear}},\n  \"gradeLevel\": \"{{$randomGradeLevel}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"createdBy\": \"{{userId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/curriculum",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "curriculum"]
+        }
+      }
+    },
+    {
+      "name": "Create Assessment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{$randomAssessmentTitle}}\",\n  \"description\": \"{{$randomAssessmentDescription}}\",\n  \"type\": \"{{$randomAssessmentType}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"classId\": \"{{classId}}\",\n  \"dueDate\": \"{{$randomDueDate}}\",\n  \"totalMarks\": {{$randomTotalMarks}},\n  \"passingMarks\": {{$randomPassingMarks}},\n  \"createdBy\": \"{{userId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/assessments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "assessments"]
+        }
+      }
+    },
+    {
+      "name": "Create Schedule",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{$randomScheduleTitle}}\",\n  \"description\": \"{{$randomScheduleDescription}}\",\n  \"startTime\": \"{{$randomStartTime}}\",\n  \"endTime\": \"{{$randomEndTime}}\",\n  \"dayOfWeek\": \"{{$randomDayOfWeek}}\",\n  \"effectiveDate\": \"{{$randomEffectiveDate}}\",\n  \"expiryDate\": \"{{$randomExpiryDate}}\",\n  \"location\": \"{{$randomLocation}}\",\n  \"type\": \"{{$randomScheduleType}}\",\n  \"status\": \"ACTIVE\",\n  \"color\": \"{{$randomColor}}\",\n  \"isRecurring\": {{$randomIsRecurring}},\n  \"recurrenceRule\": \"{{$randomRecurrenceRule}}\",\n  \"courseId\": \"{{courseId}}\",\n  \"classId\": \"{{classId}}\",\n  \"schoolId\": \"{{schoolId}}\",\n  \"regionId\": \"{{regionId}}\",\n  \"createdBy\": \"{{userId}}\",\n  \"teacherId\": \"{{teacherId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/schedules",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "schedules"]
+        }
+      }
+    },
+    {
+      "name": "Create Grade Category",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{$randomGradeCategoryName}}\",\n  \"description\": \"{{$randomGradeCategoryDescription}}\",\n  \"weight\": {{$randomWeight}},\n  \"courseId\": \"{{courseId}}\",\n  \"minGrade\": {{$randomMinGrade}},\n  \"maxGrade\": {{$randomMaxGrade}},\n  \"passingGrade\": {{$randomPassingGrade}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/grade-categories",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "grade-categories"]
+        }
+      }
+    },
+    {
+      "name": "Create Grade Report",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"courseId\": \"{{courseId}}\",\n  \"classId\": \"{{classId}}\",\n  \"reportType\": \"{{$randomReportType}}\",\n  \"term\": \"{{$randomTerm}}\",\n  \"academicYear\": {{$randomAcademicYear}},\n  \"overallGrade\": {{$randomOverallGrade}},\n  \"overallPercentage\": {{$randomOverallPercentage}},\n  \"gradeLetter\": \"{{$randomGradeLetter}}\",\n  \"rankInClass\": {{$randomRankInClass}},\n  \"totalStudentsInClass\": {{$randomTotalStudentsInClass}},\n  \"comments\": \"{{$randomComments}}\",\n  \"generatedBy\": \"{{userId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/grade-reports",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "grade-reports"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+} 

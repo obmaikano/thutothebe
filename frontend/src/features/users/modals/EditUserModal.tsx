@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppDispatch } from '../../../app/hooks';
 import { closeModal } from '../../common/modalSlice';
-import { fetchUsers } from '../usersSlice';
+import { fetchUsers, fetchUserAnalytics } from '../usersSlice';
 import { User } from '../../../api/services/userApi';
 import UserForm from '../components/UserForm';
 import { Users, Edit } from 'lucide-react';
@@ -22,8 +22,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ extraObject }) => 
     try {
       setIsSuccess(true);
       
-      // Refresh the users list instead of reloading the page
-      await dispatch(fetchUsers());
+      // Refresh the users list and analytics instead of reloading the page
+      await dispatch(fetchUsers({}));
+      await dispatch(fetchUserAnalytics());
       
       // Show success briefly then close
       setTimeout(() => {

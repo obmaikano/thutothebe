@@ -13,4 +13,6 @@ public interface SchoolService extends BaseService<SchoolDTO, Long> {
     void deactivateSchool(Long id);
     void activateSchool(Long id);
     boolean existsByCode(String code);
+    Long countSchoolsByRegionId(Long regionId);
+    Long countActiveSchoolsByRegionId(Long regionId);
 } 

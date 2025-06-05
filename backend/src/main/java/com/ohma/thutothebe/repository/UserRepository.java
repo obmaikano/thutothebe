@@ -26,9 +26,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.role = 'STUDENT'")
     List<User> findAllStudents();
     
-    int countByRole(UserRole role);
-    
-    int countByLastLoginTimeAfter(LocalDateTime dateTime);
+//    int countByRole(UserRole role);
+//
+//    int countByLastLoginTimeAfter(LocalDateTime dateTime);
     
     // Parent-specific repository methods
     List<User> findByParentId(Long parentId);
@@ -36,6 +36,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByRoleAndSchoolId(UserRole role, Long schoolId);
     
     List<User> findByRoleAndActive(UserRole role, boolean active);
+
+    List<User> findAllByActive(boolean active);
 
     // ==================== MULTI-TENANT FILTERING METHODS ====================
     
@@ -129,4 +131,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
                                             @Param("regionIds") List<Long> regionIds, 
                                             @Param("userIds") List<Long> userIds,
                                             @Param("role") UserRole role);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.active = true")
+    long countByActiveTrue();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role")
+    int countByRole(UserRole role);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.lastLoginTime > :date")
+    int countByLastLoginTimeAfter(LocalDateTime date);
 } 

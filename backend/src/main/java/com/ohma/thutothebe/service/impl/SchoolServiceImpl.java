@@ -3,9 +3,11 @@ package com.ohma.thutothebe.service.impl;
 import com.ohma.thutothebe.dto.SchoolDTO;
 import com.ohma.thutothebe.entity.School;
 import com.ohma.thutothebe.entity.Region;
+import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.mapper.SchoolMapper;
 import com.ohma.thutothebe.repository.SchoolRepository;
 import com.ohma.thutothebe.repository.RegionRepository;
+import com.ohma.thutothebe.repository.UserRepository;
 import com.ohma.thutothebe.service.SchoolService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,13 +22,15 @@ public class SchoolServiceImpl extends BaseServiceImpl<School, SchoolDTO, Long> 
 
     private final SchoolRepository schoolRepository;
     private final RegionRepository regionRepository;
+    private final UserRepository userRepository;
     private final SchoolMapper schoolMapper;
 
     @Autowired
-    public SchoolServiceImpl(SchoolRepository schoolRepository, RegionRepository regionRepository, SchoolMapper schoolMapper) {
+    public SchoolServiceImpl(SchoolRepository schoolRepository, RegionRepository regionRepository, UserRepository userRepository, SchoolMapper schoolMapper) {
         super(schoolRepository);
         this.schoolRepository = schoolRepository;
         this.regionRepository = regionRepository;
+        this.userRepository = userRepository;
         this.schoolMapper = schoolMapper;
     }
 
@@ -50,6 +54,13 @@ public class SchoolServiceImpl extends BaseServiceImpl<School, SchoolDTO, Long> 
             Region region = regionRepository.findById(dto.regionId())
                 .orElseThrow(() -> new EntityNotFoundException("Region not found with id: " + dto.regionId()));
             entity.setRegion(region);
+        }
+        if (dto.schoolHeadId() != null) {
+            User schoolHead = userRepository.findById(dto.schoolHeadId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.schoolHeadId()));
+            entity.setSchoolHead(schoolHead);
+        } else {
+            entity.setSchoolHead(null);
         }
     }
 
@@ -137,6 +148,18 @@ public class SchoolServiceImpl extends BaseServiceImpl<School, SchoolDTO, Long> 
     @Transactional(readOnly = true)
     public boolean existsByCode(String code) {
         return schoolRepository.existsByCode(code);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long countSchoolsByRegionId(Long regionId) {
+        return schoolRepository.countByRegionId(regionId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long countActiveSchoolsByRegionId(Long regionId) {
+        return schoolRepository.countByRegionIdAndActive(regionId, true);
     }
 
     @Override

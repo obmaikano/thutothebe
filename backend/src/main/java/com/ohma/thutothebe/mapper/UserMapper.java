@@ -4,6 +4,7 @@ import com.ohma.thutothebe.dto.UserDTO;
 import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.entity.Person;
 import com.ohma.thutothebe.entity.enums.Gender;
+import com.ohma.thutothebe.repository.RegionRepository;
 import com.ohma.thutothebe.repository.SchoolRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,8 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
 
     private final SchoolRepository schoolRepository;
 
+    private final RegionRepository regionRepository;
+
     @Override
     public UserDTO toDto(User entity) {
         if (entity == null) return null;
@@ -32,10 +35,12 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
         dto.setRole(entity.getRole());
         dto.setSchoolId(entity.getSchool() != null ? entity.getSchool().getId() : null);
         dto.setQualification(entity.getQualification());
+        dto.setRegionId(entity.getRegion() != null ? entity.getRegion().getId() : null);
+        dto.setActive(entity.isActive());
 
         if (entity.getPerson() != null) {
             Person person = entity.getPerson();
-            dto.setSurname(person.getSurname());
+            dto.setLastName(person.getSurname());
             dto.setGender(person.getGender());
             dto.setNationality(person.getNationality());
             dto.setDateOfBirth(person.getDateOfBirth());
@@ -64,6 +69,8 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
         entity.setUsername(dto.getEmail());
         entity.setQualification(dto.getQualification());
         entity.setSchool(dto.getSchoolId() != null ? schoolRepository.findById(dto.getSchoolId()).get() : null);
+        entity.setRegion(dto.getRegionId() != null ? regionRepository.findById(dto.getRegionId()).get() : null);
+        entity.setActive(dto.getActive());
 
         // Create or update Person entity
         Person person = entity.getPerson();
@@ -73,7 +80,7 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
         }
 
         person.setFirstName(dto.getFirstName());
-        person.setSurname(dto.getSurname());
+        person.setSurname(dto.getLastName());
         person.setGender(dto.getGender());
         person.setNationality(dto.getNationality());
         person.setDateOfBirth(dto.getDateOfBirth());
@@ -102,6 +109,8 @@ public class UserMapper implements BaseDtoMapper<User, UserDTO> {
         entity.setUsername(dto.getEmail());
         entity.setQualification(dto.getQualification());
         entity.setSchool(dto.getSchoolId() != null ? schoolRepository.findById(dto.getSchoolId()).get() : null);
+        entity.setRegion(dto.getRegionId() != null ? regionRepository.findById(dto.getRegionId()).get() : null);
+        entity.setActive(dto.getActive());
 
         // Create or update Person entity
         Person person = entity.getPerson();

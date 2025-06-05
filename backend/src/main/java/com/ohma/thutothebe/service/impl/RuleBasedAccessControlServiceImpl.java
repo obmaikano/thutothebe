@@ -59,7 +59,7 @@ public class RuleBasedAccessControlServiceImpl {
     /**
      * Main access control method - determines if user has access to target scope
      */
-    @Cacheable(value = "accessControl", key = "#userId + '_' + #targetScope + '_' + #targetScopeId")
+    //@Cacheable(value = "accessControl", key = "#userId + '_' + #targetScope + '_' + #targetScopeId")
     public boolean hasAccess(Long userId, AccessScope targetScope, Long targetScopeId) {
         log.warn("Checking access for user: {}, scope: {}-{}", userId, targetScope, targetScopeId);
         
@@ -89,7 +89,7 @@ public class RuleBasedAccessControlServiceImpl {
     /**
      * Get all scope IDs that user has access to
      */
-    @Cacheable(value = "accessibleScopes", key = "#userId + '_' + #scopeType")
+    //@Cacheable(value = "accessibleScopes", key = "#userId + '_' + #scopeType")
     public List<Long> getAccessibleScopeIds(Long userId, AccessScope scopeType) {
         log.debug("Getting accessible scope IDs for user: {}, type: {}", userId, scopeType);
         
@@ -125,9 +125,9 @@ public class RuleBasedAccessControlServiceImpl {
     }
 
     private boolean hasRegionalAdminAccess(User user, AccessScope targetScope, Long targetScopeId) {
-        if (user.getSchool() == null) return false;
+        if (user.getRegion() == null) return false;
         
-        Long userRegionId = user.getSchool().getRegion().getId();
+        Long userRegionId = user.getRegion().getId();
         
         return switch (targetScope) {
             case REGION -> targetScopeId.equals(userRegionId);
@@ -252,9 +252,9 @@ public class RuleBasedAccessControlServiceImpl {
     }
 
     private List<Long> getRegionalAdminScopeIds(User user, AccessScope scopeType) {
-        if (user.getSchool() == null) return Collections.emptyList();
+        if (user.getRegion() == null) return Collections.emptyList();
         
-        Long regionId = user.getSchool().getRegion().getId();
+        Long regionId = user.getRegion().getId();
         
         return switch (scopeType) {
             case REGION -> List.of(regionId);

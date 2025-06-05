@@ -1,0 +1,57 @@
+{
+  "info": {
+    "name": "02 - Student Data",
+    "description": "Collection for generating student data and academic records",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Student",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"admissionNumber\": \"{{$randomAdmissionNumber}}\",\n  \"firstName\": \"{{$randomFirstName}}\",\n  \"lastName\": \"{{$randomLastName}}\",\n  \"dateOfBirth\": \"{{$randomDateOfBirth}}\",\n  \"gender\": \"{{$randomGender}}\",\n  \"phone\": \"{{$randomPhone}}\",\n  \"email\": \"{{$randomEmail}}\",\n  \"address\": \"{{$randomAddress}}\",\n  \"academicYear\": {{$randomAcademicYear}},\n  \"classId\": \"{{classId}}\",\n  \"medicalConditions\": \"{{$randomMedicalConditions}}\",\n  \"disabilities\": \"{{$randomDisabilities}}\",\n  \"emergencyContactName\": \"{{$randomEmergencyContactName}}\",\n  \"emergencyContactPhone\": \"{{$randomEmergencyContactPhone}}\",\n  \"emergencyContactRelationship\": \"{{$randomEmergencyContactRelationship}}\",\n  \"status\": \"ACTIVE\",\n  \"schoolId\": \"{{schoolId}}\",\n  \"onboardingNotes\": \"{{$randomOnboardingNotes}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/students",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "students"]
+        }
+      }
+    },
+    {
+      "name": "Create Student Performance",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"studentId\": \"{{studentId}}\",\n  \"academicYear\": {{$randomAcademicYear}},\n  \"term\": \"{{$randomTerm}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"marks\": {{$randomMarks}},\n  \"grade\": \"{{$randomGrade}}\",\n  \"remarks\": \"{{$randomRemarks}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/student-performance",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "student-performance"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+} 

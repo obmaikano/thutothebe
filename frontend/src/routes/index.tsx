@@ -20,6 +20,9 @@ const SchoolMonitoringPage = lazy(() => import('../pages/protected/SchoolMonitor
 const RegionMonitoringPage = lazy(() => import('../pages/protected/RegionMonitoringPage'));
 
 const Users = lazy(() => import('../pages/protected/Users'));
+const UserProfile = lazy(() => import('../features/users/pages/UserProfilePage'));
+const UserAnalytics = lazy(() => import('../features/users/pages/UserAnalyticsPage'));
+const UserDashboard = lazy(() => import('../features/users/pages/UserDashboardPage'));
 const Courses = lazy(() => import('../pages/protected/Courses'));
 const CourseDetail = lazy(() => import('../pages/protected/CourseDetail'));
 const Classes = lazy(() => import('../pages/protected/Classes'));
@@ -201,8 +204,20 @@ export const appRoutes = [
     element: RegionMonitoringPage
   },
   {
+    path: 'user-dashboard',
+    element: UserDashboard
+  },
+  {
     path: 'users',
     element: Users
+  },
+  {
+    path: 'users/:id',
+    element: UserProfile
+  },
+  {
+    path: 'user-analytics',
+    element: UserAnalytics
   },
   {
     path: 'courses',

@@ -1,0 +1,141 @@
+{
+  "info": {
+    "name": "05 - Activity Data",
+    "description": "Collection for generating activity data (messages, announcements, forums, monitoring)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Announcement",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{$randomAnnouncementTitle}}\",\n  \"content\": \"{{$randomAnnouncementContent}}\",\n  \"type\": \"{{$randomAnnouncementType}}\",\n  \"priority\": \"{{$randomPriority}}\",\n  \"startDate\": \"{{$randomStartDate}}\",\n  \"endDate\": \"{{$randomEndDate}}\",\n  \"schoolId\": \"{{schoolId}}\",\n  \"regionId\": \"{{regionId}}\",\n  \"classId\": \"{{classId}}\",\n  \"createdBy\": \"{{userId}}\",\n  \"targetRoles\": [\"{{$randomTargetRoles}}\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/announcements",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "announcements"]
+        }
+      }
+    },
+    {
+      "name": "Create Forum Post",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{$randomForumPostTitle}}\",\n  \"content\": \"{{$randomForumPostContent}}\",\n  \"category\": \"{{$randomForumCategory}}\",\n  \"tags\": [\"{{$randomTags}}\"],\n  \"schoolId\": \"{{schoolId}}\",\n  \"regionId\": \"{{regionId}}\",\n  \"classId\": \"{{classId}}\",\n  \"createdBy\": \"{{userId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/forum-posts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "forum-posts"]
+        }
+      }
+    },
+    {
+      "name": "Create Forum Comment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"{{$randomCommentContent}}\",\n  \"postId\": \"{{postId}}\",\n  \"parentCommentId\": \"{{parentCommentId}}\",\n  \"createdBy\": \"{{userId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/forum-comments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "forum-comments"]
+        }
+      }
+    },
+    {
+      "name": "Create School Monitoring",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"schoolId\": \"{{schoolId}}\",\n  \"monitoringDate\": \"{{$randomDate}}\",\n  \"totalActiveTeachers\": {{$randomTotalActiveTeachers}},\n  \"totalActiveStudents\": {{$randomTotalActiveStudents}},\n  \"totalLogins\": {{$randomTotalLogins}},\n  \"teacherLogins\": {{$randomTeacherLogins}},\n  \"studentLogins\": {{$randomStudentLogins}},\n  \"adminLogins\": {{$randomAdminLogins}},\n  \"attendanceRate\": {{$randomAttendanceRate}},\n  \"assignmentSubmissions\": {{$randomAssignmentSubmissions}},\n  \"assignmentsGraded\": {{$randomAssignmentsGraded}},\n  \"averageGradingTurnaroundHours\": {{$randomAverageGradingTurnaroundHours}},\n  \"curriculumCompletionRate\": {{$randomCurriculumCompletionRate}},\n  \"systemUptimePercentage\": {{$randomSystemUptimePercentage}},\n  \"peakUsageHour\": {{$randomPeakUsageHour}},\n  \"totalAnnouncements\": {{$randomTotalAnnouncements}},\n  \"announcementsAcknowledged\": {{$randomAnnouncementsAcknowledged}},\n  \"forumPosts\": {{$randomForumPosts}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/school-monitoring",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "school-monitoring"]
+        }
+      }
+    },
+    {
+      "name": "Create Region Monitoring",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"regionId\": \"{{regionId}}\",\n  \"monitoringDate\": \"{{$randomDate}}\",\n  \"totalSchools\": {{$randomTotalSchools}},\n  \"activeSchools\": {{$randomActiveSchools}},\n  \"totalTeachers\": {{$randomTotalTeachers}},\n  \"totalStudents\": {{$randomTotalStudents}},\n  \"totalLogins\": {{$randomTotalLogins}},\n  \"averageAttendanceRate\": {{$randomAverageAttendanceRate}},\n  \"totalAssignmentSubmissions\": {{$randomTotalAssignmentSubmissions}},\n  \"totalAssignmentsGraded\": {{$randomTotalAssignmentsGraded}},\n  \"averageGradingTurnaroundHours\": {{$randomAverageGradingTurnaroundHours}},\n  \"averageCurriculumCompletionRate\": {{$randomAverageCurriculumCompletionRate}},\n  \"averageSystemUptimePercentage\": {{$randomAverageSystemUptimePercentage}},\n  \"schoolsWithLowUsage\": {{$randomSchoolsWithLowUsage}},\n  \"schoolsWithDelayedGrading\": {{$randomSchoolsWithDelayedGrading}},\n  \"schoolsWithIrregularAttendance\": {{$randomSchoolsWithIrregularAttendance}},\n  \"totalAlerts\": {{$randomTotalAlerts}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/region-monitoring",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "region-monitoring"]
+        }
+      }
+    },
+    {
+      "name": "Create Monitoring Alert",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"alertType\": \"{{$randomAlertType}}\",\n  \"severity\": \"{{$randomSeverity}}\",\n  \"scope\": \"{{$randomScope}}\",\n  \"scopeId\": \"{{scopeId}}\",\n  \"schoolId\": \"{{schoolId}}\",\n  \"regionId\": \"{{regionId}}\",\n  \"title\": \"{{$randomAlertTitle}}\",\n  \"description\": \"{{$randomAlertDescription}}\",\n  \"thresholdValue\": {{$randomThresholdValue}},\n  \"actualValue\": {{$randomActualValue}},\n  \"metricName\": \"{{$randomMetricName}}\",\n  \"alertTimestamp\": \"{{$randomTimestamp}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/monitoring-alerts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "monitoring-alerts"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+} 

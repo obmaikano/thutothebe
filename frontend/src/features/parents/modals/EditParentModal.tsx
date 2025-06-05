@@ -5,6 +5,7 @@ import { closeModal } from '../../common/modalSlice';
 import { extractErrorMessage } from '../../../utils/errorUtils';
 import { Parent } from '../../../api/services/parentApi';
 import { Users, Edit } from 'lucide-react';
+import { NATIONALITY_LABELS } from '../../../api/services/enumApi';
 
 interface EditParentModalProps {
   extraObject?: {
@@ -344,18 +345,23 @@ const EditParentModal: React.FC<EditParentModalProps> = ({ extraObject }) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nationality <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
+            <select
               name="nationality"
               value={formData.nationality}
               onChange={handleChange}
               className={`w-full rounded-md border ${
                 errors.nationality ? 'border-red-300' : 'border-gray-300'
               } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
-              placeholder="Enter nationality"
               disabled={isSubmitting}
               required
-            />
+            >
+              <option value="">Select Nationality</option>
+              {Object.entries(NATIONALITY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
             {errors.nationality && (
               <p className="mt-1 text-sm text-red-600">{errors.nationality}</p>
             )}

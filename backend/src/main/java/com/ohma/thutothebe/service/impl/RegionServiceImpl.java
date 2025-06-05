@@ -5,6 +5,7 @@ import com.ohma.thutothebe.entity.Region;
 import com.ohma.thutothebe.mapper.RegionMapper;
 import com.ohma.thutothebe.repository.RegionRepository;
 import com.ohma.thutothebe.service.RegionService;
+import com.ohma.thutothebe.service.SchoolService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -19,12 +20,14 @@ public class RegionServiceImpl extends BaseServiceImpl<Region, RegionDTO, Long> 
 
     private final RegionRepository regionRepository;
     private final RegionMapper regionMapper;
+    private final SchoolService schoolService;
 
     @Autowired
-    public RegionServiceImpl(RegionRepository regionRepository, RegionMapper regionMapper) {
+    public RegionServiceImpl(RegionRepository regionRepository, RegionMapper regionMapper, SchoolService schoolService) {
         super(regionRepository);
         this.regionRepository = regionRepository;
         this.regionMapper = regionMapper;
+        this.schoolService = schoolService;
     }
 
     @Override
@@ -34,7 +37,11 @@ public class RegionServiceImpl extends BaseServiceImpl<Region, RegionDTO, Long> 
 
     @Override
     protected RegionDTO mapToDto(Region entity) {
-        return regionMapper.toDto(entity);
+        RegionDTO dto = regionMapper.toDto(entity);
+        // Add school counts
+        dto = dto.withSchoolCount(schoolService.countSchoolsByRegionId(entity.getId()));
+        dto = dto.withActiveSchoolCount(schoolService.countActiveSchoolsByRegionId(entity.getId()));
+        return dto;
     }
 
     @Override

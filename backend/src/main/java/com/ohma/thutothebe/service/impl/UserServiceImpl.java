@@ -400,7 +400,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
             
             if (hasGlobalAccess) {
                 // Global access - return all active users
-                return userRepository.findByRoleAndActive(null, true).stream()
+                return userRepository.findAll().stream()
                         .map(this::mapToDto)
                         .collect(Collectors.toList());
             }

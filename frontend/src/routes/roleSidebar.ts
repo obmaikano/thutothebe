@@ -1106,7 +1106,7 @@ export const regionalAdminMenuItems: MenuItem[] = [
   {
     icon: Building,
     label: 'Administration',
-    path: '/app/administration',
+    path: '#',
     description: 'Comprehensive school and region management',
     children: [
       {
@@ -1114,12 +1114,6 @@ export const regionalAdminMenuItems: MenuItem[] = [
         label: 'Schools Management',
         path: '/app/administration/schools',
         description: 'Manage schools in your region'
-      },
-      {
-        icon: MapPin,
-        label: 'Regions Management',
-        path: '/app/administration/regions',
-        description: 'Manage regional administrative areas'
       },
       {
         icon: Activity,
@@ -1780,8 +1774,28 @@ export const superAdminMenuItems: MenuItem[] = [
   {
     icon: Users,
     label: 'User Management',
-    path: '/app/users',
-    description: 'Manage all system users'
+    path: '/app/user-dashboard',
+    description: 'Manage all system users',
+    children: [
+      {
+        icon: LayoutGrid,
+        label: 'Dashboard',
+        path: '/app/user-dashboard',
+        description: 'User management overview'
+      },
+      {
+        icon: Users,
+        label: 'All Users',
+        path: '/app/users',
+        description: 'View and manage all users'
+      },
+      {
+        icon: BarChart3,
+        label: 'User Analytics',
+        path: '/app/user-analytics',
+        description: 'User analytics and insights'
+      }
+    ]
   },
   {
     icon: UserCog,
@@ -1993,8 +2007,28 @@ export const adminMenuItems: MenuItem[] = [
   {
     icon: Users,
     label: 'Users',
-    path: '/app/users',
-    description: 'Manage system users'
+    path: '/app/user-dashboard',
+    description: 'Manage system users',
+    children: [
+      {
+        icon: LayoutGrid,
+        label: 'Dashboard',
+        path: '/app/user-dashboard',
+        description: 'User management overview'
+      },
+      {
+        icon: Users,
+        label: 'All Users',
+        path: '/app/users',
+        description: 'View and manage all users'
+      },
+      {
+        icon: BarChart3,
+        label: 'User Analytics',
+        path: '/app/user-analytics',
+        description: 'User analytics and insights'
+      }
+    ]
   },
   {
     icon: FileText,

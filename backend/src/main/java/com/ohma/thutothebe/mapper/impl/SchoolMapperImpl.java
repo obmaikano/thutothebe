@@ -2,9 +2,11 @@ package com.ohma.thutothebe.mapper.impl;
 
 import com.ohma.thutothebe.dto.SchoolDTO;
 import com.ohma.thutothebe.entity.School;
+import com.ohma.thutothebe.entity.User;
 import com.ohma.thutothebe.mapper.SchoolMapper;
 import com.ohma.thutothebe.repository.RegionRepository;
 import com.ohma.thutothebe.repository.SchoolRepository;
+import com.ohma.thutothebe.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +15,9 @@ public class SchoolMapperImpl implements SchoolMapper {
 
     @Autowired
     private RegionRepository regionRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public SchoolDTO toDto(School entity) {
@@ -25,6 +30,8 @@ public class SchoolMapperImpl implements SchoolMapper {
             entity.getName(),
             entity.getDescription(),
             entity.getRegion() != null ? entity.getRegion().getId() : null,
+            entity.getSchoolHead() != null ? entity.getSchoolHead().getId() : null,
+            entity.getSchoolHead() != null ? entity.getSchoolHead().getFirstName() + " " + entity.getSchoolHead().getLastName() : null,
             entity.isActive()
         );
     }
@@ -40,6 +47,7 @@ public class SchoolMapperImpl implements SchoolMapper {
         entity.setName(dto.name());
         entity.setDescription(dto.description());
         entity.setRegion(dto.regionId() != null ? regionRepository.findById(dto.regionId()).get() : null);
+        entity.setSchoolHead(dto.schoolHeadId() != null ? userRepository.findById(dto.schoolHeadId()).orElse(null) : null);
         entity.setActive(dto.active());
         return entity;
     }

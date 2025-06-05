@@ -411,7 +411,7 @@ const RegionDetailsPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-gray-900">
-                      {regionSchools.length}
+                      {currentRegion.schoolCount || 0}
                     </div>
                     <div className="text-sm text-gray-500">Schools</div>
                   </div>
@@ -425,7 +425,7 @@ const RegionDetailsPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-gray-900">
-                      {regionSchools.filter(school => school.active).length}
+                      {currentRegion.activeSchoolCount || 0}
                     </div>
                     <div className="text-sm text-gray-500">Active Schools</div>
                   </div>

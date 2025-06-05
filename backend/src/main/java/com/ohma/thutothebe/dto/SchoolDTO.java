@@ -6,6 +6,8 @@ public record SchoolDTO(
     String name,
     String description,
     Long regionId,
+    Long schoolHeadId,
+    String schoolHeadName,
     boolean active
 ) {
     public SchoolDTO {

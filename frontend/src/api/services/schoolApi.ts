@@ -3,11 +3,43 @@ import { AxiosResponse } from 'axios';
 
 export interface School {
   id: number;
-  code: string;
   name: string;
+  code: string;
+  address: string;
+  phone?: string;
+  email?: string;
   description?: string;
+  website?: string;
   regionId: number;
+  principalId?: number;
+  establishedDate?: string;
+  schoolType: 'PRIMARY' | 'SECONDARY' | 'COMBINED' | 'SPECIAL' | 'TECHNICAL' | 'VOCATIONAL';
+  ownership: 'PUBLIC' | 'PRIVATE' | 'COMMUNITY' | 'RELIGIOUS';
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'CLOSED';
+  capacity: number;
+  currentEnrollment: number;
+  teacherCount: number;
+  classroomCount: number;
+  facilities: string[];
+  accreditation: {
+    isAccredited: boolean;
+    accreditationBody?: string;
+    accreditationDate?: string;
+    expiryDate?: string;
+  };
+  performance: {
+    overallRating: number;
+    academicRating: number;
+    infrastructureRating: number;
+    teacherQualityRating: number;
+  };
+  coordinates: {
+    latitude?: number;
+    longitude?: number;
+  };
   active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SchoolResponse {

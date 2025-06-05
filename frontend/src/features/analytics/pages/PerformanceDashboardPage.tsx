@@ -7,6 +7,7 @@ import studentPerformanceApi from '../../../api/services/studentPerformanceApi';
 import { fetchClasses } from '../../classes/classesSlice';
 import { fetchSubjects } from '../../subjects/subjectsSlice';
 import { fetchCourses } from '../../courses/coursesSlice';
+import { fetchCurricula } from '../../curriculum/curriculumSlice';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -19,7 +20,8 @@ import {
   RefreshCw,
   AlertTriangle,
   BarChart3,
-  X
+  X,
+  Search
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
@@ -53,11 +55,14 @@ const PerformanceDashboardPage: React.FC = () => {
   const { classes } = useAppSelector(state => state.classes);
   const { subjects } = useAppSelector(state => state.subjects);
   const { courses } = useAppSelector(state => state.courses);
+  const { curricula } = useAppSelector(state => state.curriculum);
 
   // State management
   const [selectedTimeframe, setSelectedTimeframe] = useState<'WEEK' | 'MONTH' | 'TERM' | 'YEAR'>('MONTH');
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  const [selectedCurriculum, setSelectedCurriculum] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,6 +112,7 @@ const PerformanceDashboardPage: React.FC = () => {
       dispatch(fetchClasses());
       dispatch(fetchSubjects());
       dispatch(fetchCourses());
+      dispatch(fetchCurricula());
       loadDashboardData();
     }
   }, [dispatch, canViewAllPerformance]);
@@ -115,7 +121,7 @@ const PerformanceDashboardPage: React.FC = () => {
     if (canViewAllPerformance) {
       loadDashboardData();
     }
-  }, [selectedTimeframe, selectedClass, selectedCourse]);
+  }, [selectedTimeframe, selectedClass, selectedCourse, selectedCurriculum]);
 
   const loadDashboardData = async () => {
     if (!canViewAllPerformance) return;
@@ -128,7 +134,8 @@ const PerformanceDashboardPage: React.FC = () => {
         timeframe: selectedTimeframe,
         ...(user?.schoolId && { schoolId: user.schoolId }),
         ...(user?.regionId && { regionId: user.regionId }),
-        ...(selectedCourse && { courseId: selectedCourse })
+        ...(selectedCourse && { courseId: selectedCourse }),
+        curriculumId: selectedCurriculum || 1 // Use selected curriculum ID if available, fallback to 1
       };
 
       // Fetch analytics dashboard data
@@ -198,7 +205,7 @@ const PerformanceDashboardPage: React.FC = () => {
 
     } catch (err: any) {
       console.error('Failed to load performance data:', err);
-      setError(err.message || 'Failed to load performance data');
+      setError(err.response?.data?.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -230,6 +237,11 @@ const PerformanceDashboardPage: React.FC = () => {
     }
   };
 
+  const filteredCurricula = curricula.filter(curriculum => 
+    curriculum.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (curriculum.description && curriculum.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   if (!canViewAllPerformance) {
     return (
       <div className="flex justify-center items-center min-h-64">
@@ -250,233 +262,283 @@ const PerformanceDashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Performance Analytics</h1>
-                <p className="mt-1 text-sm text-gray-600">
-                  Comprehensive view of student and institutional performance
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <select
-                  value={selectedTimeframe}
-                  onChange={(e) => setSelectedTimeframe(e.target.value as 'WEEK' | 'MONTH' | 'TERM' | 'YEAR')}
-                  className="select select-bordered select-sm"
-                >
-                  <option value="WEEK">This Week</option>
-                  <option value="MONTH">This Month</option>
-                  <option value="TERM">This Term</option>
-                  <option value="YEAR">This Year</option>
-                </select>
-                
-                {courses.length > 0 && (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Performance Analytics</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Monitor and analyze student performance metrics across curricula
+          </p>
+        </div>
+
+        {/* Curriculum Selection */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <BookOpen className="w-5 h-5" />
+            Select Curriculum
+          </h2>
+          
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search curricula..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Curriculum List */}
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {filteredCurricula.map((curriculum) => (
+              <button
+                key={curriculum.id}
+                onClick={() => setSelectedCurriculum(curriculum.id)}
+                className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                  selectedCurriculum === curriculum.id
+                    ? 'bg-blue-50 border-blue-200 text-blue-900'
+                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                <div className="font-medium text-sm">{curriculum.title}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {curriculum.gradeLevel.replace('_', ' ')} • {curriculum.curriculumType.replace('_', ' ')}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="py-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Performance Analytics</h1>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Comprehensive view of student and institutional performance
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
                   <select
-                    value={selectedCourse || ''}
-                    onChange={(e) => setSelectedCourse(e.target.value ? Number(e.target.value) : null)}
+                    value={selectedTimeframe}
+                    onChange={(e) => setSelectedTimeframe(e.target.value as 'WEEK' | 'MONTH' | 'TERM' | 'YEAR')}
                     className="select select-bordered select-sm"
                   >
-                    <option value="">All Courses</option>
-                    {courses.map(course => (
-                      <option key={course.id} value={course.id}>
-                        {course.name}
-                      </option>
-                    ))}
+                    <option value="WEEK">This Week</option>
+                    <option value="MONTH">This Month</option>
+                    <option value="TERM">This Term</option>
+                    <option value="YEAR">This Year</option>
                   </select>
-                )}
+                  
+                  {courses.length > 0 && (
+                    <select
+                      value={selectedCourse || ''}
+                      onChange={(e) => setSelectedCourse(e.target.value ? Number(e.target.value) : null)}
+                      className="select select-bordered select-sm"
+                    >
+                      <option value="">All Courses</option>
+                      {courses.map(course => (
+                        <option key={course.id} value={course.id}>
+                          {course.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
 
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="btn btn-sm btn-outline"
-                >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
-                
-                {canExportData && (
                   <button
-                    onClick={handleExport}
-                    className="btn btn-sm btn-primary"
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="btn btn-sm btn-outline"
                   >
-                    <Download className="h-4 w-4" />
-                    Export
+                    <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                    Refresh
                   </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="alert alert-error mb-6">
-            <AlertTriangle className="w-5 h-5" />
-            <span>{error}</span>
-            <button 
-              onClick={() => setError(null)}
-              className="btn btn-sm btn-ghost"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Students</p>
-                <p className="text-3xl font-bold text-gray-900">{performanceMetrics.totalStudents.toLocaleString()}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Users className="h-8 w-8 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Average Performance</p>
-                <p className="text-3xl font-bold text-gray-900">{performanceMetrics.averagePerformance.toFixed(1)}%</p>
-                <div className="flex items-center mt-1">
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-green-600 ml-1">+2.3% from last month</span>
+                  
+                  {canExportData && (
+                    <button
+                      onClick={handleExport}
+                      className="btn btn-sm btn-primary"
+                    >
+                      <Download className="h-4 w-4" />
+                      Export
+                    </button>
+                  )}
                 </div>
-              </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <Award className="h-8 w-8 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Course Completion</p>
-                <p className="text-3xl font-bold text-gray-900">{performanceMetrics.courseCompletion.toFixed(1)}%</p>
-                <div className="flex items-center mt-1">
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-green-600 ml-1">+1.8% from last month</span>
-                </div>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <Target className="h-8 w-8 text-purple-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">At-Risk Students</p>
-                <p className="text-3xl font-bold text-gray-900">{performanceMetrics.atRiskStudents}</p>
-                <div className="flex items-center mt-1">
-                  <TrendingDown className="h-4 w-4 text-red-500" />
-                  <span className="text-sm text-red-600 ml-1">-5 from last month</span>
-                </div>
-              </div>
-              <div className="p-3 bg-red-100 rounded-full">
-                <BookOpen className="h-8 w-8 text-red-600" />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Performance Trends */}
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Performance Trends</h3>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar className="h-4 w-4" />
-                {selectedTimeframe}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {error && (
+            <div className="alert alert-error mb-6">
+              <AlertTriangle className="w-5 h-5" />
+              <span>{error}</span>
+              <button 
+                onClick={() => setError(null)}
+                className="btn btn-sm btn-ghost"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-lg shadow-sm p-6 border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Students</p>
+                  <p className="text-3xl font-bold text-gray-900">{performanceMetrics.totalStudents.toLocaleString()}</p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <Users className="h-8 w-8 text-blue-600" />
+                </div>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="performance" stroke="#3B82F6" strokeWidth={2} name="Performance %" />
-                <Line type="monotone" dataKey="completion" stroke="#10B981" strokeWidth={2} name="Completion %" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
 
-          {/* Risk Distribution */}
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Student Risk Distribution</h3>
-            </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={riskData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {riskData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-              {riskData.map((entry, index) => (
-                <div key={entry.name} className="text-sm">
-                  <div className="font-medium" style={{ color: entry.color }}>
-                    {entry.value}
+            <div className="bg-white rounded-lg shadow-sm p-6 border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Average Performance</p>
+                  <p className="text-3xl font-bold text-gray-900">{performanceMetrics.averagePerformance.toFixed(1)}%</p>
+                  <div className="flex items-center mt-1">
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                    <span className="text-sm text-green-600 ml-1">+2.3% from last month</span>
                   </div>
-                  <div className="text-gray-500">{entry.name}</div>
                 </div>
-              ))}
+                <div className="p-3 bg-green-100 rounded-full">
+                  <Award className="h-8 w-8 text-green-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6 border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Course Completion</p>
+                  <p className="text-3xl font-bold text-gray-900">{performanceMetrics.courseCompletion.toFixed(1)}%</p>
+                  <div className="flex items-center mt-1">
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                    <span className="text-sm text-green-600 ml-1">+1.8% from last month</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-purple-100 rounded-full">
+                  <Target className="h-8 w-8 text-purple-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6 border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">At-Risk Students</p>
+                  <p className="text-3xl font-bold text-gray-900">{performanceMetrics.atRiskStudents}</p>
+                  <div className="flex items-center mt-1">
+                    <TrendingDown className="h-4 w-4 text-red-500" />
+                    <span className="text-sm text-red-600 ml-1">-5 from last month</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-red-100 rounded-full">
+                  <BookOpen className="h-8 w-8 text-red-600" />
+                </div>
+              </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* Performance Trends */}
+            <div className="bg-white rounded-lg shadow-sm p-6 border">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Performance Trends</h3>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  {selectedTimeframe}
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="performance" stroke="#3B82F6" strokeWidth={2} name="Performance %" />
+                  <Line type="monotone" dataKey="completion" stroke="#10B981" strokeWidth={2} name="Completion %" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Risk Distribution */}
+            <div className="bg-white rounded-lg shadow-sm p-6 border">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Student Risk Distribution</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={riskData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {riskData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                {riskData.map((entry, index) => (
+                  <div key={entry.name} className="text-sm">
+                    <div className="font-medium" style={{ color: entry.color }}>
+                      {entry.value}
+                    </div>
+                    <div className="text-gray-500">{entry.name}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Subject Performance */}
+          {subjectData.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-6 border">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Subject Performance</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={subjectData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="subject" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="score" fill="#3B82F6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* No Data State */}
+          {performanceMetrics.totalStudents === 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-12 border text-center">
+              <BarChart3 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Performance Data Available</h3>
+              <p className="text-gray-500">
+                No performance data found for the selected timeframe and filters.
+              </p>
+            </div>
+          )}
         </div>
-
-        {/* Subject Performance */}
-        {subjectData.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6 border">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Subject Performance</h3>
-            </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={subjectData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="subject" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="score" fill="#3B82F6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        {/* No Data State */}
-        {performanceMetrics.totalStudents === 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-12 border text-center">
-            <BarChart3 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Performance Data Available</h3>
-            <p className="text-gray-500">
-              No performance data found for the selected timeframe and filters.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

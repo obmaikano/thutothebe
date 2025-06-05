@@ -1,0 +1,120 @@
+{
+  "id": "your-environment-id",
+  "name": "Local",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "currentYear",
+      "value": "2024",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "startDate",
+      "value": "2022-01-01",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "endDate",
+      "value": "2024-12-31",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "academicYears",
+      "value": "2022,2023,2024",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "terms",
+      "value": "TERM1,TERM2,TERM3",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "gradeLevels",
+      "value": "FORM1,FORM2,FORM3,FORM4,FORM5",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "subjects",
+      "value": "Mathematics,English,Science,History,Geography,Agriculture,Computer Science,Physical Education,Art,Music",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "regions",
+      "value": "Central,North,South,East,West",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "schoolTypes",
+      "value": "PRIMARY,SECONDARY,COMBINED",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "userRoles",
+      "value": "MINISTRY_STAFF,REGIONAL_STAFF,SCHOOL_ADMIN,TEACHER,PARENT,STUDENT",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "assessmentTypes",
+      "value": "QUIZ,ASSIGNMENT,PROJECT,MIDTERM,FINAL",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "attendanceStatus",
+      "value": "PRESENT,ABSENT,LATE,EXCUSED",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "studentStatus",
+      "value": "ACTIVE,INACTIVE,GRADUATED,TRANSFERRED",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "alertTypes",
+      "value": "ATTENDANCE,PERFORMANCE,SYSTEM,BEHAVIOR",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "alertSeverity",
+      "value": "LOW,MEDIUM,HIGH,CRITICAL",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "forumCategories",
+      "value": "GENERAL,ACADEMIC,EVENTS,SUPPORT",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "announcementTypes",
+      "value": "GENERAL,ACADEMIC,EVENT,EMERGENCY",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "announcementPriority",
+      "value": "LOW,MEDIUM,HIGH,URGENT",
+      "type": "default",
+      "enabled": true
+    }
+  ]
+} 

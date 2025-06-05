@@ -361,7 +361,7 @@ const RegionListPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
-                        {monitoring?.totalSchools || 0}
+                        {region.schoolCount || 0}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
