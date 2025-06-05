@@ -32,7 +32,21 @@ import { formatDistanceToNow } from 'date-fns';
 
 const NotificationListPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { notifications, status, error, unreadCount, pagination } = useAppSelector(state => state.notifications);
+  const notificationsState = useAppSelector(state => state.notifications);
+  const { 
+    notifications = [], 
+    status = 'idle', 
+    error = null, 
+    unreadCount = 0, 
+    pagination = {
+      page: 0,
+      size: 20,
+      totalElements: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrevious: false,
+    }
+  } = notificationsState || {};
   const { user } = useAppSelector(state => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -47,6 +61,24 @@ const NotificationListPage: React.FC = () => {
       dispatch(clearNotificationsError());
     };
   }, [dispatch, user?.id]);
+
+  const filteredNotifications = notifications.filter((notification: Notification) => {
+    const matchesSearch = 
+      notification.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      notification.content?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesType = 
+      typeFilter === '' || notification.type === typeFilter;
+
+    const matchesStatus = 
+      statusFilter === '' ||
+      (statusFilter === 'unread' && !notification.readAt) ||
+      (statusFilter === 'read' && notification.readAt) ||
+      (statusFilter === 'active' && notification.active) ||
+      (statusFilter === 'inactive' && !notification.active);
+
+    return matchesSearch && matchesType && matchesStatus;
+  });
 
   const handleMarkAsRead = async (notificationId: number) => {
     try {
@@ -110,24 +142,6 @@ const NotificationListPage: React.FC = () => {
       setSelectedNotifications(filteredNotifications.map(n => n.id));
     }
   };
-
-  const filteredNotifications = notifications.filter((notification: Notification) => {
-    const matchesSearch = 
-      notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      notification.content.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesType = 
-      typeFilter === '' || notification.type === typeFilter;
-
-    const matchesStatus = 
-      statusFilter === '' ||
-      (statusFilter === 'unread' && !notification.readAt) ||
-      (statusFilter === 'read' && notification.readAt) ||
-      (statusFilter === 'active' && notification.active) ||
-      (statusFilter === 'inactive' && !notification.active);
-
-    return matchesSearch && matchesType && matchesStatus;
-  });
 
   const getNotificationTypeIcon = (type: string) => {
     switch (type) {
