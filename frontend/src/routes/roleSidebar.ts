@@ -1098,36 +1098,34 @@ export const regionalAdminMenuItems: MenuItem[] = [
     ]
   },
   {
+    icon: Users,
+    label: 'All Users',
+    path: '/app/users',
+    description: 'View and manage all users'
+  }, 
+  {
     icon: FolderOpen,
     label: 'Content Management',
     path: '/app/content',
     description: 'Manage regional content and resources'
   },
   {
-    icon: Building,
-    label: 'Administration',
-    path: '#',
-    description: 'Comprehensive school and region management',
-    children: [
-      {
-        icon: School,
-        label: 'Schools Management',
-        path: '/app/administration/schools',
-        description: 'Manage schools in your region'
-      },
-      {
-        icon: Activity,
-        label: 'School Monitoring',
-        path: '/app/administration/monitoring/schools',
-        description: 'Monitor school performance and compliance'
-      },
-      {
-        icon: BarChart3,
-        label: 'Regional Monitoring',
-        path: '/app/administration/monitoring/regions',
-        description: 'Monitor regional education metrics'
-      }
-    ]
+    icon: School,
+    label: 'Schools Management',
+    path: '/app/administration/schools',
+    description: 'Manage schools in your region'
+  },
+  {
+    icon: Activity,
+    label: 'School Monitoring',
+    path: '/app/administration/monitoring/schools',
+    description: 'Monitor school performance and compliance'
+  },
+  {
+    icon: BarChart3,
+    label: 'Regional Monitoring',
+    path: '/app/administration/monitoring/regions',
+    description: 'Monitor regional education metrics'
   },
   {
     icon: BookOpen,

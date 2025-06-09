@@ -76,10 +76,6 @@ const UserForm: React.FC<UserFormProps> = ({
       setError('Last name is required');
       return false;
     }
-    if (!formData.surname.trim()) {
-      setError('Surname is required');
-      return false;
-    }
     if (!formData.email.trim()) {
       setError('Email is required');
       return false;
@@ -143,7 +139,7 @@ const UserForm: React.FC<UserFormProps> = ({
         const createData: CreateUserRequest = {
           firstName: formData.firstName,
           lastName: formData.lastName,
-          surname: formData.surname,
+          surname: formData.lastName,
           email: formData.email,
           password: formData.password,
           role: formData.role,
@@ -164,7 +160,7 @@ const UserForm: React.FC<UserFormProps> = ({
         const updateData: UpdateUserRequest = {
           firstName: formData.firstName,
           lastName: formData.lastName,
-          surname: formData.surname,
+          surname: formData.lastName,
           email: formData.email,
           role: formData.role,
           gender: formData.gender as 'MALE' | 'FEMALE' | 'OTHER',
@@ -197,7 +193,8 @@ const UserForm: React.FC<UserFormProps> = ({
 
   const isStudentRole = formData.role === 'STUDENT';
   const isTeacherRole = ['TEACHER', 'SENIOR_TEACHER', 'DEPARTMENT_HEAD'].includes(formData.role);
-  const isRegionalRole = ['REGIONAL_ADMIN', 'REGIONAL_OFFICER', 'DIRECTOR'].includes(formData.role);
+  const isRegionalRole = ['SUPER_ADMIN', 'REGIONAL_ADMIN', 'REGIONAL_OFFICER', 'DIRECTOR'].includes(formData.role);
+  const isSuperAdmin = formData.role === 'SUPER_ADMIN';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -234,20 +231,6 @@ const UserForm: React.FC<UserFormProps> = ({
               type="text"
               name="lastName"
               value={formData.lastName}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Surname *
-            </label>
-            <input
-              type="text"
-              name="surname"
-              value={formData.surname}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
@@ -443,13 +426,13 @@ const UserForm: React.FC<UserFormProps> = ({
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Region {isRegionalRole ? '*' : ''}
+              Region {isRegionalRole && !isSuperAdmin ? '*' : ''}
             </label>
             <SearchableRegionSelect
               value={formData.regionId || ''}
               onChange={handleRegionChange}
               placeholder="Select a region"
-              required={isRegionalRole}
+              required={isRegionalRole && !isSuperAdmin}
             />
           </div>
         </div>

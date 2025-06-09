@@ -3,6 +3,7 @@ package com.ohma.thutothebe.controller;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.dto.UserDTO;
 import com.ohma.thutothebe.entity.AccessScope;
+import com.ohma.thutothebe.entity.UserRole;
 import com.ohma.thutothebe.service.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -35,10 +36,18 @@ public class UserController extends BaseController<UserDTO, Long> {
                 return createUnauthorizedResponse();
             }
 
+            UserDTO user = userService.findById(currentUserId);
+
             // Check if user has permission to create users
             // For user creation, we check GLOBAL scope access (admin level)
-            if (!hasAccess(AccessScope.GLOBAL, null)) {
-                return createAccessDeniedResponse();
+            if(user.getRegionId() != null && (user.getRole().equals(UserRole.REGIONAL_ADMIN) || user.getRole().equals(UserRole.REGIONAL_OFFICER))) {
+                if (!hasAccess(AccessScope.REGION, user.getRegionId())) {
+                    return createAccessDeniedResponse();
+                }
+            } else {
+                if (!hasAccess(AccessScope.GLOBAL, null)) {
+                    return createAccessDeniedResponse();
+                }
             }
 
             UserDTO created = userService.create(dto);
