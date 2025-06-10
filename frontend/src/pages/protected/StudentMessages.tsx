@@ -175,7 +175,7 @@ const StudentMessages = () => {
                 try {
                     await webSocketService.connect(
                         { 
-                            url: `${process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1'}/ws`,
+                            url: `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'}/ws`,
                             debug: process.env.NODE_ENV === 'development'
                         },
                         user.id

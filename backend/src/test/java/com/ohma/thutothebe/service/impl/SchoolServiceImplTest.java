@@ -67,6 +67,8 @@ class SchoolServiceImplTest {
                 "Test School",
                 "Test School Description",
                 1L,
+                null,
+                null,
                 true
         );
     }
@@ -214,7 +216,7 @@ class SchoolServiceImplTest {
         when(schoolRepository.save(any(School.class))).thenReturn(school);
         when(schoolMapper.toDto(any(School.class))).thenReturn(schoolDTO);
 
-        SchoolDTO updatedDTO = new SchoolDTO(1L, "SCH002", "Updated School", "Updated School Description", 1L, true);
+        SchoolDTO updatedDTO = new SchoolDTO(1L, "SCH002", "Updated School", "Updated School Description", 1L, null, null, true);
         SchoolDTO result = schoolService.updateSchool(1L, updatedDTO);
 
         assertNotNull(result);
@@ -229,7 +231,7 @@ class SchoolServiceImplTest {
     void updateSchool_ShouldThrowException_WhenNotFound() {
         when(schoolRepository.findById(anyLong())).thenReturn(Optional.empty());
 
-        SchoolDTO updatedDTO = new SchoolDTO(1L, "SCH002", "Updated School", "Updated School Description", 1L, true);
+        SchoolDTO updatedDTO = new SchoolDTO(1L, "SCH002", "Updated School", "Updated School Description", 1L, null, null, true);
         assertThrows(ResourceNotFoundException.class, () -> schoolService.updateSchool(1L, updatedDTO));
         verify(schoolRepository, times(1)).findById(1L);
         verify(schoolRepository, never()).save(any(School.class));

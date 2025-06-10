@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import webSocketService, { TypingIndicator, UnreadCountUpdate } from '../services/websocketService';
-import { RealTimeMessage, Message, Conversation } from '../api/services/messageApi';
+import { RealTimeMessage, Conversation } from '../api/services/messageApi';
 
 interface MessagingContextType {
   isConnected: boolean;
@@ -118,7 +118,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         try {
           await webSocketService.connect(
             { 
-              url: `${process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1'}/ws`,
+              url: `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'}/ws`,
               debug: process.env.NODE_ENV === 'development'
             },
             user.id

@@ -53,7 +53,9 @@ class RegionServiceImplTest {
             "REG001",
             "Test Region",
             "Test Description",
-            true
+            true,
+            0L,
+            0L
         );
     }
 
