@@ -17,6 +17,9 @@ public class CorsConfig {
         // Allow all origins for development
         config.addAllowedOrigin("http://localhost:3000"); // React frontend
         config.addAllowedOrigin("http://localhost:5173"); // Vite frontend
+
+        config.addAllowedOrigin("http://13.218.66.84:3000"); // React frontend
+        config.addAllowedOrigin("http://13.218.66.84:4173"); // Vite frontend
         
         // Allow all HTTP methods
         config.addAllowedMethod("*");
