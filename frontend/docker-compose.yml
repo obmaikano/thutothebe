@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: 'lesegodiane/thutothebe:v8'
+    image: 'lesegodiane/thutothebe:v9'
     build:
       context: .
       dockerfile: Dockerfile

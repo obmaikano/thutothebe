@@ -70,68 +70,83 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
         if (currentUserId == null) {
             throw new SecurityException("Authentication required for create operations");
         }
-        
+
         Long schoolId = extractSchoolId(entity);
         Long regionId = extractRegionId(entity);
-        
-        // Validate school access
-        if (schoolId != null && !accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, schoolId)) {
-            log.error("SECURITY VIOLATION: User {} attempted to create entity in unauthorized school {}", 
-                     currentUserId, schoolId);
-            throw new SecurityException("Access denied: Cannot create entity in school " + schoolId);
+
+        // Step 1: Check school access
+        if (schoolId != null) {
+            boolean hasSchoolAccess = accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, schoolId);
+            if (hasSchoolAccess) {
+                return; // ✅ Access granted at school level
+            }
         }
-        
-        // Validate region access
-        if (regionId != null && !accessControlService.hasAccess(currentUserId, AccessScope.REGION, regionId)) {
-            log.error("SECURITY VIOLATION: User {} attempted to create entity in unauthorized region {}", 
-                     currentUserId, regionId);
-            throw new SecurityException("Access denied: Cannot create entity in region " + regionId);
+
+        // Step 2: Check region access if school access failed or not present
+        if (regionId != null) {
+            boolean hasRegionAccess = accessControlService.hasAccess(currentUserId, AccessScope.REGION, regionId);
+            if (hasRegionAccess) {
+                return; // ✅ Access granted at region level
+            }
         }
+
+        // Step 3: If both checks failed
+        log.error("SECURITY VIOLATION: User {} attempted to create entity in unauthorized school {} and region {}",
+                currentUserId, schoolId, regionId);
+        throw new SecurityException("Access denied: You do not have access to the specified school or region.");
     }
-    
+
+
     /**
-     * Validate tenant access for update operations
+     * Validate tenant access for update operations using bottom-up access check.
      */
     protected void validateTenantAccessForUpdate(E existingEntity, E updatedEntity) {
         Long currentUserId = getCurrentUserId();
         if (currentUserId == null) {
             throw new SecurityException("Authentication required for update operations");
         }
-        
+
         Long existingSchoolId = extractSchoolId(existingEntity);
         Long existingRegionId = extractRegionId(existingEntity);
         Long newSchoolId = extractSchoolId(updatedEntity);
         Long newRegionId = extractRegionId(updatedEntity);
-        
-        // Validate access to existing entity
-        if (existingSchoolId != null && !accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, existingSchoolId)) {
-            log.error("SECURITY VIOLATION: User {} attempted to update entity in unauthorized school {}", 
-                     currentUserId, existingSchoolId);
-            throw new SecurityException("Access denied: Cannot update entity in school " + existingSchoolId);
+
+        // --- Step 1: Check access to existing entity ---
+        if (existingSchoolId != null) {
+            if (accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, existingSchoolId)) {
+                // School access OK
+            } else if (existingRegionId != null && accessControlService.hasAccess(currentUserId, AccessScope.REGION, existingRegionId)) {
+                // Region access OK
+            } else {
+                log.error("SECURITY VIOLATION: User {} attempted to update entity in unauthorized school {} and region {}",
+                        currentUserId, existingSchoolId, existingRegionId);
+                throw new SecurityException("Access denied: Cannot update entity in school/region.");
+            }
         }
-        
-        if (existingRegionId != null && !accessControlService.hasAccess(currentUserId, AccessScope.REGION, existingRegionId)) {
-            log.error("SECURITY VIOLATION: User {} attempted to update entity in unauthorized region {}", 
-                     currentUserId, existingRegionId);
-            throw new SecurityException("Access denied: Cannot update entity in region " + existingRegionId);
-        }
-        
-        // Validate access to new school/region if changed
-        if (newSchoolId != null && !newSchoolId.equals(existingSchoolId) && 
-            !accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, newSchoolId)) {
-            log.error("SECURITY VIOLATION: User {} attempted to move entity to unauthorized school {}", 
-                     currentUserId, newSchoolId);
-            throw new SecurityException("Access denied: Cannot move entity to school " + newSchoolId);
-        }
-        
-        if (newRegionId != null && !newRegionId.equals(existingRegionId) && 
-            !accessControlService.hasAccess(currentUserId, AccessScope.REGION, newRegionId)) {
-            log.error("SECURITY VIOLATION: User {} attempted to move entity to unauthorized region {}", 
-                     currentUserId, newRegionId);
-            throw new SecurityException("Access denied: Cannot move entity to region " + newRegionId);
+
+        // --- Step 2: Check access to new (possibly updated) location ---
+        boolean schoolChanged = newSchoolId != null && !newSchoolId.equals(existingSchoolId);
+        boolean regionChanged = newRegionId != null && !newRegionId.equals(existingRegionId);
+
+        if (schoolChanged) {
+            if (!accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, newSchoolId)) {
+                if (newRegionId != null && accessControlService.hasAccess(currentUserId, AccessScope.REGION, newRegionId)) {
+                    // Region-level access sufficient for new school move
+                } else {
+                    log.error("SECURITY VIOLATION: User {} attempted to move entity to unauthorized school {} and region {}",
+                            currentUserId, newSchoolId, newRegionId);
+                    throw new SecurityException("Access denied: Cannot move entity to school/region.");
+                }
+            }
+        } else if (regionChanged) {
+            if (!accessControlService.hasAccess(currentUserId, AccessScope.REGION, newRegionId)) {
+                log.error("SECURITY VIOLATION: User {} attempted to move entity to unauthorized region {}",
+                        currentUserId, newRegionId);
+                throw new SecurityException("Access denied: Cannot move entity to region " + newRegionId);
+            }
         }
     }
-    
+
     /**
      * Validate that entity can be accessed by current user
      */
@@ -140,19 +155,31 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
         if (currentUserId == null) {
             throw new SecurityException("Authentication required");
         }
-        
+
         Long schoolId = extractSchoolId(entity);
         Long regionId = extractRegionId(entity);
-        
-        if (schoolId != null && !accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, schoolId)) {
-            throw new SecurityException("Access denied: Cannot access entity in school " + schoolId);
+
+        // First check school access (bottom-up approach)
+        if (schoolId != null) {
+            boolean hasSchoolAccess = accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, schoolId);
+            if (hasSchoolAccess) {
+                return; // School access granted → skip region check
+            }
         }
-        
-        if (regionId != null && !accessControlService.hasAccess(currentUserId, AccessScope.REGION, regionId)) {
-            throw new SecurityException("Access denied: Cannot access entity in region " + regionId);
+
+        // If no school access, check region access (if applicable)
+        if (regionId != null) {
+            boolean hasRegionAccess = accessControlService.hasAccess(currentUserId, AccessScope.REGION, regionId);
+            if (hasRegionAccess) {
+                return; // Region access granted
+            }
         }
+
+        // If no access to school or region
+        throw new SecurityException("Access denied: No permission to access entity in school " + schoolId + " or region " + regionId);
     }
-    
+
+
     /**
      * Get current user ID with proper error handling
      */

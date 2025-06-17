@@ -78,7 +78,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://13.218.66.84/", "http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList("http://13.218.66.84/", "http://localhost:5173", "http://localhost:5174"));
 
         configuration.addAllowedOrigin("http://13.218.66.84:3000"); // React frontend
         configuration.addAllowedOrigin("http://13.218.66.84:4173"); // Vite frontend
