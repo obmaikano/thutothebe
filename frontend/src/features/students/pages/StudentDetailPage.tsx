@@ -5,8 +5,7 @@ import {
   fetchStudentById,
   clearCurrentStudent,
   activateStudent,
-  deactivateStudent,
-  fetchStudentByAdmissionNumber
+  deactivateStudent
 } from '../studentsSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
@@ -26,7 +25,7 @@ const StudentDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchStudentByAdmissionNumber(id));
+      dispatch(fetchStudentById(Number(id)));
     }
     return () => {
       dispatch(clearCurrentStudent());

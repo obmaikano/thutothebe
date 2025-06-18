@@ -6,8 +6,10 @@ import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { Student } from '../../../api/services/studentApi';
 import { Plus, Search, Users, Edit, Trash2, Eye, UserCheck, UserX, Filter, Download, GraduationCap, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const StudentRecordsPage: React.FC = () => {
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { students, status, error } = useAppSelector(state => state.students);
   const { classes } = useAppSelector(state => state.classes);
@@ -62,7 +64,7 @@ const StudentRecordsPage: React.FC = () => {
   };
 
   const handleViewDetails = (student: Student) => {
-    window.location.href = `/app/students/${student.id}`;
+    navigate(`/app/students/${student.id}`);
   };
 
   const handleExportData = () => {

@@ -78,8 +78,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         
         try {
-            // Verify with server
-            const response = await fetch('/api/v1/auth/me', {
+            // Verify with server using VITE_API_URL
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
                 headers: { Authorization: `Bearer ${storedToken}` },
             });
             

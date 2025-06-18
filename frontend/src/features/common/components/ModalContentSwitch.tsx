@@ -42,6 +42,7 @@ const CreateCourseModal = lazy(() => import('../../courses/modals/CreateCourseMo
 const EditCourseModal = lazy(() => import('../../courses/modals/EditCourseModal'));
 const DeleteCourseModal = lazy(() => import('../../courses/modals/DeleteCourseModal'));
 const CourseViewModal = lazy(() => import('../../courses/modals/CourseViewModal'));
+const CourseAssignTeacherModal = lazy(() => import('../../courses/modals/CourseAssignTeacherModal'));
 
 // Curriculum management modals
 const CreateCurriculumModal = lazy(() => import('../../curriculum/modals/CreateCurriculumModal'));
@@ -353,6 +354,13 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
+    case MODAL_BODY_TYPES.COURSE_ASSIGN_TEACHER:
+      return (
+        <Suspense fallback={fallback}>
+          <CourseAssignTeacherModal extraObject={contentProps} />
+        </Suspense>
+      );
+
     // Class Management Modals
     case MODAL_BODY_TYPES.CLASS_ADD_NEW:
       return (
@@ -382,38 +390,10 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.CLASS_ASSIGN_STUDENT:
+    case MODAL_BODY_TYPES.CLASS_VIEW_DETAILS:
       return (
         <Suspense fallback={fallback}>
-          <StudentAssignClassModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS:
-      return (
-        <Suspense fallback={fallback}>
-          <TeacherAssignClassModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.ATTENDANCE_TAKE:
-      return (
-        <Suspense fallback={fallback}>
-          <TakeAttendanceModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.REPORT_GENERATE:
-      return (
-        <Suspense fallback={fallback}>
-          <GenerateReportModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.CALENDAR_VIEW:
-      return (
-        <Suspense fallback={fallback}>
-          <CalendarViewModal extraObject={contentProps} />
+          <ClassViewModal extraObject={contentProps} />
         </Suspense>
       );
 
@@ -536,7 +516,7 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
     case MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS:
       return (
         <Suspense fallback={fallback}>
-          <AssignClassModal extraObject={contentProps} />
+          <TeacherAssignClassModal extraObject={contentProps} />
         </Suspense>
       );
 
@@ -1113,6 +1093,13 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <CreateGroupModal extraObject={contentProps} />
+        </Suspense>
+      );
+      
+    case MODAL_BODY_TYPES.STUDENT_ASSIGN_CLASS:
+      return (
+        <Suspense fallback={fallback}>
+          <StudentAssignClassModal extraObject={contentProps} />
         </Suspense>
       );
       

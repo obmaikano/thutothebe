@@ -2,6 +2,7 @@ package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.entity.BaseEntity;
 import com.ohma.thutothebe.entity.AccessScope;
+import com.ohma.thutothebe.entity.UserRole;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.service.BaseService;
 import com.ohma.thutothebe.service.impl.RuleBasedAccessControlServiceImpl;
@@ -74,6 +75,12 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
         Long schoolId = extractSchoolId(entity);
         Long regionId = extractRegionId(entity);
 
+        boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+
+        if (hasGlobalAccess) {
+            return;
+        }
+
         // Step 1: Check school access
         if (schoolId != null) {
             boolean hasSchoolAccess = accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, schoolId);
@@ -110,6 +117,12 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
         Long existingRegionId = extractRegionId(existingEntity);
         Long newSchoolId = extractSchoolId(updatedEntity);
         Long newRegionId = extractRegionId(updatedEntity);
+
+        boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+
+        if (hasGlobalAccess) {
+            return;
+        }
 
         // --- Step 1: Check access to existing entity ---
         if (existingSchoolId != null) {
@@ -158,6 +171,12 @@ public abstract class BaseServiceImpl<E extends BaseEntity, D, ID> implements Ba
 
         Long schoolId = extractSchoolId(entity);
         Long regionId = extractRegionId(entity);
+
+        boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+
+        if (hasGlobalAccess) {
+            return;
+        }
 
         // First check school access (bottom-up approach)
         if (schoolId != null) {

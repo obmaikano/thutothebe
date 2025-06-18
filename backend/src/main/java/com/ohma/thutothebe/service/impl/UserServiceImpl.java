@@ -70,7 +70,9 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
     @Override
     protected User mapToEntity(UserDTO dto) {
         User user = userMapper.toEntity(dto);
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
         return user;
     }
 

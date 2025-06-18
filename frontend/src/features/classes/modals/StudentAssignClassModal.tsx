@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { addStudentToClass, fetchClassById, fetchClassWithStudents } from '../classesSlice';
 import { fetchStudentsByClass, fetchStudents } from '../../students/studentsSlice';
 import { closeModal } from '../../common/modalSlice';
 import { Student } from '../../../api/services/studentApi';
-import { UserPlus, Search, Users, X } from 'lucide-react';
+import { UserPlus, Search, Users, X, School } from 'lucide-react';
 
 interface StudentAssignClassModalProps {
   extraObject?: {
     classId: number;
     availableStudents: Student[];
+    classInfo?: {
+      name?: string;
+      gradeLevel?: string;
+      capacity?: number;
+    };
   };
 }
 
@@ -19,7 +24,6 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
   
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successCount, setSuccessCount] = useState(0);
@@ -27,10 +31,10 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
   const classId = extraObject?.classId;
   const availableStudents = extraObject?.availableStudents || [];
 
-  useEffect(() => {
-    // Filter students who match search term (students are already pre-filtered for availability)
-    const filtered = availableStudents.filter(student => {
-      if (!searchTerm) return true; // Show all if no search term
+  // Use useMemo to compute filtered students
+  const filteredStudents = useMemo(() => {
+    return availableStudents.filter(student => {
+      if (!searchTerm) return true;
       
       const matchesSearch = 
         student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -40,8 +44,6 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
       
       return matchesSearch;
     });
-    
-    setFilteredStudents(filtered);
   }, [searchTerm, availableStudents]);
 
   const handleStudentToggle = (studentId: number) => {
@@ -119,10 +121,16 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
   if (!classId) {
     return (
       <div className="text-center py-8">
-        <div className="text-red-600 mb-4">Error: No class ID provided</div>
+        <div className="flex justify-center mb-4">
+          <div className="rounded-full bg-red-100 p-3">
+            <Users className="h-8 w-8 text-red-600" />
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Class Selected</h3>
+        <p className="text-gray-600 mb-4">No class was selected for student assignment.</p>
         <button
           onClick={handleClose}
-          className="btn btn-primary"
+          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
         >
           Close
         </button>
@@ -130,18 +138,49 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
     );
   }
 
+  if (successCount > 0 && !errorMessage) {
+    return (
+      <div className="text-center py-8">
+        <div className="flex justify-center mb-4">
+          <div className="rounded-full bg-green-100 p-3">
+            <Users className="h-8 w-8 text-green-600" />
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Student(s) Added Successfully!</h3>
+        <p className="text-gray-600">{successCount} student{successCount !== 1 ? 's' : ''} have been added to the class.</p>
+      </div>
+    );
+  }
+
+  // Placeholder class info for summary card (could be passed in extraObject if needed)
+  const classInfo = extraObject?.classInfo || {};
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
         <div className="p-2 bg-blue-100 rounded-lg">
-          <UserPlus className="h-6 w-6 text-blue-600" />
+          <UserPlus className="h-5 w-5 text-blue-600" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Add Students to Class</h2>
-          <p className="text-sm text-gray-600">
-            Select students to add to this class
-          </p>
+          <h3 className="text-lg font-semibold text-gray-900">Add Students to Class</h3>
+          <p className="text-sm text-gray-600">Select students to add to this class</p>
+        </div>
+      </div>
+
+      {/* Class Info Summary */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <School className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <div className="font-medium text-gray-900">{classInfo.name || 'Class'}</div>
+            <div className="text-sm text-gray-500">
+              {classInfo.gradeLevel ? classInfo.gradeLevel.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}
+              {classInfo.capacity ? ` • Capacity: ${classInfo.capacity}` : ''}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -212,7 +251,7 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
                           {student.email} • Admission: {student.admissionNumber}
                         </div>
                         <div className="text-xs text-gray-400">
-                          Grade {student.academicYear} • {student.gender}
+                          {student.academicYear} • {student.gender}
                         </div>
                       </div>
                     </div>
@@ -257,70 +296,34 @@ const StudentAssignClassModal: React.FC<StudentAssignClassModalProps> = ({ extra
 
       {/* Error Message */}
       {errorMessage && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <X className="h-5 w-5 text-red-400" />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
-                {successCount > 0 ? 'Partial Success' : 'Error'}
-              </h3>
-              <div className="mt-1 text-sm text-red-700">
-                {errorMessage}
-              </div>
-            </div>
-            <div className="ml-auto pl-3">
-              <button
-                onClick={() => setErrorMessage(null)}
-                className="inline-flex text-red-400 hover:text-red-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+        <div className="p-4 bg-red-50 border-l-4 border-red-400 text-red-700">
+          {errorMessage}
         </div>
       )}
 
-      {/* Success Message */}
-      {successCount > 0 && !errorMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Users className="h-5 w-5 text-green-400" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-green-800">
-                Successfully added {successCount} student{successCount !== 1 ? 's' : ''} to the class!
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+      {/* Actions */}
+      <div className="flex justify-end gap-3 pt-4">
         <button
           onClick={handleClose}
           disabled={isLoading}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={isLoading || selectedStudents.length === 0}
-          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {isLoading ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Adding Students...
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Adding...
             </>
           ) : (
             <>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add {selectedStudents.length} Student{selectedStudents.length !== 1 ? 's' : ''}
+              <UserPlus className="h-4 w-4" />
+              Add Student{selectedStudents.length > 1 ? 's' : ''}
             </>
           )}
         </button>

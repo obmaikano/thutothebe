@@ -7,8 +7,10 @@ import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { Class } from '../../../api/services/classApi';
 import { Plus, Search, BookOpen, Edit, Trash2, Eye, Users, Calendar, Clock, Filter, Download } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ClassManagementPage: React.FC = () => {
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { classes, status, error } = useAppSelector(state => state.classes);
   const { teachers } = useAppSelector(state => state.teachers);
@@ -62,13 +64,13 @@ const ClassManagementPage: React.FC = () => {
   };
 
   const handleViewDetails = (classItem: Class) => {
-    window.location.href = `/app/classes/${classItem.id}`;
+    navigate(`/app/classes/${classItem.id}`);
   };
 
   const handleAssignStudents = (classItem: Class) => {
     dispatch(openModal({
       title: 'Assign Students to Class',
-      bodyType: MODAL_BODY_TYPES.CLASS_ASSIGN_STUDENT,
+      bodyType: MODAL_BODY_TYPES.STUDENT_ASSIGN_CLASS,
       extraObject: classItem
     }));
   };
@@ -121,17 +123,16 @@ const ClassManagementPage: React.FC = () => {
   });
 
   const getTeacherNames = (teacherIds: number[] | undefined) => {
-    if (!teacherIds || teacherIds.length === 0) return 'Unassigned';
-    const teacherNames = teacherIds
-      .map(id => {
-        const teacher = teachers.find(t => t.id === id);
-        return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
-      })
-      .filter((name): name is string => name !== null);
-    
-    if (teacherNames.length === 0) return 'Unknown Teachers';
-    if (teacherNames.length === 1) return teacherNames[0];
-    return `${teacherNames[0]} +${teacherNames.length - 1} more`;
+    if (!teacherIds || teacherIds.length === 0) return [];
+    return teachers
+      .filter(teacher => teacherIds.includes(teacher.id))
+      .map(teacher => ({
+        id: teacher.id,
+        name: `${teacher.firstName} ${teacher.lastName}`,
+        email: teacher.email,
+        staffId: teacher.staffId,
+        active: teacher.active
+      }));
   };
 
   const getStudentCountByClass = (classId: number) => {
@@ -242,6 +243,9 @@ const ClassManagementPage: React.FC = () => {
               <div>
                 <div className="text-2xl font-bold text-gray-900">{classes.length}</div>
                 <div className="text-sm text-gray-500">Total Classes</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {classes.filter(c => c.active).length} Active
+                </div>
               </div>
             </div>
           </div>
@@ -255,6 +259,9 @@ const ClassManagementPage: React.FC = () => {
                   {classes.reduce((total, classItem) => total + getStudentCountByClass(classItem.id), 0)}
                 </div>
                 <div className="text-sm text-gray-500">Total Students</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {classes.filter(c => getStudentCountByClass(c.id) > 0).length} Classes with Students
+                </div>
               </div>
             </div>
           </div>
@@ -265,9 +272,12 @@ const ClassManagementPage: React.FC = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {classes.filter(c => c.teacherIds && c.teacherIds.length > 0).length}
+                  {teachers.filter(t => t.active).length}
                 </div>
-                <div className="text-sm text-gray-500">Classes with Teachers</div>
+                <div className="text-sm text-gray-500">Active Teachers</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {teachers.length} Total Teachers
+                </div>
               </div>
             </div>
           </div>
@@ -278,9 +288,12 @@ const ClassManagementPage: React.FC = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {Math.round((classes.reduce((total, classItem) => total + getStudentCountByClass(classItem.id), 0) / classes.length) || 0)}
+                  {classes.filter(c => c.teacherIds && c.teacherIds.length > 0).length}
                 </div>
-                <div className="text-sm text-gray-500">Avg Students/Class</div>
+                <div className="text-sm text-gray-500">Classes with Teachers</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {classes.filter(c => !c.teacherIds || c.teacherIds.length === 0).length} Need Assignment
+                </div>
               </div>
             </div>
           </div>
@@ -344,20 +357,35 @@ const ClassManagementPage: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {Date.now() - lastTeacherAssignmentTime < 2000 && lastTeacherAssignmentTime > 0 ? (
-                          <div className="flex items-center">
-                            <div className="loading loading-spinner loading-sm mr-2"></div>
-                            Updating...
-                          </div>
-                        ) : (
-                          getTeacherNames(classItem.teacherIds)
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {classItem.teacherIds?.length || 0} assigned
-                      </div>
+                    <td className="px-6 py-4">
+                      {Date.now() - lastTeacherAssignmentTime < 2000 && lastTeacherAssignmentTime > 0 ? (
+                        <div className="flex items-center">
+                          <div className="loading loading-spinner loading-sm mr-2"></div>
+                          Updating...
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {classItem.teacherIds && classItem.teacherIds.length > 0 ? (
+                            getTeacherNames(classItem.teacherIds).map(teacher => (
+                              <div key={teacher.id} className="flex items-center gap-2">
+                                <div className="flex-shrink-0 h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center">
+                                  <Users className="h-4 w-4 text-purple-600" />
+                                </div>
+                                <div>
+                                  <div className="text-sm text-gray-900">
+                                    {teacher.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {teacher.staffId || 'No ID'} • {teacher.active ? 'Active' : 'Inactive'}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-sm text-gray-500 italic">No teachers assigned</div>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
@@ -399,8 +427,15 @@ const ClassManagementPage: React.FC = () => {
                         <button
                           onClick={() => dispatch(openModal({
                             title: 'Assign Teacher to Class',
-                            bodyType: MODAL_BODY_TYPES.COURSE_ASSIGN_TEACHER,
-                            extraObject: { classItem, teachers, onAssign: handleAssignTeacher, onRemove: handleRemoveTeacher }
+                            bodyType: MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS,
+                            extraObject: {
+                              classId: classItem.id,
+                              className: classItem.name,
+                              gradeLevel: classItem.gradeLevel,
+                              availableTeachers: teachers.filter(t => 
+                                !classItem.teacherIds?.includes(t.id)
+                              )
+                            }
                           }))}
                           className="text-blue-600 hover:text-blue-900 p-1 rounded"
                           title="Assign Teacher"

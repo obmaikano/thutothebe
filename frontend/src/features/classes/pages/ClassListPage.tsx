@@ -68,17 +68,13 @@ const ClassListPage: React.FC = () => {
   };
 
   const handleViewDetails = (classItem: Class) => {
-    dispatch(openModal({
-      title: 'Class Details',
-      bodyType: MODAL_BODY_TYPES.CLASS_VIEW,
-      extraObject: classItem
-    }));
+    navigate(`/app/classes/${classItem.id}`);
   };
 
   const filteredClasses = classes.filter((classItem: Class) => {
     const matchesSearch = 
       classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      classItem.grade.toString().includes(searchTerm) ||
+      (classItem.gradeLevel && classItem.gradeLevel.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (classItem.description && classItem.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus = 
@@ -87,7 +83,7 @@ const ClassListPage: React.FC = () => {
       (statusFilter === 'inactive' && !classItem.active);
 
     const matchesGrade = 
-      gradeFilter === '' || classItem.grade.toString() === gradeFilter;
+      gradeFilter === '' || (classItem.gradeLevel && classItem.gradeLevel === gradeFilter);
 
     return matchesSearch && matchesStatus && matchesGrade;
   });
@@ -278,7 +274,7 @@ const ClassListPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    Grade {classItem.grade}
+                    {classItem.gradeLevel ? classItem.gradeLevel.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {getSchoolName(classItem.schoolId)}

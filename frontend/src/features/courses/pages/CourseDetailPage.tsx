@@ -12,6 +12,8 @@ import { Course } from '../../../api/services/courseApi';
 import { Teacher } from '../../../api/services/teacherApi';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { addTeacherToCourse, removeTeacherFromCourse } from '../coursesSlice';
+import { openModal } from '../../common/modalSlice';
+import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +49,23 @@ const CourseDetailPage: React.FC = () => {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
+  };
+
+  const handleAssignTeacher = () => {
+    // Filter out teachers who are already assigned to this course
+    const availableTeachers = teachers.filter(teacher => 
+      !course?.instructorIds?.includes(teacher.id)
+    );
+
+    dispatch(openModal({
+      title: 'Assign Teacher to Course',
+      bodyType: MODAL_BODY_TYPES.COURSE_ASSIGN_TEACHER,
+      extraObject: {
+        courseId: course?.id,
+        courseName: course?.name,
+        availableTeachers
+      }
+    }));
   };
 
   // Show loading state
@@ -135,6 +154,14 @@ const CourseDetailPage: React.FC = () => {
           </div>
           
           <div className="mt-4 md:mt-0 flex space-x-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAssignTeacher}
+            >
+              <User className="h-4 w-4 mr-2" />
+              Assign Teacher
+            </Button>
             <Link to={`/app/courses/${course.id}/edit`}>
               <Button
                 variant="outline"

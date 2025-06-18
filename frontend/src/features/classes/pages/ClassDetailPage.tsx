@@ -7,7 +7,8 @@ import {
   clearClassesError,
   addStudentToClass,
   removeStudentFromClass,
-  fetchClassWithStudents
+  fetchClassWithStudents,
+  removeTeacherFromClass
 } from '../classesSlice';
 import { fetchSchools } from '../../schools/schoolsSlice';
 import { fetchStudents, fetchStudentsByClass } from '../../students/studentsSlice';
@@ -153,7 +154,15 @@ const ClassDetailPage: React.FC = () => {
     dispatch(openModal({
       title: 'Add Student to Class',
       bodyType: MODAL_BODY_TYPES.STUDENT_ASSIGN_CLASS,
-      extraObject: { classId: currentClass?.id, availableStudents }
+      extraObject: {
+        classId: currentClass?.id,
+        availableStudents,
+        classInfo: {
+          name: currentClass?.name,
+          gradeLevel: currentClass?.gradeLevel,
+          capacity: currentClass?.capacity
+        }
+      }
     }));
   };
 
@@ -187,11 +196,44 @@ const ClassDetailPage: React.FC = () => {
   };
 
   const handleAssignTeacher = () => {
+    // Filter out teachers who are already assigned to this class
+    const availableTeachers = teachers.filter(teacher => 
+      !currentClass?.teacherIds?.includes(teacher.id)
+    );
+
     dispatch(openModal({
       title: 'Assign Teacher to Class',
       bodyType: MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS,
-      extraObject: { classId: currentClass?.id, availableTeachers: teachers }
+      extraObject: {
+        classId: currentClass?.id,
+        className: currentClass?.name,
+        gradeLevel: currentClass?.gradeLevel,
+        availableTeachers
+      }
     }));
+  };
+
+  const handleRemoveTeacher = async (teacherId: number) => {
+    if (!currentClass) return;
+    
+    try {
+      setIsLoading(true);
+      await dispatch(removeTeacherFromClass({ 
+        classId: currentClass.id, 
+        teacherId 
+      })).unwrap();
+      
+      // Refresh all necessary data
+      await Promise.all([
+        dispatch(fetchClassWithStudents(currentClass.id)),
+        dispatch(fetchTeachers())
+      ]);
+    } catch (error: any) {
+      console.error('Failed to remove teacher:', error);
+      alert('Failed to remove teacher from class. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleTakeAttendance = () => {
@@ -265,7 +307,7 @@ const ClassDetailPage: React.FC = () => {
                   Refresh Page
                 </button>
                 <button
-                  onClick={() => navigate('/app/classes')}
+                  onClick={() => navigate('/app/class-management')}
                   className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded"
                 >
                   Return to Classes
@@ -286,7 +328,7 @@ const ClassDetailPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/app/classes')}
+            onClick={() => navigate('/app/class-management')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -294,7 +336,7 @@ const ClassDetailPage: React.FC = () => {
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">{currentClass.name}</h1>
             <p className="text-sm text-gray-500">
-              Grade {currentClass.grade} • {getSchoolName(currentClass.schoolId)}
+              {currentClass.gradeLevel ? `${currentClass.gradeLevel.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}` : ''} • {getSchoolName(currentClass.schoolId)}
             </p>
           </div>
         </div>
@@ -366,6 +408,9 @@ const ClassDetailPage: React.FC = () => {
                 {assignedTeachers.length}
               </div>
               <div className="text-sm text-gray-500">Assigned Teachers</div>
+              <div className="text-xs text-gray-400 mt-1">
+                {assignedTeachers.filter(t => t.active).length} Active
+              </div>
             </div>
           </div>
         </div>
@@ -433,7 +478,7 @@ const ClassDetailPage: React.FC = () => {
                   <GraduationCap className="h-5 w-5 text-gray-400" />
                   <div>
                     <div className="text-sm font-medium text-gray-900">Grade Level</div>
-                    <div className="text-sm text-gray-600">Grade {currentClass.grade}</div>
+                    <div className="text-sm text-gray-600">{currentClass.gradeLevel ? currentClass.gradeLevel.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -515,14 +560,14 @@ const ClassDetailPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-900">
                   Enrolled Students ({enrolledStudents.length})
                 </h3>
-                <button
-                  onClick={handleAddStudent}
-                  disabled={isLoading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Student
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleAddStudent}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    Add Student
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -624,12 +669,110 @@ const ClassDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* Other tabs remain the same... */}
         {activeTab === 'teachers' && (
-          <div className="text-center py-8">
-            <GraduationCap className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Teachers tab</h3>
-            <p className="mt-1 text-sm text-gray-500">Teacher management functionality coming soon.</p>
+          <div className="bg-white border border-gray-200 rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Assigned Teachers ({assignedTeachers.length})
+                </h3>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleAssignTeacher}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    Assign Teacher
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {assignedTeachers.length === 0 ? (
+              <div className="text-center py-8">
+                <GraduationCap className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No teachers assigned</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Get started by assigning a teacher to this class.
+                </p>
+                <div className="mt-6">
+                  <button
+                    onClick={handleAssignTeacher}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    <UserPlus className="h-5 w-5 mr-2" />
+                    Assign Teacher
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Teacher
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Staff ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {assignedTeachers.map((teacher) => (
+                      <tr key={teacher.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                <GraduationCap className="h-6 w-6 text-purple-600" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {teacher.firstName} {teacher.lastName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {teacher.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {teacher.staffId || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                              teacher.active 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {teacher.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleRemoveTeacher(teacher.id)}
+                            disabled={isLoading}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                            title="Remove from class"
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
