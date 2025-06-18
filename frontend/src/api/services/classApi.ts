@@ -11,6 +11,7 @@ export interface Class {
   currentEnrollment?: number;
   studentIds?: number[];
   teacherIds?: number[];
+  gradeLevel: string;
 }
 
 export interface ClassResponse {
@@ -207,6 +208,14 @@ const classApi = {
    */
   getByIdWithTeachers: async (id: number): Promise<AxiosResponse<ClassResponse>> => {
     return api.get(`/classes/${id}/with-teachers`);
+  },
+
+  /**
+   * Get all grade levels (enum values)
+   * @returns Response with a list of grade levels
+   */
+  getGradeLevels: async (): Promise<AxiosResponse<{ status: string; message: string; data: string[] }>> => {
+    return api.get('/classes/grade-levels');
   },
 };
 

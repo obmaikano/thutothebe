@@ -118,7 +118,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     // Combined filtering for complex access patterns
     @Query("SELECT s FROM Student s WHERE " +
            "(s.school.id IN :schoolIds OR s.school.region.id IN :regionIds OR s.id IN :studentIds) " +
-           "AND s.active = true AND s.status = 'ACTIVE'")
+           "AND s.active = true")
     List<Student> findByMultiScopeAccess(@Param("schoolIds") List<Long> schoolIds, 
                                         @Param("regionIds") List<Long> regionIds, 
                                         @Param("studentIds") List<Long> studentIds);

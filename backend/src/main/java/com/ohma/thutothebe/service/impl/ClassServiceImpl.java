@@ -15,6 +15,10 @@ import com.ohma.thutothebe.repository.StudentRepository;
 import com.ohma.thutothebe.repository.UserRepository;
 import com.ohma.thutothebe.repository.TeacherRepository;
 import com.ohma.thutothebe.service.ClassService;
+import com.ohma.thutothebe.dto.ClassWithTeachersDTO;
+import com.ohma.thutothebe.dto.TeacherDTO;
+import com.ohma.thutothebe.mapper.TeacherMapper;
+import com.ohma.thutothebe.service.TeacherService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Collections;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -35,10 +40,12 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
     private final ClassMapper classMapper;
+    private final TeacherMapper teacherMapper;
+    private final TeacherService teacherService;
 
     @Autowired
     public ClassServiceImpl(ClassRepository classRepository, SchoolRepository schoolRepository, 
-                          UserRepository userRepository, StudentRepository studentRepository, TeacherRepository teacherRepository, ClassMapper classMapper) {
+                          UserRepository userRepository, StudentRepository studentRepository, TeacherRepository teacherRepository, ClassMapper classMapper, TeacherMapper teacherMapper, TeacherService teacherService) {
         super(classRepository);
         this.classRepository = classRepository;
         this.schoolRepository = schoolRepository;
@@ -46,6 +53,8 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
         this.studentRepository = studentRepository;
         this.teacherRepository = teacherRepository;
         this.classMapper = classMapper;
+        this.teacherMapper = teacherMapper;
+        this.teacherService = teacherService;
     }
 
     @Override
@@ -695,5 +704,38 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
             log.error("Error getting total capacity for user {}: {}", userId, e.getMessage());
             return 0L;
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassWithTeachersDTO> getClassesWithTeachersByAccessibleScopes(Long userId) {
+        List<Long> schoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+        List<Long> regionIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.REGION);
+        List<Class> classes = classRepository.findByMultiScopeAccess(schoolIds, regionIds);
+        return classes.stream().map(cls -> {
+            Set<TeacherDTO> teacherDTOs = cls.getTeachers() == null ? Set.of() :
+                cls.getTeachers().stream()
+                    .map(teacherMapper::toDto)
+                    .collect(Collectors.toSet());
+            Set<Long> studentIds = cls.getStudents() == null ? Set.of() :
+                cls.getStudents().stream()
+                    .filter(student -> student != null && student.getId() != null)
+                    .map(Student::getId)
+                    .collect(Collectors.toSet());
+            return new ClassWithTeachersDTO(
+                cls.getId(),
+                cls.getName(),
+                cls.getDescription(),
+                cls.getGradeLevel(),
+                cls.getCapacity(),
+                cls.getTotalEnrolled(),
+                cls.getSpotsLeft(),
+                cls.getOverCapacity(),
+                cls.getSchool() != null ? cls.getSchool().getId() : null,
+                teacherDTOs,
+                studentIds,
+                cls.isActive()
+            );
+        }).collect(Collectors.toList());
     }
 } 

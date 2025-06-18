@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { Class, CreateClassRequest, UpdateClassRequest } from '../../../api/services/classApi';
+import classApi, { Class, CreateClassRequest, UpdateClassRequest } from '../../../api/services/classApi';
 import { createClass, updateClass } from '../classesSlice';
 import { fetchSchools } from '../../schools/schoolsSlice';
+import { TextInput } from '../../../components/common/inputs/TextInput';
+import { NumberInput } from '../../../components/common/inputs/NumberInput';
+import { Select } from '../../../components/common/Select';
+import { TextArea } from '../../../components/common/inputs/TextArea';
 
 interface ClassFormProps {
   class?: Class | null;
@@ -19,16 +23,20 @@ export const ClassForm: React.FC<ClassFormProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const { schools } = useAppSelector(state => state.schools);
+  const user = useAppSelector(state => state.auth.user);
   const [formData, setFormData] = useState<CreateClassRequest>({
     name: '',
-    grade: 1,
-    schoolId: 1, // This should be dynamic based on user's school
+    gradeLevel: '',
+    schoolId: user?.schoolId ?? 1,
     active: true,
     description: '',
     capacity: 30
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gradeLevels, setGradeLevels] = useState<string[]>([]);
+  const [isGradeLevelsLoading, setIsGradeLevelsLoading] = useState(false);
+  const [gradeLevelsError, setGradeLevelsError] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchSchools());
@@ -38,14 +46,33 @@ export const ClassForm: React.FC<ClassFormProps> = ({
     if (classData && mode === 'edit') {
       setFormData({
         name: classData.name,
-        grade: classData.grade,
-        schoolId: classData.schoolId,
+        gradeLevel: classData.gradeLevel,
+        schoolId: classData.schoolId ?? user?.schoolId ?? 1,
         active: classData.active,
         description: classData.description || '',
         capacity: classData.capacity || 30
       });
+    } else if (mode === 'create') {
+      setFormData(prev => ({
+        ...prev,
+        schoolId: user?.schoolId || 1
+      }));
     }
-  }, [classData, mode]);
+  }, [classData, mode, user?.schoolId]);
+
+  useEffect(() => {
+    setIsGradeLevelsLoading(true);
+    classApi.getGradeLevels()
+      .then(res => {
+        setGradeLevels(res.data.data || []);
+        setGradeLevelsError(null);
+      })
+      .catch(err => {
+        setGradeLevelsError('Failed to load grade levels');
+        setGradeLevels([]);
+      })
+      .finally(() => setIsGradeLevelsLoading(false));
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -56,8 +83,8 @@ export const ClassForm: React.FC<ClassFormProps> = ({
       newErrors.name = 'Class name must be between 2 and 50 characters';
     }
 
-    if (formData.grade < 1 || formData.grade > 12) {
-      newErrors.grade = 'Grade must be between 1 and 12';
+    if (!formData.gradeLevel) {
+      newErrors.gradeLevel = 'Grade level is required';
     }
 
     if (formData.capacity && (formData.capacity < 1 || formData.capacity > 100)) {
@@ -80,7 +107,7 @@ export const ClassForm: React.FC<ClassFormProps> = ({
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
-    setFormData(prev => ({
+    setFormData((prev: CreateClassRequest) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : type === 'number' ? Number(value) : value
     }));
@@ -135,170 +162,100 @@ export const ClassForm: React.FC<ClassFormProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Class Name */}
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Class Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="name"
+          <TextInput
+            label="Class Name"
             value={formData.name}
-            onChange={handleInputChange}
-            className={`w-full rounded-md border ${
-              errors.name ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
-            placeholder="e.g., Grade 1A, Mathematics Advanced"
-            maxLength={50}
-            disabled={isSubmitting}
+            onChange={value => handleInputChange({ target: { name: 'name', value } } as any)}
+            placeholder="e.g., Standard 1A"
             required
+            error={errors.name}
           />
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-          )}
         </div>
 
-        {/* Grade */}
+        {/* Grade Level */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Grade <span className="text-red-500">*</span>
-          </label>
-          <select
-            name="grade"
-            value={formData.grade}
-            onChange={handleInputChange}
-            className={`w-full rounded-md border ${
-              errors.grade ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
-            disabled={isSubmitting}
+          <Select
+            label="Grade Level"
+            name="gradeLevel"
+            value={formData.gradeLevel || ''}
+            onChange={e => handleInputChange(e as any)}
+            options={gradeLevels.map(level => ({ value: level, label: level.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }))}
             required
-          >
-            {Array.from({ length: 12 }, (_, i) => i + 1).map(grade => (
-              <option key={grade} value={grade}>Grade {grade}</option>
-            ))}
-          </select>
-          {errors.grade && (
-            <p className="mt-1 text-sm text-red-600">{errors.grade}</p>
-          )}
+            error={errors.gradeLevel}
+            disabled={isGradeLevelsLoading}
+          />
         </div>
 
         {/* School */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            School <span className="text-red-500">*</span>
-          </label>
-          <select
+          <Select
+            label="School"
             name="schoolId"
-            value={formData.schoolId}
-            onChange={handleInputChange}
-            className={`w-full rounded-md border ${
-              errors.schoolId ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
-            disabled={isSubmitting}
+            value={formData.schoolId ? String(formData.schoolId) : ''}
+            onChange={e => handleInputChange({ target: { name: 'schoolId', value: Number(e.target.value) } } as any)}
+            options={schools.map(school => ({ value: String(school.id), label: school.name }))}
             required
-          >
-            <option value="">Select a school</option>
-            {schools.map((school) => (
-              <option key={school.id} value={school.id}>
-                {school.name}
-              </option>
-            ))}
-          </select>
-          {errors.schoolId && (
-            <p className="mt-1 text-sm text-red-600">{errors.schoolId}</p>
-          )}
+            error={errors.schoolId}
+            disabled={isSubmitting}
+          />
         </div>
 
         {/* Capacity */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Capacity
-          </label>
-          <input
-            type="number"
-            name="capacity"
-            value={formData.capacity || ''}
-            onChange={handleInputChange}
-            className={`w-full rounded-md border ${
-              errors.capacity ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
-            placeholder="Maximum number of students"
+          <NumberInput
+            label="Capacity"
+            value={typeof formData.capacity === 'number' ? formData.capacity : ''}
+            onChange={value => handleInputChange({ target: { name: 'capacity', value } } as any)}
             min={1}
             max={100}
+            required
+            error={errors.capacity}
             disabled={isSubmitting}
           />
-          {errors.capacity && (
-            <p className="mt-1 text-sm text-red-600">{errors.capacity}</p>
-          )}
+        </div>
+
+        {/* Active */}
+        <div className="flex items-center mt-6">
+          <label className="mr-2 text-sm font-medium text-gray-700">Active</label>
+          <input
+            type="checkbox"
+            name="active"
+            checked={formData.active}
+            onChange={handleInputChange}
+            className="checkbox checkbox-primary"
+            disabled={isSubmitting}
+          />
         </div>
 
         {/* Description */}
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            className={`w-full rounded-md border ${
-              errors.description ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
-            placeholder="Brief description of the class (optional)"
-            rows={3}
-            maxLength={500}
+          <TextArea
+            label="Description"
+            value={formData.description || ''}
+            onChange={value => handleInputChange({ target: { name: 'description', value } } as any)}
+            placeholder="Optional class description (max 500 characters)"
+            error={errors.description}
             disabled={isSubmitting}
           />
-          <div className="mt-1 text-sm text-gray-500">
-            {(formData.description || '').length}/500 characters
-          </div>
-          {errors.description && (
-            <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-          )}
-        </div>
-
-        {/* Active Status */}
-        <div className="flex items-center pt-6">
-          <input
-            id="active"
-            name="active"
-            type="checkbox"
-            checked={formData.active}
-            onChange={handleInputChange}
-            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            disabled={isSubmitting}
-          />
-          <label htmlFor="active" className="ml-2 block text-sm text-gray-900">
-            Active class
-          </label>
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex justify-end gap-3 pt-4">
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          disabled={isSubmitting}
+        >
+          Cancel
+        </button>
         <button
           type="submit"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           disabled={isSubmitting}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
         >
-          {isSubmitting ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              {mode === 'edit' ? 'Updating...' : 'Creating...'}
-            </>
-          ) : (
-            <>
-              {mode === 'edit' ? 'Update Class' : 'Create Class'}
-            </>
-          )}
+          {isSubmitting ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Class'}
         </button>
       </div>
     </form>

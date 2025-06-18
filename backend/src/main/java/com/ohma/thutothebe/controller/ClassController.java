@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.ClassDTO;
+import com.ohma.thutothebe.dto.ClassWithTeachersDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.Class;
@@ -607,6 +608,42 @@ public class ClassController extends BaseController<ClassDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Total capacity retrieved successfully", totalCapacity, null));
         } catch (Exception e) {
             log.error("Error retrieving total capacity: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/with-teachers")
+    @Operation(summary = "Get all classes with their teachers (full teacher details) with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<ClassWithTeachersDTO>>> getClassesWithTeachers() {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+            List<ClassWithTeachersDTO> classes = classService.getClassesWithTeachersByAccessibleScopes(currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Classes with teachers retrieved successfully", classes, null));
+        } catch (Exception e) {
+            log.error("Error retrieving classes with teachers: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    /**
+     * Get all possible grade levels (enum values)
+     */
+    @GetMapping("/grade-levels")
+    @Operation(summary = "Get all possible grade levels")
+    public ResponseEntity<OhmaApiResponse<List<String>>> getAllGradeLevels() {
+        try {
+            List<String> gradeLevels = java.util.Arrays.stream(GradeLevel.values())
+                    .map(Enum::name)
+                    .collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade levels retrieved successfully", gradeLevels, null));
+        } catch (Exception e) {
+            log.error("Error retrieving grade levels: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

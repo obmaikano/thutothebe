@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.ClassDTO;
+import com.ohma.thutothebe.dto.ClassWithTeachersDTO;
 import com.ohma.thutothebe.entity.enums.GradeLevel;
 import java.util.List;
 import java.util.Set;
@@ -120,4 +121,9 @@ public interface ClassService extends BaseService<ClassDTO, Long> {
      * Get total capacity by accessible scopes
      */
     Long getTotalCapacityByAccessibleScopes(Long userId);
+
+    /**
+     * Get all classes with their teachers for the current user's accessible scopes
+     */
+    List<ClassWithTeachersDTO> getClassesWithTeachersByAccessibleScopes(Long userId);
 } 

@@ -63,6 +63,19 @@ export const CreateClassModal: React.FC<CreateClassModalProps> = ({ extraObject 
         </div>
       </div>
 
+      {/* Class Info Summary (placeholder for new class) */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <School className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <div className="font-medium text-gray-900">New Class</div>
+            <div className="text-sm text-gray-500">Fill in the details below to create a class.</div>
+          </div>
+        </div>
+      </div>
+
       {/* Form */}
       <div>
         <ClassForm

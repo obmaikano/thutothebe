@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { fetchStudentById, clearCurrentStudent, activateStudent, deactivateStudent } from '../studentsSlice';
+import {
+  fetchStudentById,
+  clearCurrentStudent,
+  activateStudent,
+  deactivateStudent,
+  fetchStudentByAdmissionNumber
+} from '../studentsSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import StudentAcademicTab from '../components/StudentAcademicTab';
@@ -20,7 +26,7 @@ const StudentDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchStudentById(parseInt(id, 10)));
+      dispatch(fetchStudentByAdmissionNumber(id));
     }
     return () => {
       dispatch(clearCurrentStudent());

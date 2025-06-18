@@ -5,6 +5,7 @@ import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { Student } from '../../../api/services/studentApi';
 import { Plus, Search, Users, Edit, Trash2, Eye, UserCheck, UserX } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const StudentListPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -12,6 +13,7 @@ const StudentListPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     dispatch(fetchStudents());
@@ -57,7 +59,7 @@ const StudentListPage: React.FC = () => {
   };
 
   const handleViewDetails = (student: Student) => {
-    window.location.href = `/app/students/${student.id}`;
+    navigate(`/app/students/${student.id}`);
   };
 
   const filteredStudents = students.filter((student: Student) => {
@@ -253,7 +255,7 @@ const StudentListPage: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredStudents.map((student: Student) => (
-                  <tr key={student.id} className="hover:bg-gray-50">
+                  <tr key={student.admissionNumber} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="p-2 bg-blue-100 rounded-lg mr-3">
