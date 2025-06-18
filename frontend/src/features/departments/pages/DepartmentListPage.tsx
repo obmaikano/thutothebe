@@ -46,9 +46,9 @@ const DepartmentListPage: React.FC = () => {
     };
   }, [showCreateDropdown, showEditDropdown]);
 
-  const canCreateDepartment = ['SUPER_ADMIN', 'SCHOOL_ADMIN'].includes(user?.role || '');
-  const canManageDepartments = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(user?.role || '');
-  const canViewDepartments = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER', 'SENIOR_TEACHER'].includes(user?.role || '');
+  const canCreateDepartment = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'SCHOOL_HEAD'].includes(user?.role || '');
+  const canManageDepartments = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'SCHOOL_HEAD'].includes(user?.role || '');
+  const canViewDepartments = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER', 'SENIOR_TEACHER', 'SCHOOL_HEAD'].includes(user?.role || '');
 
   const handleCreateDepartment = () => {
     setShowCreateDropdown(false);

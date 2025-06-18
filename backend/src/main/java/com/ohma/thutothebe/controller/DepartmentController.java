@@ -17,7 +17,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/departments")
+@RequestMapping("/departments")
 @Tag(name = "Department Management", description = "APIs for managing departments with multi-tenant security")
 public class DepartmentController extends BaseController<DepartmentDTO, Long> {
 

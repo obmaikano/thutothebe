@@ -633,6 +633,12 @@ export const schoolAdminMenuItems: MenuItem[] = [
     description: 'Manage classes and assignments'
   },
   {
+    icon: Book,
+    label: 'Courses',
+    path: '/app/courses',
+    description: 'Manage courses'
+  },
+  {
     icon: Clock,
     label: 'Timetable Management',
     path: '/app/timetable-management',
@@ -834,6 +840,12 @@ export const schoolHeadMenuItems: MenuItem[] = [
     label: 'Department Management',
     path: '/app/departments',
     description: 'Manage school departments and their resources'
+  },
+  {
+    icon: Book,
+    label: 'Courses',
+    path: '/app/courses',
+    description: 'Manage courses'
   },
   {
     icon: UserSquare,

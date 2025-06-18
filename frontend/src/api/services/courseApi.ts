@@ -7,9 +7,11 @@ export interface CourseType {
 }
 
 export interface Term {
-  FIRST: 'FIRST';
-  SECOND: 'SECOND';
-  THIRD: 'THIRD';
+  FIRST_TERM: 'FIRST_TERM';
+  SECOND_TERM: 'SECOND_TERM';
+  THIRD_TERM: 'THIRD_TERM';
+  SEMESTER_1: 'SEMESTER_1';
+  SEMESTER_2: 'SEMESTER_2';
 }
 
 export interface Course {
@@ -129,7 +131,7 @@ const courseApi = {
 
   /**
    * Get courses by term
-   * @param term Term (FIRST, SECOND, THIRD)
+   * @param term Term (FIRST_TERM, SECOND_TERM, THIRD_TERM, SEMESTER_1, SEMESTER_2)
    * @returns Response with a list of courses for the term
    */
   getByTerm: async (term: keyof Term): Promise<AxiosResponse<CourseResponse>> => {

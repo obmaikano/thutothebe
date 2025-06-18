@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppDispatch } from '../../../app/hooks';
 import { closeModal } from '../../common/modalSlice';
 import { createCourse, fetchCourses } from '../coursesSlice';
-import { Course } from '../../../api/services/courseApi';
+import { Course, CreateCourseRequest } from '../../../api/services/courseApi';
 import CourseFormModal from '../components/CourseFormModal';
 import { BookOpen, Plus } from 'lucide-react';
 
@@ -13,7 +13,7 @@ interface CreateCourseModalProps {
 export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ extraObject }) => {
   const dispatch = useAppDispatch();
   const [isSuccess, setIsSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
@@ -21,11 +21,27 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ extraObjec
   };
 
   const handleSubmit = async (values: Omit<Course, 'id'> | Partial<Course>): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
-      
-      await dispatch(createCourse(values as Omit<Course, 'id'>)).unwrap();
+      // Transform the data to match CreateCourseRequest structure
+      const courseData: CreateCourseRequest = {
+        code: (values.code || '').trim(),
+        name: (values.name || '').trim(),
+        subjectId: Number(values.subjectId) || 1,
+        classId: Number(values.classId) || 1,
+        term: values.term || 'FIRST_TERM',
+        year: Number(values.year) || new Date().getFullYear(),
+        active: Boolean(values.active),
+        type: values.type || 'CORE',
+        instructorIds: Array.isArray(values.instructorIds) ? values.instructorIds : []
+      };
+
+      // Debug: Log the data being sent
+      console.log('Sending course data:', JSON.stringify(courseData, null, 2));
+
+      await dispatch(createCourse(courseData)).unwrap();
       
       setIsSuccess(true);
       
@@ -41,8 +57,9 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ extraObjec
     } catch (error: any) {
       console.error('Failed to create course:', error);
       setError(error.message || 'Failed to create course');
-      setLoading(false);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -73,13 +90,26 @@ export const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ extraObjec
         </div>
       </div>
 
+      {/* Course Info Summary */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <BookOpen className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <div className="font-medium text-gray-900">New Course</div>
+            <div className="text-sm text-gray-500">Fill in the details below to create a course.</div>
+          </div>
+        </div>
+      </div>
+
       {/* Form */}
       <div>
         <CourseFormModal
           onSubmit={handleSubmit}
           onCancel={handleClose}
           isEditing={false}
-          loading={loading}
+          loading={isLoading}
           error={error}
         />
       </div>

@@ -37,7 +37,7 @@ const departmentApi = {
    * @returns Response with a list of departments
    */
   getAll: async (): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get('/api/departments');
+    return api.get('/departments');
   },
 
   /**
@@ -46,7 +46,7 @@ const departmentApi = {
    * @returns Response with department details
    */
   getById: async (id: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/api/departments/${id}`);
+    return api.get(`/departments/${id}`);
   },
 
   /**
@@ -55,7 +55,7 @@ const departmentApi = {
    * @returns Response with departments for the school
    */
   getBySchool: async (schoolId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/api/departments/school/${schoolId}`);
+    return api.get(`/departments/school/${schoolId}`);
   },
 
   /**
@@ -64,7 +64,7 @@ const departmentApi = {
    * @returns Response with active departments for the school
    */
   getActiveBySchool: async (schoolId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/api/departments/school/${schoolId}/active`);
+    return api.get(`/departments/school/${schoolId}/active`);
   },
 
   /**
@@ -72,7 +72,7 @@ const departmentApi = {
    * @returns Response with a list of active departments
    */
   getActive: async (): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get('/api/departments/active');
+    return api.get('/departments/active');
   },
 
   /**
@@ -82,7 +82,7 @@ const departmentApi = {
    * @returns Response with department details
    */
   getByNameAndSchool: async (name: string, schoolId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/api/departments/search?name=${name}&schoolId=${schoolId}`);
+    return api.get(`/departments/search?name=${name}&schoolId=${schoolId}`);
   },
 
   /**
@@ -91,7 +91,7 @@ const departmentApi = {
    * @returns Response with department details
    */
   getByDepartmentHead: async (departmentHeadId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/api/departments/head/${departmentHeadId}`);
+    return api.get(`/departments/head/${departmentHeadId}`);
   },
 
   /**
@@ -100,7 +100,7 @@ const departmentApi = {
    * @returns Response with departments for the teacher
    */
   getByTeacher: async (teacherId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/api/departments/teacher/${teacherId}`);
+    return api.get(`/departments/teacher/${teacherId}`);
   },
 
   /**
@@ -109,7 +109,7 @@ const departmentApi = {
    * @returns Response with department details
    */
   getBySubject: async (subjectId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/api/departments/subject/${subjectId}`);
+    return api.get(`/departments/subject/${subjectId}`);
   },
 
   /**
@@ -118,7 +118,7 @@ const departmentApi = {
    * @returns Response with departments without head
    */
   getDepartmentsWithoutHead: async (schoolId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/api/departments/school/${schoolId}/without-head`);
+    return api.get(`/departments/school/${schoolId}/without-head`);
   },
 
   /**
@@ -127,7 +127,7 @@ const departmentApi = {
    * @returns Response with departments that have subjects
    */
   getDepartmentsWithSubjects: async (schoolId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/api/departments/school/${schoolId}/with-subjects`);
+    return api.get(`/departments/school/${schoolId}/with-subjects`);
   },
 
   /**
@@ -136,7 +136,7 @@ const departmentApi = {
    * @returns Response with count of active departments
    */
   countActiveBySchool: async (schoolId: number): Promise<AxiosResponse<{ data: number }>> => {
-    return api.get(`/api/departments/school/${schoolId}/count`);
+    return api.get(`/departments/school/${schoolId}/count`);
   },
 
   /**
@@ -146,7 +146,7 @@ const departmentApi = {
    * @returns Response with boolean indicating existence
    */
   existsByNameAndSchool: async (name: string, schoolId: number): Promise<AxiosResponse<{ data: boolean }>> => {
-    return api.get(`/api/departments/exists?name=${name}&schoolId=${schoolId}`);
+    return api.get(`/departments/exists?name=${name}&schoolId=${schoolId}`);
   },
 
   /**
@@ -155,7 +155,7 @@ const departmentApi = {
    * @returns Response with created department details
    */
   create: async (departmentData: CreateDepartmentRequest): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.post('/api/departments', departmentData);
+    return api.post('/departments', departmentData);
   },
 
   /**
@@ -165,7 +165,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   update: async (id: number, departmentData: UpdateDepartmentRequest): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.put(`/api/departments/${id}`, departmentData);
+    return api.put(`/departments/${id}`, departmentData);
   },
 
   /**
@@ -174,7 +174,7 @@ const departmentApi = {
    * @returns Response indicating success/failure
    */
   delete: async (id: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.delete(`/api/departments/${id}`);
+    return api.delete(`/departments/${id}`);
   },
 
   /**
@@ -183,7 +183,7 @@ const departmentApi = {
    * @returns Response indicating success/failure
    */
   activate: async (id: number): Promise<AxiosResponse<void>> => {
-    return api.put(`/api/departments/${id}/activate`);
+    return api.put(`/departments/${id}/activate`);
   },
 
   /**
@@ -192,7 +192,7 @@ const departmentApi = {
    * @returns Response indicating success/failure
    */
   deactivate: async (id: number): Promise<AxiosResponse<void>> => {
-    return api.put(`/api/departments/${id}/deactivate`);
+    return api.put(`/departments/${id}/deactivate`);
   },
 
   /**
@@ -202,7 +202,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   assignDepartmentHead: async (departmentId: number, userId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.post(`/api/departments/${departmentId}/head/${userId}`);
+    return api.post(`/departments/${departmentId}/head/${userId}`);
   },
 
   /**
@@ -211,7 +211,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   removeDepartmentHead: async (departmentId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.delete(`/api/departments/${departmentId}/head`);
+    return api.delete(`/departments/${departmentId}/head`);
   },
 
   /**
@@ -221,7 +221,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   assignTeacher: async (departmentId: number, teacherId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.post(`/api/departments/${departmentId}/teachers/${teacherId}`);
+    return api.post(`/departments/${departmentId}/teachers/${teacherId}`);
   },
 
   /**
@@ -231,7 +231,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   removeTeacher: async (departmentId: number, teacherId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.delete(`/api/departments/${departmentId}/teachers/${teacherId}`);
+    return api.delete(`/departments/${departmentId}/teachers/${teacherId}`);
   },
 
   /**
@@ -241,7 +241,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   assignSubject: async (departmentId: number, subjectId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.post(`/api/departments/${departmentId}/subjects/${subjectId}`);
+    return api.post(`/departments/${departmentId}/subjects/${subjectId}`);
   },
 
   /**
@@ -251,7 +251,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   removeSubject: async (departmentId: number, subjectId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.delete(`/api/departments/${departmentId}/subjects/${subjectId}`);
+    return api.delete(`/departments/${departmentId}/subjects/${subjectId}`);
   },
 };
 

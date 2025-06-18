@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { fetchSubjects } from '../../subjects/subjectsSlice';
 import { fetchClasses } from '../../classes/classesSlice';
-import { Course } from '../../../api/services/courseApi';
+import { Course, CreateCourseRequest } from '../../../api/services/courseApi';
 import { Class } from '../../../api/services/classApi';
+import { TextInput } from '../../../components/common/inputs/TextInput';
+import { NumberInput } from '../../../components/common/inputs/NumberInput';
+import { Select } from '../../../components/common/Select';
 
 interface CourseFormModalProps {
   initialValues?: Partial<Course> | null;
@@ -19,7 +22,7 @@ const defaultValues: Omit<Course, 'id'> = {
   code: '',
   subjectId: 1,
   classId: 1,
-  term: 'FIRST',
+  term: 'FIRST_TERM',
   year: new Date().getFullYear(),
   active: true,
   type: 'CORE',
@@ -39,6 +42,7 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
   const { classes } = useAppSelector(state => state.classes);
   const [values, setValues] = useState<Omit<Course, 'id'> | Partial<Course>>(defaultValues);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch subjects and classes on component mount
   useEffect(() => {
@@ -55,21 +59,27 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
     }
   }, [initialValues]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    let parsedValue: string | number | boolean = value;
-
-    // Convert number inputs to numbers
-    if (type === 'number') {
-      parsedValue = value === '' ? 0 : Number(value);
+  const handleInputChange = (name: string, value: any) => {
+    let processedValue = value;
+    
+    // Process specific field types
+    if (name === 'code' && typeof value === 'string') {
+      processedValue = value.toUpperCase(); // Course code should be uppercase
     }
-
-    // Convert checkbox inputs to boolean
-    if (type === 'checkbox') {
-      parsedValue = (e.target as HTMLInputElement).checked;
+    
+    if (name === 'year') {
+      if (typeof value === 'number') {
+        processedValue = Math.max(2000, Math.min(2100, value)); // Ensure year is between 2000-2100
+      } else if (value === '') {
+        processedValue = new Date().getFullYear(); // Default to current year if empty
+      }
     }
-
-    setValues(prev => ({ ...prev, [name]: parsedValue }));
+    
+    if (name === 'subjectId' || name === 'classId') {
+      processedValue = value === '' ? 1 : Number(value);
+    }
+    
+    setValues(prev => ({ ...prev, [name]: processedValue }));
     
     // Clear field-specific error when user changes a value
     if (formErrors[name]) {
@@ -84,12 +94,44 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
-    // Required fields
-    if (!values.name) errors.name = 'Course name is required';
-    if (!values.code) errors.code = 'Course code is required';
-    if (!values.subjectId || values.subjectId <= 0) errors.subjectId = 'Subject is required';
-    if (!values.classId || values.classId <= 0) errors.classId = 'Class is required';
-    if (!values.year || values.year <= 0) errors.year = 'Year is required';
+    // Required fields validation according to CourseDTO
+    if (!values.name || values.name.trim().length === 0) {
+      errors.name = 'Course name is required';
+    } else if (values.name.trim().length < 3) {
+      errors.name = 'Course name must be at least 3 characters';
+    } else if (values.name.trim().length > 100) {
+      errors.name = 'Course name cannot exceed 100 characters';
+    }
+
+    if (!values.code || values.code.trim().length === 0) {
+      errors.code = 'Course code is required';
+    } else if (values.code.trim().length < 3) {
+      errors.code = 'Course code must be at least 3 characters';
+    } else if (values.code.trim().length > 20) {
+      errors.code = 'Course code cannot exceed 20 characters';
+    }
+
+    if (!values.subjectId || values.subjectId <= 0) {
+      errors.subjectId = 'Please select a subject';
+    }
+
+    if (!values.classId || values.classId <= 0) {
+      errors.classId = 'Please select a class';
+    }
+
+    if (!values.year || values.year < 2000) {
+      errors.year = 'Year must be 2000 or later';
+    } else if (values.year > 2100) {
+      errors.year = 'Year cannot exceed 2100';
+    }
+
+    if (!values.term) {
+      errors.term = 'Term is required';
+    }
+
+    if (!values.type) {
+      errors.type = 'Course type is required';
+    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -102,8 +144,19 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
       return;
     }
     
-    await onSubmit(values);
+    setIsSubmitting(true);
+    try {
+      const success = await onSubmit(values);
+      if (!success) {
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      setIsSubmitting(false);
+    }
   };
+
+  const isFormDisabled = isSubmitting || loading;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -117,151 +170,115 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Course name */}
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Course Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="name"
+          <TextInput
+            label="Course Name"
             value={values.name || ''}
-            onChange={handleChange}
-            className={`w-full rounded-md border ${
-              formErrors.name ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+            onChange={(value) => handleInputChange('name', value)}
+            placeholder="e.g., Advanced Mathematics"
             required
+            error={formErrors.name}
+            disabled={isFormDisabled}
           />
-          {formErrors.name && (
-            <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
-          )}
         </div>
 
         {/* Course code */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Course Code <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="code"
+          <TextInput
+            label="Course Code"
             value={values.code || ''}
-            onChange={handleChange}
-            className={`w-full rounded-md border ${
-              formErrors.code ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+            onChange={(value) => handleInputChange('code', value)}
+            placeholder="e.g., MATH101"
             required
+            error={formErrors.code}
+            disabled={isFormDisabled}
           />
-          {formErrors.code && (
-            <p className="mt-1 text-sm text-red-600">{formErrors.code}</p>
-          )}
         </div>
 
         {/* Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Course Type <span className="text-red-500">*</span>
-          </label>
-          <select
+          <Select
+            label="Course Type"
             name="type"
             value={values.type || 'CORE'}
-            onChange={handleChange}
-            className="w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+            onChange={(e) => handleInputChange('type', e.target.value)}
+            options={[
+              { value: 'CORE', label: 'Core' },
+              { value: 'ELECTIVE', label: 'Elective' }
+            ]}
             required
-          >
-            <option value="CORE">Core</option>
-            <option value="ELECTIVE">Elective</option>
-          </select>
+            disabled={isFormDisabled}
+          />
         </div>
 
         {/* Subject */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Subject <span className="text-red-500">*</span>
-          </label>
-          <select
+          <Select
+            label="Subject"
             name="subjectId"
-            value={values.subjectId || ''}
-            onChange={handleChange}
-            className={`w-full rounded-md border ${
-              formErrors.subjectId ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+            value={values.subjectId ? String(values.subjectId) : ''}
+            onChange={(e) => handleInputChange('subjectId', Number(e.target.value))}
+            options={[
+              { value: '', label: 'Select a subject' },
+              ...subjects.map((subject) => ({ 
+                value: String(subject.id), 
+                label: `${subject.name} (${subject.code})` 
+              }))
+            ]}
             required
-          >
-            <option value="">Select a subject</option>
-            {subjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name} ({subject.code})
-              </option>
-            ))}
-          </select>
-          {formErrors.subjectId && (
-            <p className="mt-1 text-sm text-red-600">{formErrors.subjectId}</p>
-          )}
+            error={formErrors.subjectId}
+            disabled={isFormDisabled}
+          />
         </div>
 
         {/* Class */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Class <span className="text-red-500">*</span>
-          </label>
-          <select
+          <Select
+            label="Class"
             name="classId"
-            value={values.classId || ''}
-            onChange={handleChange}
-            className={`w-full rounded-md border ${
-              formErrors.classId ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+            value={values.classId ? String(values.classId) : ''}
+            onChange={(e) => handleInputChange('classId', Number(e.target.value))}
+            options={[
+              { value: '', label: 'Select a class' },
+              ...classes.map((classItem: Class) => ({ 
+                value: String(classItem.id), 
+                label: `${classItem.name} (Grade ${classItem.gradeLevel})` 
+              }))
+            ]}
             required
-          >
-            <option value="">Select a class</option>
-            {classes.map((classItem: Class) => (
-              <option key={classItem.id} value={classItem.id}>
-                {classItem.name} (Grade {classItem.grade})
-              </option>
-            ))}
-          </select>
-          {formErrors.classId && (
-            <p className="mt-1 text-sm text-red-600">{formErrors.classId}</p>
-          )}
+            error={formErrors.classId}
+            disabled={isFormDisabled}
+          />
         </div>
 
         {/* Term */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Term <span className="text-red-500">*</span>
-          </label>
-          <select
+          <Select
+            label="Term"
             name="term"
-            value={values.term || 'FIRST'}
-            onChange={handleChange}
-            className="w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+            value={values.term || 'FIRST_TERM'}
+            onChange={(e) => handleInputChange('term', e.target.value)}
+            options={[
+              { value: 'FIRST_TERM', label: 'First Term' },
+              { value: 'SECOND_TERM', label: 'Second Term' },
+              { value: 'THIRD_TERM', label: 'Third Term' }
+            ]}
             required
-          >
-            <option value="FIRST">First Term</option>
-            <option value="SECOND">Second Term</option>
-            <option value="THIRD">Third Term</option>
-          </select>
+            disabled={isFormDisabled}
+          />
         </div>
 
         {/* Year */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Year <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            name="year"
+          <NumberInput
+            label="Year"
             value={values.year || new Date().getFullYear()}
-            onChange={handleChange}
-            min={new Date().getFullYear() - 5}
-            max={new Date().getFullYear() + 5}
-            className={`w-full rounded-md border ${
-              formErrors.year ? 'border-red-300' : 'border-gray-300'
-            } shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
+            onChange={(value) => handleInputChange('year', value)}
+            min={2000}
+            max={2100}
             required
+            error={formErrors.year}
+            disabled={isFormDisabled}
           />
-          {formErrors.year && (
-            <p className="mt-1 text-sm text-red-600">{formErrors.year}</p>
-          )}
         </div>
 
         {/* Active */}
@@ -271,8 +288,9 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
             name="active"
             type="checkbox"
             checked={values.active || false}
-            onChange={handleChange}
+            onChange={(e) => handleInputChange('active', e.target.checked)}
             className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            disabled={isFormDisabled}
           />
           <label htmlFor="active" className="ml-2 block text-sm text-gray-900">
             Active course
@@ -285,17 +303,17 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
         <button
           type="button"
           onClick={onCancel}
-          disabled={loading}
+          disabled={isFormDisabled}
           className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={isFormDisabled}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
         >
-          {loading ? (
+          {isFormDisabled ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               {isEditing ? 'Updating...' : 'Creating...'}
