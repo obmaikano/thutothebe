@@ -221,7 +221,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   assignTeacher: async (departmentId: number, teacherId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.post(`/departments/${departmentId}/teachers/${teacherId}`);
+    return api.post(`/departments/${departmentId}/teacher/${teacherId}`);
   },
 
   /**
@@ -231,7 +231,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   removeTeacher: async (departmentId: number, teacherId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.delete(`/departments/${departmentId}/teachers/${teacherId}`);
+    return api.delete(`/departments/${departmentId}/teacher/${teacherId}`);
   },
 
   /**
@@ -241,7 +241,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   assignSubject: async (departmentId: number, subjectId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.post(`/departments/${departmentId}/subjects/${subjectId}`);
+    return api.post(`/departments/${departmentId}/subject/${subjectId}`);
   },
 
   /**
@@ -251,7 +251,7 @@ const departmentApi = {
    * @returns Response with updated department details
    */
   removeSubject: async (departmentId: number, subjectId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.delete(`/departments/${departmentId}/subjects/${subjectId}`);
+    return api.delete(`/departments/${departmentId}/subject/${subjectId}`);
   },
 };
 

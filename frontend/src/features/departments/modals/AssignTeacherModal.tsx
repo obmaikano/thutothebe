@@ -4,7 +4,7 @@ import { closeModal } from '../../common/modalSlice';
 import { assignTeacherToDepartment, removeTeacherFromDepartment, fetchDepartmentsBySchool, fetchDepartments } from '../departmentsSlice';
 import { Department } from '../../../api/services/departmentApi';
 import { Users, Search, CheckCircle, X, Plus, Minus } from 'lucide-react';
-import userApi, { User } from '../../../api/services/userApi';
+import teacherApi, { Teacher } from '../../../api/services/teacherApi';
 
 interface AssignTeacherModalProps {
   extraObject?: Department;
@@ -16,29 +16,28 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [availableTeachers, setAvailableTeachers] = useState<User[]>([]);
+  const [availableTeachers, setAvailableTeachers] = useState<Teacher[]>([]);
   const [activeTab, setActiveTab] = useState<'assign' | 'manage'>('assign');
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const department = extraObject;
 
   useEffect(() => {
     const fetchAvailableTeachers = async () => {
+      if (!department) return;
+      
       try {
         setIsLoadingTeachers(true);
         setError(null);
         
-        // Fetch all teachers
-        const response = await userApi.getAllTeachers();
+        // Fetch teachers by school
+        const response = await teacherApi.getBySchool(department.schoolId);
         
         if (response.data.data) {
           const teachers = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
-          // Filter for active teachers in the same school
-          const eligibleTeachers = teachers.filter((teacher: User) => 
-            ['TEACHER', 'SENIOR_TEACHER'].includes(teacher.role) &&
-            teacher.active &&
-            (!teacher.schoolId || teacher.schoolId === department?.schoolId)
-          );
+          // Filter for active teachers only
+          const eligibleTeachers = teachers.filter((teacher: Teacher) => teacher.active);
           setAvailableTeachers(eligibleTeachers);
         } else {
           setAvailableTeachers([]);
@@ -52,9 +51,7 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
       }
     };
 
-    if (department) {
-      fetchAvailableTeachers();
-    }
+    fetchAvailableTeachers();
   }, [department]);
 
   const handleClose = () => {
@@ -67,11 +64,14 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
     try {
       setIsLoading(true);
       setError(null);
+      setSuccessMessage(null);
       
       await dispatch(assignTeacherToDepartment({ 
         departmentId: department.id, 
         teacherId 
       })).unwrap();
+      
+      setSuccessMessage('Teacher assigned successfully');
       
       // Refresh the departments list
       if (user?.schoolId) {
@@ -80,9 +80,12 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
         await dispatch(fetchDepartments());
       }
       
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
     } catch (error: any) {
       console.error('Failed to assign teacher:', error);
-      setError(error || 'Failed to assign teacher');
+      setError(error.message || error || 'Failed to assign teacher');
     } finally {
       setIsLoading(false);
     }
@@ -94,11 +97,14 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
     try {
       setIsLoading(true);
       setError(null);
+      setSuccessMessage(null);
       
       await dispatch(removeTeacherFromDepartment({ 
         departmentId: department.id, 
         teacherId 
       })).unwrap();
+      
+      setSuccessMessage('Teacher removed successfully');
       
       // Refresh the departments list
       if (user?.schoolId) {
@@ -107,9 +113,12 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
         await dispatch(fetchDepartments());
       }
       
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
     } catch (error: any) {
       console.error('Failed to remove teacher:', error);
-      setError(error || 'Failed to remove teacher');
+      setError(error.message || error || 'Failed to remove teacher');
     } finally {
       setIsLoading(false);
     }
@@ -117,15 +126,16 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
 
   const filteredTeachers = availableTeachers.filter(teacher =>
     `${teacher.firstName} ${teacher.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    teacher.email.toLowerCase().includes(searchTerm.toLowerCase())
+    teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    teacher.staffId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const assignedTeachers = availableTeachers.filter(teacher => 
-    department?.teacherIds.includes(teacher.id)
+    department?.teacherIds?.includes(teacher.id) || false
   );
 
   const unassignedTeachers = filteredTeachers.filter(teacher => 
-    !department?.teacherIds.includes(teacher.id)
+    !department?.teacherIds?.includes(teacher.id)
   );
 
   if (!department) {
@@ -158,6 +168,21 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
         </div>
       </div>
 
+      {/* Success Alert */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <div className="flex justify-between items-center">
+            <span>{successMessage}</span>
+            <button
+              onClick={() => setSuccessMessage(null)}
+              className="text-green-500 hover:text-green-700"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Error Alert */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -187,7 +212,7 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
           </div>
           <div>
             <span className="text-gray-600">Current Teachers:</span>
-            <p className="font-medium">{department.teacherIds.length}</p>
+            <p className="font-medium">{department.teacherIds?.length || 0}</p>
           </div>
         </div>
       </div>
@@ -223,7 +248,7 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
         <input
           type="text"
-          placeholder="Search teachers..."
+          placeholder="Search teachers by name, email, or staff ID..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="input input-bordered w-full pl-10"
@@ -263,7 +288,7 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
                         {teacher.firstName} {teacher.lastName}
                       </div>
                       <div className="text-sm text-gray-600">{teacher.email}</div>
-                      <div className="text-xs text-gray-500">{teacher.role.replace('_', ' ')}</div>
+                      <div className="text-xs text-gray-500">Staff ID: {teacher.staffId}</div>
                     </div>
                     <button
                       onClick={() => handleAssignTeacher(teacher.id)}
@@ -295,7 +320,8 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
               assignedTeachers
                 .filter(teacher =>
                   `${teacher.firstName} ${teacher.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  teacher.email.toLowerCase().includes(searchTerm.toLowerCase())
+                  teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  teacher.staffId.toLowerCase().includes(searchTerm.toLowerCase())
                 )
                 .map((teacher) => (
                   <div
@@ -308,7 +334,7 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
                           {teacher.firstName} {teacher.lastName}
                         </div>
                         <div className="text-sm text-gray-600">{teacher.email}</div>
-                        <div className="text-xs text-gray-500">{teacher.role.replace('_', ' ')}</div>
+                        <div className="text-xs text-gray-500">Staff ID: {teacher.staffId}</div>
                       </div>
                       <button
                         onClick={() => handleRemoveTeacher(teacher.id)}

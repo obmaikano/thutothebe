@@ -116,7 +116,14 @@ const quizApi = {
    * @returns Response with created quiz details
    */
   create: async (quizData: CreateQuizRequest): Promise<AxiosResponse<QuizResponse>> => {
-    return api.post('/quizzes', quizData);
+    // Transform the data to match backend CreateQuizDTO format
+    const transformedData = {
+      ...quizData,
+      startDate: quizData.startDate ? `${quizData.startDate}T00:00:00` : null,
+      endDate: quizData.endDate ? `${quizData.endDate}T23:59:59` : null,
+      totalPoints: quizData.totalPoints || 0
+    };
+    return api.post('/quizzes/create', transformedData);
   },
 
   /**

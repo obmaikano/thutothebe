@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.QuizDTO;
+import com.ohma.thutothebe.dto.CreateQuizDTO;
 import com.ohma.thutothebe.entity.QuizStatus;
 
 import java.util.List;
@@ -13,6 +14,13 @@ public interface QuizService extends BaseService<QuizDTO, Long> {
     List<QuizDTO> getByCourseIdAndStatus(Long courseId, QuizStatus status);
     List<QuizDTO> getActiveByCourseId(Long courseId);
     boolean existsByCode(String code);
+    
+    /**
+     * Create a new quiz using CreateQuizDTO
+     * @param createQuizDTO the quiz creation data
+     * @return the created quiz
+     */
+    QuizDTO createQuiz(CreateQuizDTO createQuizDTO);
 
     // ==================== MULTI-TENANT FILTERING METHODS ====================
     

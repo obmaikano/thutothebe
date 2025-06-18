@@ -80,7 +80,14 @@ const QuizCreationPage: React.FC = () => {
       if (isEditing && id) {
         await dispatch(updateQuiz({ id: Number(id), quizData })).unwrap();
       } else {
-        const result = await dispatch(createQuiz(quizData as CreateQuizRequest)).unwrap();
+        // Calculate total points from questions or set to 0 if no questions
+        const calculatedTotalPoints = calculateTotalPoints();
+        const quizDataWithPoints = {
+          ...quizData,
+          totalPoints: calculatedTotalPoints
+        };
+        
+        const result = await dispatch(createQuiz(quizDataWithPoints as CreateQuizRequest)).unwrap();
         if (result && !Array.isArray(result) && 'id' in result) {
           navigate(`/app/quiz-creation/${result.id}`);
         }

@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.mapper;
 
 import com.ohma.thutothebe.dto.QuizDTO;
+import com.ohma.thutothebe.dto.CreateQuizDTO;
 import com.ohma.thutothebe.entity.Quiz;
 import org.springframework.stereotype.Component;
 
@@ -53,6 +54,16 @@ public class QuizMapper implements BaseDtoMapper<Quiz, QuizDTO> {
         return entity;
     }
 
+    public Quiz toEntity(CreateQuizDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        Quiz entity = new Quiz();
+        updateEntity(entity, dto);
+        return entity;
+    }
+
     public void updateEntity(Quiz entity, QuizDTO dto) {
         entity.setCode(dto.code());
         entity.setTitle(dto.title());
@@ -62,5 +73,21 @@ public class QuizMapper implements BaseDtoMapper<Quiz, QuizDTO> {
         entity.setTimeLimit(dto.timeLimit());
         entity.setTotalPoints(dto.totalPoints());
         entity.setStatus(dto.status());
+    }
+
+    public void updateEntity(Quiz entity, CreateQuizDTO dto) {
+        entity.setCode(dto.code());
+        entity.setTitle(dto.title());
+        entity.setDescription(dto.description());
+        entity.setStartDate(dto.startDate());
+        entity.setEndDate(dto.endDate());
+        entity.setTimeLimit(dto.timeLimit());
+        entity.setTotalPoints(dto.totalPoints());
+        entity.setStatus(dto.status());
+        entity.setGradingType(dto.gradingType());
+        entity.setAutoGradeImmediately(dto.autoGradeImmediately());
+        entity.setShowResultsImmediately(dto.showResultsImmediately());
+        entity.setMaxAttempts(dto.maxAttempts());
+        entity.setActive(dto.active());
     }
 }

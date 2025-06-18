@@ -2,6 +2,7 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.dto.QuizDTO;
+import com.ohma.thutothebe.dto.CreateQuizDTO;
 import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.QuizStatus;
 import com.ohma.thutothebe.service.QuizService;
@@ -25,6 +26,37 @@ public class QuizController extends BaseController<QuizDTO, Long> {
     public QuizController(QuizService quizService) {
         super(quizService);
         this.quizService = quizService;
+    }
+
+    @PostMapping("/create")
+    @Operation(summary = "Create a new quiz")
+    public ResponseEntity<OhmaApiResponse<QuizDTO>> createQuiz(@RequestBody CreateQuizDTO createQuizDTO) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            // Check if user has access to create quizzes for this course (class-level access required)
+            if (!hasAccess(AccessScope.CLASS, createQuizDTO.courseId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to create quiz for this course", null, null));
+            }
+
+            // Check if user has access to create quizzes for this instructor (user-level access required)
+            if (!hasAccess(AccessScope.USER, createQuizDTO.instructorId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new OhmaApiResponse<>("ERROR", "Access denied to create quiz for this instructor", null, null));
+            }
+
+            QuizDTO created = quizService.createQuiz(createQuizDTO);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Quiz created successfully", created, null));
+        } catch (Exception e) {
+            log.error("Error creating quiz: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
     }
 
     @Override

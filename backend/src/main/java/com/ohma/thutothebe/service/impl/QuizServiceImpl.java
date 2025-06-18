@@ -1,10 +1,13 @@
 package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.QuizDTO;
+import com.ohma.thutothebe.dto.CreateQuizDTO;
 import com.ohma.thutothebe.entity.*;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.QuizMapper;
 import com.ohma.thutothebe.repository.QuizRepository;
+import com.ohma.thutothebe.repository.CourseRepository;
+import com.ohma.thutothebe.repository.UserRepository;
 import com.ohma.thutothebe.service.QuizService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,14 +25,19 @@ public class QuizServiceImpl extends BaseServiceImpl<Quiz, QuizDTO, Long> implem
     private final QuizRepository quizRepository;
     private final QuizMapper quizMapper;
     private final RuleBasedAccessControlServiceImpl accessControlService;
+    private final CourseRepository courseRepository;
+    private final UserRepository userRepository;
 
     @Autowired
     public QuizServiceImpl(QuizRepository quizRepository, QuizMapper quizMapper,
-                          RuleBasedAccessControlServiceImpl accessControlService) {
+                          RuleBasedAccessControlServiceImpl accessControlService,
+                          CourseRepository courseRepository, UserRepository userRepository) {
         super(quizRepository);
         this.quizRepository = quizRepository;
         this.quizMapper = quizMapper;
         this.accessControlService = accessControlService;
+        this.courseRepository = courseRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -92,6 +100,31 @@ public class QuizServiceImpl extends BaseServiceImpl<Quiz, QuizDTO, Long> implem
     @Override
     public boolean existsByCode(String code) {
         return quizRepository.existsByCode(code);
+    }
+
+    @Override
+    @Transactional
+    public QuizDTO createQuiz(CreateQuizDTO createQuizDTO) {
+        // Validate that course exists
+        Course course = courseRepository.findById(createQuizDTO.courseId())
+            .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + createQuizDTO.courseId()));
+        
+        // Validate that instructor exists
+        User instructor = userRepository.findById(createQuizDTO.instructorId())
+            .orElseThrow(() -> new ResourceNotFoundException("Instructor not found with id: " + createQuizDTO.instructorId()));
+        
+        // Create quiz entity from DTO
+        Quiz quiz = quizMapper.toEntity(createQuizDTO);
+        
+        // Set the course and instructor entities
+        quiz.setCourse(course);
+        quiz.setInstructor(instructor);
+        
+        // Save the quiz
+        Quiz savedQuiz = quizRepository.save(quiz);
+        
+        log.info("Quiz created successfully: {} by user: {}", savedQuiz.getCode(), getCurrentUserId());
+        return mapToDto(savedQuiz);
     }
 
     // ==================== MULTI-TENANT FILTERING METHODS ====================
