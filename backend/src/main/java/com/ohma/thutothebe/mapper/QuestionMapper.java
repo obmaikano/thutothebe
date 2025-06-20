@@ -2,6 +2,8 @@ package com.ohma.thutothebe.mapper;
 
 import com.ohma.thutothebe.dto.QuestionDTO;
 import com.ohma.thutothebe.entity.Question;
+import com.ohma.thutothebe.entity.QuestionOption;
+import com.ohma.thutothebe.repository.QuizRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
@@ -10,9 +12,11 @@ import java.util.stream.Collectors;
 public class QuestionMapper implements BaseDtoMapper<Question, QuestionDTO> {
 
     private final QuestionOptionMapper optionMapper;
+    private final QuizRepository quizRepository;
 
-    public QuestionMapper(QuestionOptionMapper optionMapper) {
+    public QuestionMapper(QuestionOptionMapper optionMapper, QuizRepository quizRepository) {
         this.optionMapper = optionMapper;
+        this.quizRepository = quizRepository;
     }
 
     @Override
@@ -54,5 +58,20 @@ public class QuestionMapper implements BaseDtoMapper<Question, QuestionDTO> {
         entity.setPoints(dto.points());
         entity.setCorrectAnswer(dto.correctAnswer());
         entity.setActive(dto.active());
+        entity.setQuiz(dto.quizId() != null ? quizRepository.findById(dto.quizId()).get() : null);
+        
+        // Create options and set the question relationship
+        if (dto.options() != null) {
+            entity.setOptions(dto.options().stream()
+                .map(optionDto -> {
+                    QuestionOption option = new QuestionOption();
+                    option.setText(optionDto.text());
+                    option.setCorrect(optionDto.isCorrect());
+                    option.setActive(optionDto.active());
+                    option.setQuestion(entity);
+                    return option;
+                })
+                .collect(Collectors.toSet()));
+        }
     }
 } 

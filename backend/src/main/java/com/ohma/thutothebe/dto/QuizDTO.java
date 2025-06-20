@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.dto;
 
 import com.ohma.thutothebe.entity.QuizStatus;
+import com.ohma.thutothebe.entity.enums.GradingType;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -17,6 +18,10 @@ public record QuizDTO(
     Integer timeLimit,
     Integer totalPoints,
     QuizStatus status,
+    GradingType gradingType,
+    boolean autoGradeImmediately,
+    boolean showResultsImmediately,
+    Integer maxAttempts,
     Set<QuestionDTO> questions,
     boolean active
 ) {
@@ -42,11 +47,17 @@ public record QuizDTO(
         if (timeLimit == null || timeLimit <= 0) {
             throw new IllegalArgumentException("Time limit must be greater than 0");
         }
-        if (totalPoints == null || totalPoints <= 0) {
+        if (totalPoints == null || totalPoints < 0) {
             throw new IllegalArgumentException("Total points must be greater than 0");
         }
         if (status == null) {
             throw new IllegalArgumentException("Status cannot be null");
+        }
+        if (gradingType == null) {
+            gradingType = GradingType.AUTO;
+        }
+        if (maxAttempts == null || maxAttempts <= 0) {
+            maxAttempts = 1;
         }
     }
 } 

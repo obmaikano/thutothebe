@@ -2,8 +2,10 @@ package com.ohma.thutothebe.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -11,8 +13,10 @@ import java.util.Set;
 
 @Entity
 @Table(name = "quiz_submissions")
-@Data
-@EqualsAndHashCode(callSuper = true)
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = true, exclude = {"quiz", "student", "responses"})
+@ToString(callSuper = true, exclude = {"quiz", "student", "responses"})
 public class QuizSubmission extends BaseEntity {
 
     @NotNull

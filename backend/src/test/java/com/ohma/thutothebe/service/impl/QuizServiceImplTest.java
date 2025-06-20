@@ -3,6 +3,7 @@ package com.ohma.thutothebe.service.impl;
 import com.ohma.thutothebe.dto.QuizDTO;
 import com.ohma.thutothebe.entity.Quiz;
 import com.ohma.thutothebe.entity.QuizStatus;
+import com.ohma.thutothebe.entity.enums.GradingType;
 import com.ohma.thutothebe.mapper.QuizMapper;
 import com.ohma.thutothebe.repository.QuizRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +59,10 @@ class QuizServiceImplTest {
             30,
             100,
             QuizStatus.DRAFT,
+            GradingType.AUTO,
+            true,
+            true,
+            1,
             null,
             true
         );

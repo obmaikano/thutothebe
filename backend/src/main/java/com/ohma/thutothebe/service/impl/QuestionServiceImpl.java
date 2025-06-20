@@ -7,6 +7,7 @@ import com.ohma.thutothebe.mapper.QuestionMapper;
 import com.ohma.thutothebe.repository.QuestionRepository;
 import com.ohma.thutothebe.service.QuestionService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,5 +67,26 @@ public class QuestionServiceImpl extends BaseServiceImpl<Question, QuestionDTO, 
     protected Long extractRegionId(Question entity) {
         return entity.getQuiz() != null && entity.getQuiz().getCourse() != null && entity.getQuiz().getCourse().getClassEntity() != null && entity.getQuiz().getCourse().getClassEntity().getSchool() != null && entity.getQuiz().getCourse().getClassEntity().getSchool().getRegion() != null 
             ? entity.getQuiz().getCourse().getClassEntity().getSchool().getRegion().getId() : null;
+    }
+
+    @Override
+    @CacheEvict(value = {"accessControl", "accessibleScopes"}, allEntries = true)
+    public QuestionDTO create(QuestionDTO dto) {
+        Question entity = mapToEntity(dto);
+
+        // Enterprise security validation
+        validateBusinessRules(entity, false);
+
+        beforeCreate(entity);
+
+        try {
+            Question savedEntity = repository.save(entity);
+            log.info("Entity created successfully: {} by user: {}",
+                    savedEntity.getClass().getSimpleName(), getCurrentUserId());
+            return mapToDto(savedEntity);
+        } catch (Exception e) {
+            log.error("Failed to create entity: {}", e.getMessage());
+            throw new RuntimeException("Failed to create entity: " + e.getMessage(), e);
+        }
     }
 } 

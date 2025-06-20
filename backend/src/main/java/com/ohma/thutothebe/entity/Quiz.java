@@ -4,8 +4,10 @@ import com.ohma.thutothebe.entity.enums.GradingType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -13,8 +15,10 @@ import java.util.Set;
 
 @Entity
 @Table(name = "quizzes")
-@Data
-@EqualsAndHashCode(callSuper = true)
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = true, exclude = {"questions"})
+@ToString(callSuper = true, exclude = {"questions"})
 public class Quiz extends BaseEntity implements Gradable {
 
     @NotBlank

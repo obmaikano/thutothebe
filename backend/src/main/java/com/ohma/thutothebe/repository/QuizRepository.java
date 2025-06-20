@@ -118,8 +118,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     
     // Combined filtering for complex access patterns
     @Query("SELECT q FROM Quiz q WHERE " +
-           "(q.course.classEntity.school.id IN :schoolIds OR q.course.classEntity.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) " +
-           "AND q.active = true")
+           "(q.course.classEntity.school.id IN :schoolIds OR q.course.classEntity.school.region.id IN :regionIds OR q.instructor.id IN :instructorIds) ")
     List<Quiz> findByMultiScopeAccess(@Param("schoolIds") List<Long> schoolIds, 
                                      @Param("regionIds") List<Long> regionIds, 
                                      @Param("instructorIds") List<Long> instructorIds);

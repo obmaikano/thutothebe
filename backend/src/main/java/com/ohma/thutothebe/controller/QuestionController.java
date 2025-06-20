@@ -25,6 +25,26 @@ public class QuestionController extends BaseController<QuestionDTO, Long> {
         this.questionService = questionService;
     }
 
+    @Override
+    @PostMapping
+    @Operation(summary = "Create a new resource")
+    public ResponseEntity<OhmaApiResponse<QuestionDTO>> create(@RequestBody QuestionDTO dto) {
+        try {
+
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+
+            QuestionDTO created = service.create(dto);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Resource created successfully", created, null));
+        } catch (Exception e) {
+            log.error("Error creating resource: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/quiz/{quizId}")
     @Operation(summary = "Get questions by quiz ID")
     public ResponseEntity<OhmaApiResponse<List<QuestionDTO>>> getByQuizId(@PathVariable Long quizId) {

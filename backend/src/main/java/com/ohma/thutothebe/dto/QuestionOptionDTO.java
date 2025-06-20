@@ -11,8 +11,6 @@ public record QuestionOptionDTO(
         if (text == null || text.isBlank()) {
             throw new IllegalArgumentException("Text cannot be null or blank");
         }
-        if (questionId == null) {
-            throw new IllegalArgumentException("Question ID cannot be null");
-        }
+        // Allow questionId to be null during creation (will be set when creating as part of a question)
     }
 } 

@@ -34,6 +34,10 @@ public class QuizMapper implements BaseDtoMapper<Quiz, QuizDTO> {
             entity.getTimeLimit(),
             entity.getTotalPoints(),
             entity.getStatus(),
+            entity.getGradingType(),
+            entity.isAutoGradeImmediately(),
+            entity.isShowResultsImmediately(),
+            entity.getMaxAttempts(),
             entity.getQuestions() != null ? 
                 entity.getQuestions().stream()
                     .map(questionMapper::toDto)
@@ -73,6 +77,11 @@ public class QuizMapper implements BaseDtoMapper<Quiz, QuizDTO> {
         entity.setTimeLimit(dto.timeLimit());
         entity.setTotalPoints(dto.totalPoints());
         entity.setStatus(dto.status());
+        entity.setGradingType(dto.gradingType());
+        entity.setAutoGradeImmediately(dto.autoGradeImmediately());
+        entity.setShowResultsImmediately(dto.showResultsImmediately());
+        entity.setMaxAttempts(dto.maxAttempts());
+        entity.setActive(dto.active());
     }
 
     public void updateEntity(Quiz entity, CreateQuizDTO dto) {
