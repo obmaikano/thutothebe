@@ -44,41 +44,51 @@ export interface AttendanceRecord {
 
 // Request interfaces
 export interface CreateAttendanceRequest {
-  studentEntityId: number;
-  classId: number;
+  // Required fields (matching @NotNull annotations)
+  studentEntityId: number;  // @NotNull
+  classId: number;  // @NotNull
+  markedById: number;  // @NotNull
+  attendanceDate: string;  // @NotNull, @PastOrPresent
+  attendanceStatus: 'PRESENT' | 'ABSENT_EXCUSED' | 'ABSENT_UNEXCUSED' | 'LATE' | 'EARLY_DEPARTURE';  // @NotNull
+  attendanceType: 'DAILY' | 'PERIOD' | 'EVENT';  // @NotNull
+  academicYear: number;  // @NotNull, must be 2000-2100
+  
+  // Optional fields
+  studentUserId?: number;  // Optional - for students with user accounts
   courseId?: number;
   subjectId?: number;
-  attendanceDate: string;
-  attendanceType: 'DAILY' | 'PERIOD' | 'EVENT';
-  attendanceStatus: 'PRESENT' | 'ABSENT_EXCUSED' | 'ABSENT_UNEXCUSED' | 'LATE' | 'EARLY_DEPARTURE';
-  periodNumber?: number;
+  periodNumber?: number;  // Required if attendanceType is PERIOD
   periodStartTime?: string;
   periodEndTime?: string;
   arrivalTime?: string;
   departureTime?: string;
-  academicYear: number;
-  term: 'FIRST_TERM' | 'SECOND_TERM' | 'THIRD_TERM';
+  term?: 'FIRST_TERM' | 'SECOND_TERM' | 'THIRD_TERM';
   remarks?: string;
+  modifiedById?: number;
 }
 
 export interface BulkAttendanceRequest {
-  classId: number;
-  courseId?: number;
-  subjectId?: number;
-  attendanceDate: string;
-  attendanceType: 'DAILY' | 'PERIOD' | 'EVENT';
-  periodNumber?: number;
-  periodStartTime?: string;
-  periodEndTime?: string;
-  academicYear: number;
-  term: 'FIRST_TERM' | 'SECOND_TERM' | 'THIRD_TERM';
-  studentAttendances: Array<{
-    studentEntityId: number;
-    attendanceStatus: 'PRESENT' | 'ABSENT_EXCUSED' | 'ABSENT_UNEXCUSED' | 'LATE' | 'EARLY_DEPARTURE';
+  // Required fields (matching @NotNull annotations)
+  classId: number;  // @NotNull
+  attendanceDate: string;  // @NotNull, cannot be in future
+  attendanceType: 'DAILY' | 'PERIOD' | 'EVENT';  // @NotNull
+  academicYear: number;  // @NotNull, must be 2000-2100
+  markedById: number;  // @NotNull
+  studentAttendances: Array<{  // @NotEmpty
+    studentId: number;  // @NotNull
+    attendanceStatus: 'PRESENT' | 'ABSENT_EXCUSED' | 'ABSENT_UNEXCUSED' | 'LATE' | 'EARLY_DEPARTURE';  // @NotNull
     arrivalTime?: string;
     departureTime?: string;
     remarks?: string;
   }>;
+  
+  // Optional fields
+  courseId?: number;
+  subjectId?: number;
+  periodNumber?: number;  // Required if attendanceType is PERIOD
+  periodStartTime?: string;
+  periodEndTime?: string;
+  term?: 'FIRST_TERM' | 'SECOND_TERM' | 'THIRD_TERM';
 }
 
 // Filter interface
@@ -167,11 +177,11 @@ const attendanceApi = {
 
   // Bulk operations
   createBulk: async (bulkData: BulkAttendanceRequest): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
-    return api.post('/attendance/bulk', bulkData);
+    return api.post('/attendance/bulk/mark', bulkData);
   },
 
   updateBulk: async (bulkData: BulkAttendanceRequest): Promise<AxiosResponse<AttendanceResponse<AttendanceRecord[]>>> => {
-    return api.put('/attendance/bulk', bulkData);
+    return api.put('/attendance/bulk/update', bulkData);
   },
 
   deleteBulk: async (ids: number[]): Promise<AxiosResponse<AttendanceResponse<void>>> => {

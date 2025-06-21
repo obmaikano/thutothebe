@@ -101,6 +101,7 @@ const ClassManagementPage: React.FC = () => {
     dispatch(openModal({
       title: 'Take Attendance',
       bodyType: MODAL_BODY_TYPES.ATTENDANCE_TAKE,
+      size: 'lg',
       extraObject: classItem
     }));
   };

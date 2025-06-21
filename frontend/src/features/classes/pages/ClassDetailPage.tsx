@@ -13,6 +13,12 @@ import {
 import { fetchSchools } from '../../schools/schoolsSlice';
 import { fetchStudents, fetchStudentsByClass } from '../../students/studentsSlice';
 import { fetchTeachers } from '../../teachers/teachersSlice';
+import { 
+  fetchAttendanceByClass, 
+  fetchAttendanceStats,
+  fetchAttendanceSummary,
+  clearError
+} from '../../attendance/attendanceSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { 
@@ -32,7 +38,8 @@ import {
   TrendingUp,
   Award,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  User
 } from 'lucide-react';
 
 const ClassDetailPage: React.FC = () => {
@@ -44,6 +51,12 @@ const ClassDetailPage: React.FC = () => {
   const { schools } = useAppSelector(state => state.schools);
   const { students } = useAppSelector(state => state.students);
   const { teachers } = useAppSelector(state => state.teachers);
+  const { 
+    attendanceRecords, 
+    attendanceStats, 
+    attendanceSummary, 
+    status: attendanceStatus 
+  } = useAppSelector(state => state.attendance);
   
   const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'teachers' | 'reports' | 'attendance'>('overview');
   const [isLoading, setIsLoading] = useState(false);
@@ -57,11 +70,29 @@ const ClassDetailPage: React.FC = () => {
       dispatch(fetchSchools());
       dispatch(fetchStudents());
       dispatch(fetchTeachers());
+      
+      // Fetch attendance data for the class
+      dispatch(fetchAttendanceByClass({ 
+        classId, 
+        filters: { 
+          page: 0, 
+          size: 10, 
+          sortBy: 'attendanceDate', 
+          sortDirection: 'DESC' 
+        } 
+      }));
+      
+      // Fetch attendance stats for the class
+      dispatch(fetchAttendanceStats({ classId }));
+      
+      // Fetch attendance summary for the class
+      dispatch(fetchAttendanceSummary({ classId }));
     }
     
     return () => {
       dispatch(clearCurrentClass());
       dispatch(clearClassesError());
+      dispatch(clearError());
     };
   }, [dispatch, id]);
 
@@ -111,12 +142,45 @@ const ClassDetailPage: React.FC = () => {
         dispatch(fetchClassWithStudents(currentClass.id)),
         dispatch(fetchStudentsByClass(currentClass.id)),
         dispatch(fetchStudents()),
-        dispatch(fetchTeachers())
+        dispatch(fetchTeachers()),
+        dispatch(fetchAttendanceByClass({ 
+          classId: currentClass.id, 
+          filters: { 
+            page: 0, 
+            size: 10, 
+            sortBy: 'attendanceDate', 
+            sortDirection: 'DESC' 
+          } 
+        })),
+        dispatch(fetchAttendanceStats({ classId: currentClass.id })),
+        dispatch(fetchAttendanceSummary({ classId: currentClass.id }))
       ]);
     } catch (error) {
       console.error('Failed to refresh data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const refreshAttendanceData = async () => {
+    if (!currentClass) return;
+    
+    try {
+      await Promise.all([
+        dispatch(fetchAttendanceByClass({ 
+          classId: currentClass.id, 
+          filters: { 
+            page: 0, 
+            size: 10, 
+            sortBy: 'attendanceDate', 
+            sortDirection: 'DESC' 
+          } 
+        })),
+        dispatch(fetchAttendanceStats({ classId: currentClass.id })),
+        dispatch(fetchAttendanceSummary({ classId: currentClass.id }))
+      ]);
+    } catch (error) {
+      console.error('Failed to refresh attendance data:', error);
     }
   };
 
@@ -241,10 +305,12 @@ const ClassDetailPage: React.FC = () => {
       dispatch(openModal({
         title: 'Take Attendance',
         bodyType: MODAL_BODY_TYPES.ATTENDANCE_TAKE,
+        size: 'lg',
         extraObject: { 
           classId: currentClass.id, 
           className: currentClass.name,
-          students: getEnrolledStudents()
+          students: getEnrolledStudents(),
+          onSuccess: refreshAttendanceData // Callback to refresh attendance data
         }
       }));
     }
@@ -255,6 +321,7 @@ const ClassDetailPage: React.FC = () => {
       dispatch(openModal({
         title: 'Generate Report',
         bodyType: MODAL_BODY_TYPES.REPORT_GENERATE,
+        size: 'lg',
         extraObject: { 
           classId: currentClass.id, 
           className: currentClass.name,
@@ -269,6 +336,7 @@ const ClassDetailPage: React.FC = () => {
       dispatch(openModal({
         title: 'Class Calendar',
         bodyType: MODAL_BODY_TYPES.CALENDAR_VIEW,
+        size: 'lg',
         extraObject: { 
           classId: currentClass.id, 
           className: currentClass.name
@@ -370,7 +438,7 @@ const ClassDetailPage: React.FC = () => {
 
       {/* Class Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="bg-wente border border-gray-200 rounded-lg p-6">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg mr-3">
               <Users className="h-6 w-6 text-blue-600" />
@@ -785,10 +853,359 @@ const ClassDetailPage: React.FC = () => {
         )}
 
         {activeTab === 'attendance' && (
-          <div className="text-center py-8">
-            <ClipboardCheck className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Attendance tab</h3>
-            <p className="mt-1 text-sm text-gray-500">Attendance tracking functionality coming soon.</p>
+          <div className="space-y-6">
+            {/* Attendance Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg mr-3">
+                    <Users className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {enrolledStudents.length}
+                    </div>
+                    <div className="text-sm text-gray-500">Total Students</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                    <ClipboardCheck className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {attendanceStats?.attendanceRate ? Math.round(attendanceStats.attendanceRate) : 0}%
+                    </div>
+                    <div className="text-sm text-gray-500">Attendance Rate</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-yellow-100 rounded-lg mr-3">
+                    <Clock className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {attendanceStats?.lateCount || 0}
+                    </div>
+                    <div className="text-sm text-gray-500">Late Today</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-red-100 rounded-lg mr-3">
+                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {(attendanceStats?.absentExcusedCount || 0) + (attendanceStats?.absentUnexcusedCount || 0)}
+                    </div>
+                    <div className="text-sm text-gray-500">Absent Today</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleTakeAttendance}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 flex items-center gap-2"
+                  >
+                    <ClipboardCheck className="h-4 w-4" />
+                    Take Attendance
+                  </button>
+                  <button
+                    onClick={() => {
+                      dispatch(openModal({
+                        title: 'Attendance Report',
+                        bodyType: MODAL_BODY_TYPES.ATTENDANCE_REPORT,
+                        size: 'lg',
+                        extraObject: { 
+                          classId: currentClass?.id, 
+                          className: currentClass?.name,
+                          students: enrolledStudents
+                        }
+                      }));
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 flex items-center gap-2"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    View Report
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Today's Attendance</h4>
+                  <p className="text-sm text-gray-600 mb-3">Mark attendance for today's class</p>
+                  <button
+                    onClick={handleTakeAttendance}
+                    className="w-full px-3 py-2 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+                  >
+                    Mark Today
+                  </button>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Bulk Operations</h4>
+                  <p className="text-sm text-gray-600 mb-3">Mark all students present or absent</p>
+                  <button
+                    onClick={() => {
+                      dispatch(openModal({
+                        title: 'Bulk Attendance',
+                        bodyType: MODAL_BODY_TYPES.ATTENDANCE_BULK_MARK,
+                        size: 'lg',
+                        extraObject: { 
+                          classId: currentClass?.id, 
+                          className: currentClass?.name,
+                          students: enrolledStudents
+                        }
+                      }));
+                    }}
+                    className="w-full px-3 py-2 text-sm font-medium text-green-600 border border-green-600 rounded-md hover:bg-green-50"
+                  >
+                    Bulk Mark
+                  </button>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Export Data</h4>
+                  <p className="text-sm text-gray-600 mb-3">Export attendance records</p>
+                  <button
+                    onClick={() => {
+                      dispatch(openModal({
+                        title: 'Export Attendance',
+                        bodyType: MODAL_BODY_TYPES.ATTENDANCE_REPORT,
+                        size: 'lg',
+                        extraObject: { 
+                          classId: currentClass?.id, 
+                          className: currentClass?.name,
+                          mode: 'export'
+                        }
+                      }));
+                    }}
+                    className="w-full px-3 py-2 text-sm font-medium text-purple-600 border border-purple-600 rounded-md hover:bg-purple-50"
+                  >
+                    Export
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Attendance */}
+            <div className="bg-white border border-gray-200 rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Recent Attendance Records
+                  </h3>
+                  <button
+                    onClick={() => {
+                      dispatch(openModal({
+                        title: 'Attendance History',
+                        bodyType: MODAL_BODY_TYPES.ATTENDANCE_VIEW_DETAILS,
+                        size: 'lg',
+                        extraObject: { 
+                          classId: currentClass?.id, 
+                          className: currentClass?.name,
+                          students: enrolledStudents
+                        }
+                      }));
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    View All
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {attendanceRecords.length > 0 ? (
+                  <div className="space-y-4">
+                    {attendanceRecords.slice(0, 5).map((record) => (
+                      <div key={record.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex-shrink-0">
+                            <div className={`w-3 h-3 rounded-full ${
+                              record.attendanceStatus === 'PRESENT' ? 'bg-green-500' :
+                              record.attendanceStatus === 'LATE' ? 'bg-yellow-500' :
+                              'bg-red-500'
+                            }`} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {record.studentName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {new Date(record.attendanceDate).toLocaleDateString()} • {record.attendanceType}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            record.attendanceStatus === 'PRESENT' ? 'bg-green-100 text-green-800' :
+                            record.attendanceStatus === 'LATE' ? 'bg-yellow-100 text-yellow-800' :
+                            record.attendanceStatus === 'ABSENT_EXCUSED' ? 'bg-orange-100 text-orange-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {record.attendanceStatus.replace('_', ' ')}
+                          </span>
+                          {record.arrivalTime && (
+                            <span className="text-xs text-gray-500">
+                              Arrived: {record.arrivalTime}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <ClipboardCheck className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                    <h3 className="text-sm font-medium text-gray-900">No recent attendance records</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Start tracking attendance by marking today's attendance.
+                    </p>
+                    <div className="mt-6">
+                      <button
+                        onClick={handleTakeAttendance}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                      >
+                        <ClipboardCheck className="h-4 w-4 mr-2" />
+                        Take Attendance
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Student Attendance Summary */}
+            {enrolledStudents.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-lg">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Student Attendance Summary
+                  </h3>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Student
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Attendance Rate
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Last Marked
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {enrolledStudents.map((student) => (
+                        <tr key={student.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10">
+                                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                  <User className="h-6 w-6 text-gray-600" />
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {student.firstName} {student.lastName}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {student.admissionNumber || student.id}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                              student.active 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {student.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm font-medium text-gray-900">
+                              {(() => {
+                                const studentRecords = attendanceRecords.filter(record => record.studentEntityId === student.id);
+                                if (studentRecords.length === 0) return 'N/A';
+                                
+                                const presentCount = studentRecords.filter(record => record.attendanceStatus === 'PRESENT').length;
+                                const attendanceRate = Math.round((presentCount / studentRecords.length) * 100);
+                                return `${attendanceRate}%`;
+                              })()}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm text-gray-500">
+                              {(() => {
+                                const studentRecords = attendanceRecords.filter(record => record.studentEntityId === student.id);
+                                if (studentRecords.length === 0) return 'Never';
+                                
+                                const latestRecord = studentRecords.sort((a, b) => 
+                                  new Date(b.attendanceDate).getTime() - new Date(a.attendanceDate).getTime()
+                                )[0];
+                                
+                                return new Date(latestRecord.attendanceDate).toLocaleDateString();
+                              })()}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => {
+                                dispatch(openModal({
+                                  title: 'Mark Student Attendance',
+                                  bodyType: MODAL_BODY_TYPES.ATTENDANCE_MARK,
+                                  size: 'lg',
+                                  extraObject: { 
+                                    studentId: student.id,
+                                    classId: currentClass?.id,
+                                    studentName: `${student.firstName} ${student.lastName}`,
+                                    mode: 'create',
+                                    onSuccess: refreshAttendanceData
+                                  }
+                                }));
+                              }}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="Mark attendance for this student"
+                            >
+                              <ClipboardCheck className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

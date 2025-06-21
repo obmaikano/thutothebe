@@ -278,7 +278,7 @@ const AttendanceMarkingPage: React.FC = () => {
         academicYear,
         term,
         studentAttendances: studentAttendances.map(student => ({
-          studentEntityId: student.studentEntityId,
+          studentId: student.studentEntityId,
           attendanceStatus: student.attendanceStatus,
           arrivalTime: student.arrivalTime,
           departureTime: student.departureTime,

@@ -66,16 +66,32 @@ export const fetchAttendanceById = createAsyncThunk(
 
 export const createAttendanceRecord = createAsyncThunk(
   'attendance/createAttendanceRecord',
-  async (attendanceData: CreateAttendanceRequest) => {
-    const response = await attendanceApi.create(attendanceData);
+  async (attendanceData: CreateAttendanceRequest, { getState }) => {
+    const state = getState() as any;
+    const currentUser = state.auth.user;
+    
+    const dataWithUser = {
+      ...attendanceData,
+      markedById: currentUser?.id
+    };
+    
+    const response = await attendanceApi.create(dataWithUser);
     return response.data;
   }
 );
 
 export const updateAttendanceRecord = createAsyncThunk(
   'attendance/updateAttendanceRecord',
-  async ({ id, attendanceData }: { id: number; attendanceData: Partial<CreateAttendanceRequest> }) => {
-    const response = await attendanceApi.update(id, attendanceData);
+  async ({ id, attendanceData }: { id: number; attendanceData: Partial<CreateAttendanceRequest> }, { getState }) => {
+    const state = getState() as any;
+    const currentUser = state.auth.user;
+    
+    const dataWithUser = {
+      ...attendanceData,
+      modifiedById: currentUser?.id
+    };
+    
+    const response = await attendanceApi.update(id, dataWithUser);
     return response.data;
   }
 );
@@ -90,8 +106,16 @@ export const deleteAttendanceRecord = createAsyncThunk(
 
 export const createBulkAttendance = createAsyncThunk(
   'attendance/createBulkAttendance',
-  async (bulkData: BulkAttendanceRequest) => {
-    const response = await attendanceApi.createBulk(bulkData);
+  async (bulkData: BulkAttendanceRequest, { getState }) => {
+    const state = getState() as any;
+    const currentUser = state.auth.user;
+    
+    const dataWithUser = {
+      ...bulkData,
+      markedById: currentUser?.id
+    };
+    
+    const response = await attendanceApi.createBulk(dataWithUser);
     return response.data;
   }
 );

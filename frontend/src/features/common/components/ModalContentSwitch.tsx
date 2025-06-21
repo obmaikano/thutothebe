@@ -118,6 +118,7 @@ const EditQuestionModal = lazy(() => import('../../quizzes/modals/EditQuestionMo
 const MarkAttendanceModal = lazy(() => import('../../attendance/modals/MarkAttendanceModal'));
 const BulkAttendanceModal = lazy(() => import('../../attendance/modals/BulkAttendanceModal'));
 const AttendanceDetailsModal = lazy(() => import('../../attendance/modals/AttendanceDetailsModal'));
+const AttendanceReportModal = lazy(() => import('../../attendance/modals/AttendanceReportModal'));
 
 // Calendar Event management modals
 const CreateEventModal = lazy(() => import('../../calendar/modals/CreateEventModal'));
@@ -383,17 +384,31 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.CLASS_VIEW:
+    case MODAL_BODY_TYPES.CLASS_VIEW_DETAILS:
       return (
         <Suspense fallback={fallback}>
           <ClassViewModal extraObject={contentProps} />
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.CLASS_VIEW_DETAILS:
+    case MODAL_BODY_TYPES.ATTENDANCE_TAKE:
       return (
         <Suspense fallback={fallback}>
-          <ClassViewModal extraObject={contentProps} />
+          <TakeAttendanceModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.REPORT_GENERATE:
+      return (
+        <Suspense fallback={fallback}>
+          <GenerateReportModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CALENDAR_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <CalendarViewModal extraObject={contentProps} />
         </Suspense>
       );
 
@@ -777,6 +792,13 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <AttendanceDetailsModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.ATTENDANCE_REPORT:
+      return (
+        <Suspense fallback={fallback}>
+          <AttendanceReportModal extraObject={contentProps} />
         </Suspense>
       );
 

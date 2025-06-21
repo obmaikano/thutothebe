@@ -16,6 +16,7 @@ interface MarkAttendanceModalProps {
     classId?: number;
     date?: string;
     mode?: 'create' | 'edit';
+    onSuccess?: () => void;
   };
 }
 
@@ -28,19 +29,23 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({ extraObject }
   
   // Form state
   const [formData, setFormData] = useState<CreateAttendanceRequest>({
+    // Required fields (matching @NotNull annotations)
     studentEntityId: extraObject?.studentId || 0,
     classId: extraObject?.classId || 0,
+    markedById: user?.id || 0,  // @NotNull - will be set by Redux thunk
+    attendanceDate: extraObject?.date || new Date().toISOString().split('T')[0],
+    attendanceStatus: 'PRESENT',
+    attendanceType: 'DAILY',
+    academicYear: new Date().getFullYear(),
+    
+    // Optional fields
     courseId: undefined,
     subjectId: undefined,
-    attendanceDate: extraObject?.date || new Date().toISOString().split('T')[0],
-    attendanceType: 'DAILY',
-    attendanceStatus: 'PRESENT',
     periodNumber: undefined,
     periodStartTime: undefined,
     periodEndTime: undefined,
     arrivalTime: undefined,
     departureTime: undefined,
-    academicYear: new Date().getFullYear(),
     term: 'FIRST_TERM',
     remarks: undefined
   });
@@ -206,6 +211,7 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({ extraObject }
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // Required field validations (matching @NotNull annotations)
     if (!formData.studentEntityId) {
       newErrors.studentEntityId = 'Student is required';
     }
@@ -218,14 +224,36 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({ extraObject }
     if (!formData.attendanceStatus) {
       newErrors.attendanceStatus = 'Status is required';
     }
+    if (!formData.attendanceType) {
+      newErrors.attendanceType = 'Type is required';
+    }
     if (!formData.academicYear) {
       newErrors.academicYear = 'Academic year is required';
     }
-    if (formData.attendanceType === 'PERIOD' && !formData.periodNumber) {
-      newErrors.periodNumber = 'Period number is required for period attendance';
+
+    // Academic year range validation (2000-2100)
+    if (formData.academicYear && (formData.academicYear < 2000 || formData.academicYear > 2100)) {
+      newErrors.academicYear = 'Academic year must be between 2000 and 2100';
     }
-    if (formData.attendanceType === 'PERIOD' && (!formData.periodStartTime || !formData.periodEndTime)) {
-      newErrors.periodTime = 'Period start and end times are required';
+
+    // Future date validation (@PastOrPresent)
+    if (formData.attendanceDate) {
+      const selectedDate = new Date(formData.attendanceDate);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999); // End of today
+      if (selectedDate > today) {
+        newErrors.attendanceDate = 'Attendance date cannot be in the future';
+      }
+    }
+
+    // Period-specific validations
+    if (formData.attendanceType === 'PERIOD') {
+      if (!formData.periodNumber) {
+        newErrors.periodNumber = 'Period number is required for period-based attendance';
+      }
+      if (!formData.periodStartTime || !formData.periodEndTime) {
+        newErrors.periodTime = 'Period start and end times are required for period attendance';
+      }
     }
 
     setErrors(newErrors);
@@ -252,6 +280,9 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({ extraObject }
       }
       
       dispatch(closeModal({}));
+      if (extraObject?.onSuccess) {
+        extraObject.onSuccess();
+      }
     } catch (error) {
       console.error('Failed to save attendance:', error);
     } finally {

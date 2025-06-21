@@ -765,13 +765,29 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                     .map(attendance -> attendance.studentId())
                     .toList();
             
-            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
-            boolean hasAccessToAllStudents = studentIds.stream()
-                    .allMatch(accessibleUserIds::contains);
-            
-            if (!hasAccessToAllStudents) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            // Check access for each student by getting their user IDs
+            for (Long studentId : studentIds) {
+                StudentDTO student = studentService.getById(studentId);
+                if (student == null) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new OhmaApiResponse<>("ERROR", "Student not found: " + studentId, null, null));
+                }
+
+                // Check if user has access to view attendance for this student's user ID
+                Long studentUserId = student.userId();
+                if (studentUserId == null) {
+                    // If student has no associated user, only allow admin-level access
+                    if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                    }
+                } else {
+                    // Check access using the student's user ID
+                    if (!hasAccess(AccessScope.USER, studentUserId)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                    }
+                }
             }
 
             List<AttendanceRecordDTO> records = attendanceRecordService.markBulkAttendance(bulkAttendanceDTO);
@@ -797,13 +813,29 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
                     .map(attendance -> attendance.studentId())
                     .toList();
             
-            List<Long> accessibleUserIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.USER);
-            boolean hasAccessToAllStudents = studentIds.stream()
-                    .allMatch(accessibleUserIds::contains);
-            
-            if (!hasAccessToAllStudents) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+            // Check access for each student by getting their user IDs
+            for (Long studentId : studentIds) {
+                StudentDTO student = studentService.getById(studentId);
+                if (student == null) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new OhmaApiResponse<>("ERROR", "Student not found: " + studentId, null, null));
+                }
+
+                // Check if user has access to view attendance for this student's user ID
+                Long studentUserId = student.userId();
+                if (studentUserId == null) {
+                    // If student has no associated user, only allow admin-level access
+                    if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                    }
+                } else {
+                    // Check access using the student's user ID
+                    if (!hasAccess(AccessScope.USER, studentUserId)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                    }
+                }
             }
 
             List<AttendanceRecordDTO> records = attendanceRecordService.updateBulkAttendance(bulkAttendanceDTO);

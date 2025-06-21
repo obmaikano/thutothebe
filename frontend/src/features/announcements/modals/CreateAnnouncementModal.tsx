@@ -8,26 +8,44 @@ import { Calendar, Users, Tag, MapPin, Building, UserCheck, GraduationCap } from
 import regionApi, { Region } from '../../../api/services/regionApi';
 import schoolApi, { School } from '../../../api/services/schoolApi';
 import classApi, { Class } from '../../../api/services/classApi';
+import departmentApi, { Department } from '../../../api/services/departmentApi';
+import { getPermissionLevel } from '../../../utils/permissionUtils';
 
 interface CreateAnnouncementModalProps {
   extraObject?: any;
 }
 
-// Common departments in educational institutions
-const DEPARTMENTS = [
-  { id: 'MATHEMATICS', name: 'Mathematics' },
-  { id: 'ENGLISH', name: 'English' },
-  { id: 'SCIENCE', name: 'Science' },
-  { id: 'SOCIAL_STUDIES', name: 'Social Studies' },
-  { id: 'PHYSICAL_EDUCATION', name: 'Physical Education' },
-  { id: 'ARTS', name: 'Arts' },
-  { id: 'MUSIC', name: 'Music' },
-  { id: 'TECHNOLOGY', name: 'Technology' },
-  { id: 'LANGUAGES', name: 'Languages' },
-  { id: 'ADMINISTRATION', name: 'Administration' },
-  { id: 'GUIDANCE', name: 'Guidance & Counseling' },
-  { id: 'LIBRARY', name: 'Library' },
-  { id: 'HEALTH', name: 'Health Services' }
+// Role hierarchy for target role filtering
+const ROLE_HIERARCHY = {
+  'SUPER_ADMIN': 10,
+  'MINISTRY_EXECUTIVE': 9,
+  'MINISTRY_STAFF': 8,
+  'DIRECTOR': 8,
+  'REGIONAL_ADMIN': 7,
+  'REGIONAL_OFFICER': 5,
+  'SCHOOL_ADMIN': 6,
+  'SCHOOL_HEAD': 5,
+  'DEPARTMENT_HEAD': 4,
+  'SENIOR_TEACHER': 3,
+  'TEACHER': 2,
+  'STUDENT': 1,
+  'PARENT': 1
+};
+
+// All available target roles
+const ALL_TARGET_ROLES = [
+  { value: 'STUDENT', label: 'Students' },
+  { value: 'TEACHER', label: 'Teachers' },
+  { value: 'SENIOR_TEACHER', label: 'Senior Teachers' },
+  { value: 'DEPARTMENT_HEAD', label: 'Department Heads' },
+  { value: 'SCHOOL_HEAD', label: 'School Heads' },
+  { value: 'SCHOOL_ADMIN', label: 'School Admins' },
+  { value: 'REGIONAL_OFFICER', label: 'Regional Officers' },
+  { value: 'REGIONAL_ADMIN', label: 'Regional Admins' },
+  { value: 'DIRECTOR', label: 'Directors' },
+  { value: 'MINISTRY_STAFF', label: 'Ministry Staff' },
+  { value: 'MINISTRY_EXECUTIVE', label: 'Ministry Executives' },
+  { value: 'PARENT', label: 'Parents' }
 ];
 
 const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({ extraObject }) => {
@@ -39,9 +57,11 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({ extra
   const [regions, setRegions] = useState<Region[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingRegions, setLoadingRegions] = useState(false);
   const [loadingSchools, setLoadingSchools] = useState(false);
   const [loadingClasses, setLoadingClasses] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
 
   const [formData, setFormData] = useState<CreateAnnouncementRequest>({
     title: '',
@@ -66,71 +86,183 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({ extra
 
   const [tagInput, setTagInput] = useState('');
 
+  // Determine if user can access region-level features
+  const canAccessRegionLevel = user && ['SUPER_ADMIN', 'MINISTRY_EXECUTIVE', 'MINISTRY_STAFF', 'DIRECTOR', 'REGIONAL_ADMIN', 'REGIONAL_OFFICER'].includes(user.role);
+
+  // Filter target roles based on user's role hierarchy
+  const getAvailableTargetRoles = () => {
+    if (!user?.role) return ALL_TARGET_ROLES;
+    
+    const userLevel = ROLE_HIERARCHY[user.role as keyof typeof ROLE_HIERARCHY] || 0;
+    
+    return ALL_TARGET_ROLES.filter(role => {
+      const roleLevel = ROLE_HIERARCHY[role.value as keyof typeof ROLE_HIERARCHY] || 0;
+      // Users can only target roles at or below their level
+      return roleLevel <= userLevel;
+    });
+  };
+
+  const availableTargetRoles = getAvailableTargetRoles();
+
   // Load initial data
   useEffect(() => {
-    loadRegions();
-  }, []);
-
-  // Load schools when region changes
-  useEffect(() => {
-    if (formData.targetRegionId) {
-      loadSchoolsByRegion(formData.targetRegionId);
+    if (canAccessRegionLevel) {
+      loadRegions();
     } else {
-      setSchools([]);
-      setClasses([]);
-      setFormData(prev => ({ ...prev, targetSchoolId: undefined, targetClass: '' }));
+      // For school-level users, load schools directly
+      loadSchools();
     }
-  }, [formData.targetRegionId]);
+  }, [canAccessRegionLevel]);
 
-  // Load classes when school changes
-  useEffect(() => {
-    if (formData.targetSchoolId) {
-      loadClassesBySchool(formData.targetSchoolId);
-    } else {
-      setClasses([]);
-      setFormData(prev => ({ ...prev, targetClass: '' }));
-    }
-  }, [formData.targetSchoolId]);
-
+  // Load regions (only for users with region access)
   const loadRegions = async () => {
+    if (!canAccessRegionLevel) return;
+    
     setLoadingRegions(true);
     try {
       const response = await regionApi.getActiveRegions();
-      if (response.data.data && Array.isArray(response.data.data)) {
-        setRegions(response.data.data);
+      const regionsData = response.data.data;
+      if (Array.isArray(regionsData)) {
+        setRegions(regionsData);
+      } else if (regionsData) {
+        setRegions([regionsData]);
+      } else {
+        setRegions([]);
       }
     } catch (error) {
       console.error('Failed to load regions:', error);
+      setRegions([]);
     } finally {
       setLoadingRegions(false);
     }
   };
 
-  const loadSchoolsByRegion = async (regionId: number) => {
+  // Load schools based on selected region or user's school
+  const loadSchools = async (regionId?: number) => {
     setLoadingSchools(true);
     try {
-      const response = await schoolApi.getActiveByRegionId(regionId);
-      if (response.data.data && Array.isArray(response.data.data)) {
-        setSchools(response.data.data);
+      let response;
+      if (regionId) {
+        response = await schoolApi.getByRegionId(regionId);
+      } else if (user?.schoolId) {
+        // For school-level users, only show their school
+        const schoolResponse = await schoolApi.getById(user.schoolId);
+        const schoolData = schoolResponse.data.data;
+        if (schoolData && !Array.isArray(schoolData)) {
+          setSchools([schoolData]);
+        } else {
+          setSchools([]);
+        }
+        setLoadingSchools(false);
+        return;
+      } else {
+        response = await schoolApi.getAll();
+      }
+      
+      const schoolsData = response.data.data;
+      if (Array.isArray(schoolsData)) {
+        setSchools(schoolsData);
+      } else if (schoolsData) {
+        setSchools([schoolsData]);
+      } else {
+        setSchools([]);
       }
     } catch (error) {
       console.error('Failed to load schools:', error);
+      setSchools([]);
     } finally {
       setLoadingSchools(false);
     }
   };
 
-  const loadClassesBySchool = async (schoolId: number) => {
+  // Load classes based on selected school
+  const loadClasses = async (schoolId?: number) => {
     setLoadingClasses(true);
     try {
-      const response = await classApi.getActiveBySchool(schoolId);
-      if (response.data.data && Array.isArray(response.data.data)) {
-        setClasses(response.data.data);
+      let response;
+      if (schoolId) {
+        response = await classApi.getBySchool(schoolId);
+      } else {
+        response = await classApi.getAll();
+      }
+      
+      const classesData = response.data.data;
+      if (Array.isArray(classesData)) {
+        setClasses(classesData);
+      } else if (classesData) {
+        setClasses([classesData]);
+      } else {
+        setClasses([]);
       }
     } catch (error) {
       console.error('Failed to load classes:', error);
+      setClasses([]);
     } finally {
       setLoadingClasses(false);
+    }
+  };
+
+  // Load departments based on selected school
+  const loadDepartments = async (schoolId?: number) => {
+    setLoadingDepartments(true);
+    try {
+      let response;
+      if (schoolId) {
+        response = await departmentApi.getActiveBySchool(schoolId);
+      } else {
+        response = await departmentApi.getActive();
+      }
+      
+      const departmentsData = response.data.data;
+      if (Array.isArray(departmentsData)) {
+        setDepartments(departmentsData);
+      } else if (departmentsData) {
+        setDepartments([departmentsData]);
+      } else {
+        setDepartments([]);
+      }
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+      setDepartments([]);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  // Handle region change
+  const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const regionId = e.target.value ? parseInt(e.target.value) : undefined;
+    setFormData(prev => ({
+      ...prev,
+      targetRegionId: regionId,
+      targetSchoolId: undefined, // Reset school when region changes
+      targetClass: '', // Reset class when region changes
+      targetDepartment: '' // Reset department when region changes
+    }));
+    setSchools([]);
+    setClasses([]);
+    setDepartments([]);
+    
+    if (regionId) {
+      loadSchools(regionId);
+    }
+  };
+
+  // Handle school change
+  const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const schoolId = e.target.value ? parseInt(e.target.value) : undefined;
+    setFormData(prev => ({
+      ...prev,
+      targetSchoolId: schoolId,
+      targetClass: '', // Reset class when school changes
+      targetDepartment: '' // Reset department when school changes
+    }));
+    setClasses([]);
+    setDepartments([]);
+    
+    if (schoolId) {
+      loadClasses(schoolId);
+      loadDepartments(schoolId);
     }
   };
 
@@ -277,56 +409,59 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({ extra
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Target Region */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                Target Region
-                {loadingRegions && <span className="loading loading-spinner loading-xs ml-2"></span>}
-              </label>
-              <select
-                name="targetRegionId"
-                value={formData.targetRegionId || ''}
-                onChange={handleChange}
-                disabled={loadingRegions}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">{loadingRegions ? 'Loading regions...' : 'Select a region'}</option>
-                {regions.map((region) => (
-                  <option key={region.id} value={region.id}>
-                    {region.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Region Selection - Only for users with region access */}
+            {canAccessRegionLevel && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  Target Region
+                </label>
+                <select
+                  name="targetRegionId"
+                  value={formData.targetRegionId || ''}
+                  onChange={handleRegionChange}
+                  disabled={loadingRegions}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                >
+                  <option value="">All Regions</option>
+                  {regions.map((region) => (
+                    <option key={region.id} value={region.id}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
+                {loadingRegions && (
+                  <p className="text-sm text-gray-500 mt-1">Loading regions...</p>
+                )}
+              </div>
+            )}
 
-            {/* Target School */}
+            {/* School Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                 <Building className="h-4 w-4" />
                 Target School
-                {loadingSchools && <span className="loading loading-spinner loading-xs ml-2"></span>}
               </label>
               <select
                 name="targetSchoolId"
                 value={formData.targetSchoolId || ''}
-                onChange={handleChange}
-                disabled={loadingSchools || !formData.targetRegionId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                onChange={handleSchoolChange}
+                disabled={loadingSchools}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
               >
-                <option value="">
-                  {!formData.targetRegionId ? 'Select a region first' : 
-                   loadingSchools ? 'Loading schools...' : 'Select a school'}
-                </option>
+                <option value="">All Schools</option>
                 {schools.map((school) => (
                   <option key={school.id} value={school.id}>
                     {school.name}
                   </option>
                 ))}
               </select>
+              {loadingSchools && (
+                <p className="text-sm text-gray-500 mt-1">Loading schools...</p>
+              )}
             </div>
 
-            {/* Target Role */}
+            {/* Target Role - Filtered based on user's role hierarchy */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                 <UserCheck className="h-4 w-4" />
@@ -339,22 +474,15 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({ extra
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">All Roles</option>
-                <option value="STUDENT">Students</option>
-                <option value="TEACHER">Teachers</option>
-                <option value="SENIOR_TEACHER">Senior Teachers</option>
-                <option value="DEPARTMENT_HEAD">Department Heads</option>
-                <option value="SCHOOL_HEAD">School Heads</option>
-                <option value="SCHOOL_ADMIN">School Admins</option>
-                <option value="REGIONAL_OFFICER">Regional Officers</option>
-                <option value="REGIONAL_ADMIN">Regional Admins</option>
-                <option value="DIRECTOR">Directors</option>
-                <option value="MINISTRY_STAFF">Ministry Staff</option>
-                <option value="MINISTRY_EXECUTIVE">Ministry Executives</option>
-                <option value="PARENT">Parents</option>
+                {availableTargetRoles.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {/* Target Department */}
+            {/* Target Department - Fetched from backend */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                 <GraduationCap className="h-4 w-4" />
@@ -364,41 +492,44 @@ const CreateAnnouncementModal: React.FC<CreateAnnouncementModalProps> = ({ extra
                 name="targetDepartment"
                 value={formData.targetDepartment}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={loadingDepartments}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
               >
                 <option value="">Select a department</option>
-                {DEPARTMENTS.map((department) => (
+                {departments.map((department) => (
                   <option key={department.id} value={department.id}>
                     {department.name}
                   </option>
                 ))}
               </select>
+              {loadingDepartments && (
+                <p className="text-sm text-gray-500 mt-1">Loading departments...</p>
+              )}
             </div>
 
             {/* Target Class */}
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                 <GraduationCap className="h-4 w-4" />
                 Target Class
-                {loadingClasses && <span className="loading loading-spinner loading-xs ml-2"></span>}
               </label>
               <select
                 name="targetClass"
                 value={formData.targetClass}
                 onChange={handleChange}
-                disabled={loadingClasses || !formData.targetSchoolId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loadingClasses}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
               >
-                <option value="">
-                  {!formData.targetSchoolId ? 'Select a school first' : 
-                   loadingClasses ? 'Loading classes...' : 'Select a class'}
-                </option>
+                <option value="">Select a class</option>
                 {classes.map((classItem) => (
-                  <option key={classItem.id} value={classItem.name}>
+                  <option key={classItem.id} value={classItem.id}>
                     {classItem.name}
                   </option>
                 ))}
               </select>
+              {loadingClasses && (
+                <p className="text-sm text-gray-500 mt-1">Loading classes...</p>
+              )}
             </div>
           </div>
         </div>

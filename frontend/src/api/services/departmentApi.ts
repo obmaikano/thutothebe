@@ -64,7 +64,7 @@ const departmentApi = {
    * @returns Response with active departments for the school
    */
   getActiveBySchool: async (schoolId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/departments/school/${schoolId}/active`);
+    return api.get(`/departments/active/school/${schoolId}`);
   },
 
   /**
@@ -82,7 +82,7 @@ const departmentApi = {
    * @returns Response with department details
    */
   getByNameAndSchool: async (name: string, schoolId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/departments/search?name=${name}&schoolId=${schoolId}`);
+    return api.get(`/departments/name/${name}/school/${schoolId}`);
   },
 
   /**
@@ -118,7 +118,7 @@ const departmentApi = {
    * @returns Response with departments without head
    */
   getDepartmentsWithoutHead: async (schoolId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/departments/school/${schoolId}/without-head`);
+    return api.get(`/departments/without-head`);
   },
 
   /**
@@ -127,7 +127,7 @@ const departmentApi = {
    * @returns Response with departments that have subjects
    */
   getDepartmentsWithSubjects: async (schoolId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.get(`/departments/school/${schoolId}/with-subjects`);
+    return api.get(`/departments/with-subjects`);
   },
 
   /**
@@ -136,7 +136,7 @@ const departmentApi = {
    * @returns Response with count of active departments
    */
   countActiveBySchool: async (schoolId: number): Promise<AxiosResponse<{ data: number }>> => {
-    return api.get(`/departments/school/${schoolId}/count`);
+    return api.get(`/departments/count/active/school/${schoolId}`);
   },
 
   /**
@@ -146,7 +146,7 @@ const departmentApi = {
    * @returns Response with boolean indicating existence
    */
   existsByNameAndSchool: async (name: string, schoolId: number): Promise<AxiosResponse<{ data: boolean }>> => {
-    return api.get(`/departments/exists?name=${name}&schoolId=${schoolId}`);
+    return api.get(`/departments/exists/name/${name}/school/${schoolId}`);
   },
 
   /**
@@ -183,7 +183,7 @@ const departmentApi = {
    * @returns Response indicating success/failure
    */
   activate: async (id: number): Promise<AxiosResponse<void>> => {
-    return api.put(`/departments/${id}/activate`);
+    return api.post(`/departments/${id}/activate`);
   },
 
   /**
@@ -192,7 +192,7 @@ const departmentApi = {
    * @returns Response indicating success/failure
    */
   deactivate: async (id: number): Promise<AxiosResponse<void>> => {
-    return api.put(`/departments/${id}/deactivate`);
+    return api.post(`/departments/${id}/deactivate`);
   },
 
   /**
