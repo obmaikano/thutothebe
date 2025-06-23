@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 @Slf4j
 @RestController
@@ -983,6 +984,183 @@ public class AttendanceController extends BaseController<AttendanceRecordDTO, Lo
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Class attendance statistics for date retrieved successfully", stats, null));
         } catch (Exception e) {
             log.error("Error retrieving attendance stats for class {} on date {}: {}", classId, date, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // General stats endpoint for frontend compatibility
+    @GetMapping("/stats")
+    public ResponseEntity<OhmaApiResponse<Map<String, Object>>> getAttendanceStats(
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Long studentEntityId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Integer academicYear,
+            @RequestParam(required = false) Term term) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            Map<String, Object> stats = new HashMap<>();
+            
+            if (classId != null) {
+                // Check access for class
+                if (!hasAccess(AccessScope.USER, classId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+                }
+                
+                // Get class attendance stats
+                if (startDate != null && endDate != null) {
+                    // Get stats for date range
+                    List<AttendanceRecordDTO> records = attendanceRecordService.getAttendanceByClassAndDateRange(classId, startDate, endDate);
+                    Map<AttendanceStatus, Long> statusCounts = records.stream()
+                            .collect(Collectors.groupingBy(AttendanceRecordDTO::attendanceStatus, Collectors.counting()));
+                    
+                    long totalRecords = records.size();
+                    long presentCount = statusCounts.getOrDefault(AttendanceStatus.PRESENT, 0L);
+                    long absentExcusedCount = statusCounts.getOrDefault(AttendanceStatus.ABSENT_EXCUSED, 0L);
+                    long absentUnexcusedCount = statusCounts.getOrDefault(AttendanceStatus.ABSENT_UNEXCUSED, 0L);
+                    long lateCount = statusCounts.getOrDefault(AttendanceStatus.LATE, 0L);
+                    long earlyDepartureCount = statusCounts.getOrDefault(AttendanceStatus.EARLY_DEPARTURE, 0L);
+                    
+                    double attendanceRate = totalRecords > 0 ? (double) presentCount / totalRecords * 100 : 0;
+                    double absenteeismRate = totalRecords > 0 ? (double) (absentExcusedCount + absentUnexcusedCount) / totalRecords * 100 : 0;
+                    double punctualityRate = totalRecords > 0 ? (double) (presentCount + lateCount) / totalRecords * 100 : 0;
+                    
+                    stats.put("totalRecords", totalRecords);
+                    stats.put("presentCount", presentCount);
+                    stats.put("absentExcusedCount", absentExcusedCount);
+                    stats.put("absentUnexcusedCount", absentUnexcusedCount);
+                    stats.put("lateCount", lateCount);
+                    stats.put("earlyDepartureCount", earlyDepartureCount);
+                    stats.put("attendanceRate", Math.round(attendanceRate * 100.0) / 100.0);
+                    stats.put("absenteeismRate", Math.round(absenteeismRate * 100.0) / 100.0);
+                    stats.put("punctualityRate", Math.round(punctualityRate * 100.0) / 100.0);
+                    stats.put("dateRange", Map.of("startDate", startDate.toString(), "endDate", endDate.toString()));
+                } else {
+                    // Get today's stats
+                    LocalDate today = LocalDate.now();
+                    Map<AttendanceStatus, Long> todayStats = attendanceRecordService.getAttendanceStatsByClassAndDate(classId, today);
+                    // Convert enum keys to strings
+                    todayStats.forEach((status, count) -> stats.put(status.name(), count));
+                }
+            } else if (studentEntityId != null) {
+                // Check access for student
+                StudentDTO student = studentService.getById(studentEntityId);
+                if (student == null) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new OhmaApiResponse<>("ERROR", "Student not found", null, null));
+                }
+                
+                Long studentUserId = student.userId();
+                if (studentUserId == null) {
+                    if (!hasAccess(AccessScope.SCHOOL, student.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                    }
+                } else {
+                    if (!hasAccess(AccessScope.USER, studentUserId)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new OhmaApiResponse<>("ERROR", "Access denied to student data", null, null));
+                    }
+                }
+                
+                // Get student attendance stats
+                if (academicYear != null) {
+                    Map<AttendanceStatus, Long> studentStats = attendanceRecordService.getAttendanceStatsByStudent(studentEntityId, academicYear);
+                    // Convert enum keys to strings
+                    studentStats.forEach((status, count) -> stats.put(status.name(), count));
+                }
+            }
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance statistics retrieved successfully", stats, null));
+        } catch (Exception e) {
+            log.error("Error retrieving attendance stats: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // General summary endpoint for frontend compatibility
+    @GetMapping("/summary")
+    public ResponseEntity<OhmaApiResponse<Map<String, Object>>> getAttendanceSummary(
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Long studentEntityId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            Map<String, Object> summary = new HashMap<>();
+            
+            if (classId != null) {
+                // Check access for class
+                if (!hasAccess(AccessScope.USER, classId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new OhmaApiResponse<>("ERROR", "Access denied to class data", null, null));
+                }
+                
+                // Get class summary
+                LocalDate today = LocalDate.now();
+                List<AttendanceRecordDTO> todayRecords = attendanceRecordService.getAttendanceByClassAndDate(classId, today);
+                
+                long totalStudents = todayRecords.size();
+                long presentToday = todayRecords.stream()
+                        .filter(r -> r.attendanceStatus() == AttendanceStatus.PRESENT)
+                        .count();
+                long absentToday = todayRecords.stream()
+                        .filter(r -> r.attendanceStatus() == AttendanceStatus.ABSENT_EXCUSED || r.attendanceStatus() == AttendanceStatus.ABSENT_UNEXCUSED)
+                        .count();
+                long lateToday = todayRecords.stream()
+                        .filter(r -> r.attendanceStatus() == AttendanceStatus.LATE)
+                        .count();
+                
+                double attendanceRate = totalStudents > 0 ? (double) presentToday / totalStudents * 100 : 0;
+                
+                summary.put("totalStudents", totalStudents);
+                summary.put("presentToday", presentToday);
+                summary.put("absentToday", absentToday);
+                summary.put("lateToday", lateToday);
+                summary.put("attendanceRate", Math.round(attendanceRate * 100.0) / 100.0);
+                
+                // Add trends for the last 7 days
+                List<Map<String, Object>> trends = new ArrayList<>();
+                for (int i = 6; i >= 0; i--) {
+                    LocalDate date = today.minusDays(i);
+                    List<AttendanceRecordDTO> dayRecords = attendanceRecordService.getAttendanceByClassAndDate(classId, date);
+                    
+                    long dayTotal = dayRecords.size();
+                    long dayPresent = dayRecords.stream()
+                            .filter(r -> r.attendanceStatus() == AttendanceStatus.PRESENT)
+                            .count();
+                    long dayAbsent = dayRecords.stream()
+                            .filter(r -> r.attendanceStatus() == AttendanceStatus.ABSENT_EXCUSED || r.attendanceStatus() == AttendanceStatus.ABSENT_UNEXCUSED)
+                            .count();
+                    long dayLate = dayRecords.stream()
+                            .filter(r -> r.attendanceStatus() == AttendanceStatus.LATE)
+                            .count();
+                    
+                    trends.add(Map.of(
+                            "date", date.toString(),
+                            "presentCount", dayPresent,
+                            "absentCount", dayAbsent,
+                            "lateCount", dayLate,
+                            "totalCount", dayTotal
+                    ));
+                }
+                summary.put("trends", trends);
+            }
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Attendance summary retrieved successfully", summary, null));
+        } catch (Exception e) {
+            log.error("Error retrieving attendance summary: {}", e.getMessage(), e);
             throw e;
         }
     }

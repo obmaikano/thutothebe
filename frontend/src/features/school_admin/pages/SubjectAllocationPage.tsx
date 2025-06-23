@@ -1,16 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { useAuth } from '../../../features/auth/hooks';
+import { 
+  fetchCourses, 
+  fetchCourseById, 
+  createCourse, 
+  updateCourse, 
+  deleteCourse,
+  addTeacherToCourse,
+  removeTeacherFromCourse
+} from '../../courses/coursesSlice';
 import { fetchClasses } from '../../classes/classesSlice';
 import { fetchTeachers } from '../../teachers/teachersSlice';
 import { fetchSubjects } from '../../subjects/subjectsSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { 
-  BookOpen, Plus, Search, Filter, Edit, Trash2, 
-  Users, Calendar, FileText, BarChart3, 
-  CheckCircle, Clock, AlertTriangle, Eye, User
+  Plus, 
+  Users, 
+  BookOpen, 
+  Search, 
+  Filter, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  Calendar,
+  CheckCircle,
+  Clock,
+  BarChart3,
+  User
 } from 'lucide-react';
+import courseApi, { Course } from '../../../api/services/courseApi';
 
 // Card component for statistics
 const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => (
@@ -25,125 +45,94 @@ export const SubjectAllocationPage: React.FC = () => {
   const { classes } = useAppSelector(state => state.classes);
   const { teachers } = useAppSelector(state => state.teachers);
   const { subjects } = useAppSelector(state => state.subjects);
+  const { courses, status, error } = useAppSelector(state => state.courses);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
-
-  // Mock allocation data - would come from API
-  const [allocations] = useState([
-    {
-      id: 1,
-      subject: 'Mathematics',
-      teacher: 'Mr. Kgosi Moeti',
-      teacherId: 1,
-      class: 'Form 1A',
-      classId: 1,
-      term: 'Term 1 2025',
-      status: 'ACTIVE',
-      progress: 75,
-      completedLessons: 15,
-      totalLessons: 20,
-      assessments: 3,
-      lastUpdate: '2025-04-15'
-    },
-    {
-      id: 2,
-      subject: 'English',
-      teacher: 'Mrs. Sarah Phiri',
-      teacherId: 2,
-      class: 'Form 1A',
-      classId: 1,
-      term: 'Term 1 2025',
-      status: 'ACTIVE',
-      progress: 60,
-      completedLessons: 12,
-      totalLessons: 20,
-      assessments: 2,
-      lastUpdate: '2025-04-14'
-    },
-    {
-      id: 3,
-      subject: 'Science',
-      teacher: 'Dr. Moses Tebogo',
-      teacherId: 3,
-      class: 'Form 2B',
-      classId: 2,
-      term: 'Term 1 2025',
-      status: 'PENDING',
-      progress: 30,
-      completedLessons: 6,
-      totalLessons: 20,
-      assessments: 1,
-      lastUpdate: '2025-04-10'
-    },
-    {
-      id: 4,
-      subject: 'History',
-      teacher: 'Mr. John Molefe',
-      teacherId: 4,
-      class: 'Form 3A',
-      classId: 3,
-      term: 'Term 1 2025',
-      status: 'ACTIVE',
-      progress: 85,
-      completedLessons: 17,
-      totalLessons: 20,
-      assessments: 4,
-      lastUpdate: '2025-04-16'
-    },
-    {
-      id: 5,
-      subject: 'Biology',
-      teacher: 'Dr. Grace Seretse',
-      teacherId: 5,
-      class: 'Form 2A',
-      classId: 4,
-      term: 'Term 1 2025',
-      status: 'COMPLETED',
-      progress: 100,
-      completedLessons: 20,
-      totalLessons: 20,
-      assessments: 5,
-      lastUpdate: '2025-04-18'
-    }
-  ]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
+      setLoading(true);
       try {
         await Promise.all([
+          dispatch(fetchCourses()),
           dispatch(fetchClasses()),
           dispatch(fetchTeachers()),
           dispatch(fetchSubjects())
         ]);
       } catch (error) {
         console.error('Failed to load subject allocation data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     loadData();
   }, [dispatch]);
 
+  // Transform courses data to match the expected allocation format
+  const allocations = courses.map(course => {
+    const subject = subjects.find(s => s.id === course.subjectId);
+    const classEntity = classes.find(c => c.id === course.classId);
+    const teacher = teachers.find(t => course.instructorIds.includes(t.id));
+    
+    return {
+      id: course.id,
+      subject: subject?.name || 'Unknown Subject',
+      teacher: teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned',
+      teacherId: teacher?.id || 0,
+      class: classEntity?.name || 'Unknown Class',
+      classId: course.classId,
+      term: `${course.term} ${course.year}`,
+      status: course.active ? 'ACTIVE' : 'SUSPENDED',
+      progress: 0, // Will be calculated from curriculum progress when available
+      completedLessons: 0, // Will be calculated from curriculum progress when available
+      totalLessons: 0, // Will be calculated from curriculum progress when available
+      assessments: 0, // Will be calculated from curriculum progress when available
+      lastUpdate: course.updatedAt || course.createdAt || new Date().toISOString().split('T')[0],
+      courseData: course
+    };
+  });
+
   const handleAllocateSubject = () => {
+    // For now, we'll use the first subject as an example
+    // In a real implementation, you might want to show a subject selection first
+    const firstSubject = subjects[0];
+    if (!firstSubject) {
+      alert('No subjects available. Please create subjects first.');
+      return;
+    }
+
+    // Get teachers already assigned to this subject
+    const assignedTeachers = courses
+      .filter(course => course.subjectId === firstSubject.id)
+      .map(course => {
+        const teacher = teachers.find(t => course.instructorIds.includes(t.id));
+        return teacher;
+      })
+      .filter(Boolean);
+
     dispatch(openModal({
-      title: 'Allocate Subject to Teacher',
+      title: 'Assign Teachers to Subject',
       bodyType: MODAL_BODY_TYPES.SUBJECT_ASSIGN_TEACHER,
       extraObject: { 
-        classes,
+        subject: firstSubject,
         teachers,
-        subjects
+        classes,
+        assignedTeachers
       }
     }));
   };
 
   const handleEditAllocation = (allocation: any) => {
     dispatch(openModal({
-      title: 'Edit Subject Allocation',
-      bodyType: MODAL_BODY_TYPES.SUBJECT_EDIT,
+      title: 'Edit Course',
+      bodyType: MODAL_BODY_TYPES.COURSE_EDIT,
       extraObject: { 
-        allocation,
+        course: allocation.courseData,
         classes,
         teachers,
         subjects
@@ -151,23 +140,22 @@ export const SubjectAllocationPage: React.FC = () => {
     }));
   };
 
-  const handleRemoveAllocation = (allocation: any) => {
+  const handleRemoveAllocation = async (allocation: any) => {
     dispatch(openModal({
-      title: 'Remove Subject Allocation',
-      bodyType: MODAL_BODY_TYPES.SUBJECT_DELETE_CONFIRMATION,
-      extraObject: allocation
+      title: 'Delete Course',
+      bodyType: MODAL_BODY_TYPES.COURSE_DELETE_CONFIRMATION,
+      extraObject: { 
+        course: allocation.courseData
+      }
     }));
   };
 
   const handleViewProgress = (allocation: any) => {
     dispatch(openModal({
-      title: 'Curriculum Progress',
-      bodyType: MODAL_BODY_TYPES.REPORT_GENERATE,
+      title: 'Course Details',
+      bodyType: MODAL_BODY_TYPES.COURSE_VIEW,
       extraObject: { 
-        allocation,
-        classes,
-        teachers,
-        subjects
+        course: allocation.courseData
       }
     }));
   };
@@ -232,6 +220,33 @@ export const SubjectAllocationPage: React.FC = () => {
       year: 'numeric'
     });
   };
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading subject allocations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">Error loading data: {error}</p>
+          <button 
+            onClick={() => dispatch(fetchCourses())}
+            className="mt-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 space-y-6">

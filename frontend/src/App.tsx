@@ -8,6 +8,7 @@ import { Provider } from 'react-redux';
 import { store } from './app/store'; // Import your store
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MessagingProvider } from './contexts/MessagingContext';
+import Footer from './components/common/Footer';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 //import 'react-leaflet-draw/dist/react-leaflet-draw.css';
@@ -18,21 +19,43 @@ const LoginPage = lazy(() => import('./pages/Login'));
 
 // Simple help page component
 const HelpPage = () => (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-50 flex flex-col justify-center items-center p-4">
-        <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl p-8">
-            <h1 className="text-3xl font-bold text-blue-800 mb-6">Help & Support</h1>
-            <div className="space-y-4">
-                <p className="text-gray-700">
-                    Welcome to Thuto Thebe Learning Management System. If you need assistance with logging in or using the platform, please contact your system administrator.
-                </p>
-                <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-blue-800 mb-2">Login Issues?</h3>
-                    <ul className="text-sm text-blue-700 space-y-1">
-                        <li>• Make sure you're using the correct email address</li>
-                        <li>• Check that your password is correct</li>
-                        <li>• Contact your school administrator if you forgot your password</li>
-                    </ul>
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-50 flex flex-col">
+        <div className="flex-1 flex flex-col justify-center items-center p-4">
+            <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl p-8">
+                <h1 className="text-3xl font-bold text-blue-800 mb-6">Help & Support</h1>
+                <div className="space-y-4">
+                    <p className="text-gray-700">
+                        Welcome to Thuto Thebe Learning Management System. If you need assistance with logging in or using the platform, please contact your system administrator.
+                    </p>
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-blue-800 mb-2">Login Issues?</h3>
+                        <ul className="text-sm text-blue-700 space-y-1">
+                            <li>• Make sure you're using the correct email address</li>
+                            <li>• Check that your password is correct</li>
+                            <li>• Contact your school administrator if you forgot your password</li>
+                        </ul>
+                    </div>
+                    <div className="mt-6">
+                        <a href="/login" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            Back to Login
+                        </a>
+                    </div>
                 </div>
+            </div>
+        </div>
+        <Footer />
+    </div>
+);
+
+// Simple forgot password page component
+const ForgotPasswordPage = () => (
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-50 flex flex-col">
+        <div className="flex-1 flex flex-col justify-center items-center p-4">
+            <div className="w-full max-w-md bg-white rounded-xl shadow-xl p-8">
+                <h1 className="text-3xl font-bold text-blue-800 mb-6">Forgot Password</h1>
+                <p className="text-gray-700 mb-6">
+                    Please contact your system administrator or school IT department to reset your password.
+                </p>
                 <div className="mt-6">
                     <a href="/login" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                         Back to Login
@@ -40,23 +63,7 @@ const HelpPage = () => (
                 </div>
             </div>
         </div>
-    </div>
-);
-
-// Simple forgot password page component
-const ForgotPasswordPage = () => (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-50 flex flex-col justify-center items-center p-4">
-        <div className="w-full max-w-md bg-white rounded-xl shadow-xl p-8">
-            <h1 className="text-3xl font-bold text-blue-800 mb-6">Forgot Password</h1>
-            <p className="text-gray-700 mb-6">
-                Please contact your system administrator or school IT department to reset your password.
-            </p>
-            <div className="mt-6">
-                <a href="/login" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    Back to Login
-                </a>
-            </div>
-        </div>
+        <Footer />
     </div>
 );
 

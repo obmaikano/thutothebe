@@ -280,9 +280,8 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({ extraObject }
       }
       
       dispatch(closeModal({}));
-      if (extraObject?.onSuccess) {
-        extraObject.onSuccess();
-      }
+      // Trigger a page refresh to update attendance data
+      window.location.reload();
     } catch (error) {
       console.error('Failed to save attendance:', error);
     } finally {

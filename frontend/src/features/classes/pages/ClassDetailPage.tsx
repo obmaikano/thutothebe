@@ -309,8 +309,7 @@ const ClassDetailPage: React.FC = () => {
         extraObject: { 
           classId: currentClass.id, 
           className: currentClass.name,
-          students: getEnrolledStudents(),
-          onSuccess: refreshAttendanceData // Callback to refresh attendance data
+          students: getEnrolledStudents()
         }
       }));
     }
@@ -1188,8 +1187,7 @@ const ClassDetailPage: React.FC = () => {
                                     studentId: student.id,
                                     classId: currentClass?.id,
                                     studentName: `${student.firstName} ${student.lastName}`,
-                                    mode: 'create',
-                                    onSuccess: refreshAttendanceData
+                                    mode: 'create'
                                   }
                                 }));
                               }}

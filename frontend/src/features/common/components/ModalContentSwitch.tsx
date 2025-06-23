@@ -7,6 +7,7 @@ import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 const CreateSubjectModal = lazy(() => import('../../subjects/modals/CreateSubjectModal'));
 const EditSubjectModal = lazy(() => import('../../subjects/modals/EditSubjectModal'));
 const DeleteSubjectModal = lazy(() => import('../../subjects/modals/DeleteSubjectModal'));
+const SubjectAssignTeacherModal = lazy(() => import('../../school_admin/modals/SubjectAssignTeacherModal'));
 
 // Department management modals
 const CreateDepartmentModal = lazy(() => import('../../departments/modals/CreateDepartmentModal'));
@@ -185,6 +186,13 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <DeleteSubjectModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SUBJECT_ASSIGN_TEACHER:
+      return (
+        <Suspense fallback={fallback}>
+          <SubjectAssignTeacherModal extraObject={contentProps} />
         </Suspense>
       );
 
@@ -668,25 +676,6 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
                 )}
               </div>
             )}
-          </div>
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.SUBJECT_ASSIGN_TEACHER:
-      return (
-        <Suspense fallback={fallback}>
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Assign Teacher to Subject</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              This feature is not yet implemented.
-            </p>
-            <button
-              type="button"
-              onClick={() => dispatch(closeModal({}))}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Close
-            </button>
           </div>
         </Suspense>
       );

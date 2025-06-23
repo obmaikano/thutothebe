@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { createBulkAttendance } from '../attendanceSlice';
 import { BulkAttendanceRequest } from '../../../api/services/attendanceApi';
-import { closeModal } from '../../common/modalSlice';
+import { closeModal } from '../../../features/common/modalSlice';
 import { 
   Users, 
   CheckCircle, 
@@ -12,8 +12,10 @@ import {
   Save,
   RefreshCw,
   Calendar,
-  Settings
+  Settings,
+  X
 } from 'lucide-react';
+import { RootState } from '../../../store';
 
 interface BulkAttendanceModalProps {
   extraObject?: {
@@ -144,11 +146,14 @@ const BulkAttendanceModal: React.FC<BulkAttendanceModalProps> = ({ extraObject }
           arrivalTime: student.arrivalTime,
           departureTime: student.departureTime,
           remarks: student.remarks
-        }))
+        })),
+        markedById: user?.id
       };
 
       await dispatch(createBulkAttendance(bulkData)).unwrap();
       dispatch(closeModal({}));
+      // Trigger a page refresh to update attendance data
+      window.location.reload();
     } catch (error: any) {
       console.error('Failed to submit bulk attendance:', error);
     } finally {

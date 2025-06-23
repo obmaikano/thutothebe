@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import { useAppDispatch } from '../../../app/hooks';
+import React, { useState, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../../store';
 import { closeModal } from '../../common/modalSlice';
+import { createCourse } from '../../courses/coursesSlice';
+import { fetchCourses } from '../../courses/coursesSlice';
 import { Users, BookOpen, Check, Search, X, UserPlus } from 'lucide-react';
+import { CourseType, Term, CreateCourseRequest } from '../../../api/services/courseApi';
 
 interface SubjectAssignTeacherModalProps {
   extraObject?: {
@@ -12,7 +15,7 @@ interface SubjectAssignTeacherModalProps {
   };
 }
 
-// Mock interface for teacher assignment - would come from API
+// Interface for teacher assignment
 interface TeacherAssignment {
   teacherId: number;
   subjectId: number;
@@ -21,10 +24,14 @@ interface TeacherAssignment {
   startDate: string;
   endDate?: string;
   workload: number; // percentage
+  term: keyof Term;
+  year: number;
+  type: keyof CourseType;
 }
 
 export const SubjectAssignTeacherModal: React.FC<SubjectAssignTeacherModalProps> = ({ extraObject }) => {
   const dispatch = useAppDispatch();
+  const { courses } = useAppSelector(state => state.courses);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +45,11 @@ export const SubjectAssignTeacherModal: React.FC<SubjectAssignTeacherModalProps>
   const classes = extraObject?.classes || [];
   const assignedTeachers = extraObject?.assignedTeachers || [];
 
+  useEffect(() => {
+    // Refresh courses to get latest data
+    dispatch(fetchCourses());
+  }, [dispatch]);
+
   const handleClose = () => {
     dispatch(closeModal({}));
   };
@@ -49,7 +61,7 @@ export const SubjectAssignTeacherModal: React.FC<SubjectAssignTeacherModalProps>
       teacher.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       teacher.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.staffId.toLowerCase().includes(searchTerm.toLowerCase());
+      teacher.staffId?.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesSearch;
   });
@@ -73,7 +85,10 @@ export const SubjectAssignTeacherModal: React.FC<SubjectAssignTeacherModalProps>
           isPrimary: selectedTeachers.length === 0, // First teacher is primary
           startDate: new Date().toISOString().split('T')[0],
           endDate: '',
-          workload: 100
+          workload: 100,
+          term: 'FIRST_TERM',
+          year: new Date().getFullYear(),
+          type: 'CORE'
         }
       }));
     }
@@ -108,6 +123,10 @@ export const SubjectAssignTeacherModal: React.FC<SubjectAssignTeacherModalProps>
         const teacher = teachers.find(t => t.id === teacherId);
         errors.push(`Workload must be between 1-100% for ${teacher?.firstName} ${teacher?.lastName}`);
       }
+      if (assignment.classIds.length === 0) {
+        const teacher = teachers.find(t => t.id === teacherId);
+        errors.push(`At least one class must be selected for ${teacher?.firstName} ${teacher?.lastName}`);
+      }
     });
 
     if (errors.length > 0) {
@@ -119,14 +138,30 @@ export const SubjectAssignTeacherModal: React.FC<SubjectAssignTeacherModalProps>
     setError(null);
 
     try {
-      // Mock API call - would be replaced with actual API
-      console.log('Assigning teachers to subject:', {
-        subjectId: subject?.id,
-        assignments: Object.values(teacherAssignments)
-      });
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Create courses for each teacher assignment
+      for (const teacherId of selectedTeachers) {
+        const assignment = teacherAssignments[teacherId];
+        
+        // Create a course for each class assigned to this teacher
+        for (const classId of assignment.classIds) {
+          const classEntity = classes.find(c => c.id === classId);
+          const teacher = teachers.find(t => t.id === teacherId);
+          
+          const courseData = {
+            code: `${subject?.code?.substring(0, 3) || 'SUB'}-${classEntity?.name?.substring(0, 3) || 'CLS'}-${assignment.year.toString().slice(-2)}`,
+            name: `${subject?.name || 'Subject'} - ${classEntity?.name || 'Class'}`,
+            subjectId: assignment.subjectId,
+            classId: classId,
+            term: assignment.term,
+            year: assignment.year,
+            active: true,
+            type: assignment.type,
+            instructorIds: [teacherId]
+          };
+
+          await dispatch(createCourse(courseData)).unwrap();
+        }
+      }
       
       setIsSuccess(true);
       

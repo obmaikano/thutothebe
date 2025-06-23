@@ -15,6 +15,8 @@ export interface Term {
 }
 
 export interface Course {
+  updatedAt: any;
+  createdAt: any;
   id: number;
   code: string;
   name: string;
