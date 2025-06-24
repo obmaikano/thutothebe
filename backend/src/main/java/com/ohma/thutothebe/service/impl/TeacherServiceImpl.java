@@ -1,7 +1,9 @@
 package com.ohma.thutothebe.service.impl;
 
 import com.ohma.thutothebe.dto.TeacherDTO;
+import com.ohma.thutothebe.dto.TeacherOnboardingDTO;
 import com.ohma.thutothebe.entity.*;
+import com.ohma.thutothebe.entity.enums.Gender;
 import com.ohma.thutothebe.exception.ResourceNotFoundException;
 import com.ohma.thutothebe.mapper.TeacherMapper;
 import com.ohma.thutothebe.repository.CourseInstructorRepository;
@@ -11,11 +13,15 @@ import com.ohma.thutothebe.repository.UserRepository;
 import com.ohma.thutothebe.service.TeacherService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,6 +33,7 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
     private final TeacherMapper teacherMapper;
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     private final RuleBasedAccessControlServiceImpl accessControlService;
 
     @Autowired
@@ -36,6 +43,7 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
             TeacherMapper teacherMapper,
             SchoolRepository schoolRepository,
             UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
             RuleBasedAccessControlServiceImpl accessControlService) {
         super(teacherRepository);
         this.teacherRepository = teacherRepository;
@@ -43,6 +51,7 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
         this.teacherMapper = teacherMapper;
         this.schoolRepository = schoolRepository;
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         this.accessControlService = accessControlService;
     }
 
@@ -322,119 +331,6 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
     
     @Override
     @Transactional(readOnly = true)
-    public List<TeacherDTO> getTeachersBySchoolIds(List<Long> schoolIds) {
-        if (schoolIds == null || schoolIds.isEmpty()) {
-            return List.of();
-        }
-        return teacherRepository.findBySchoolIdInAndActive(schoolIds, true).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public List<TeacherDTO> getTeachersByRegionIds(List<Long> regionIds) {
-        if (regionIds == null || regionIds.isEmpty()) {
-            return List.of();
-        }
-        return teacherRepository.findByRegionIdInAndActive(regionIds, true).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public List<TeacherDTO> getTeachersByTeacherIds(List<Long> teacherIds) {
-        if (teacherIds == null || teacherIds.isEmpty()) {
-            return List.of();
-        }
-        return teacherRepository.findByIdInAndActive(teacherIds, true).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public List<TeacherDTO> getTeachersByUserIds(List<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return List.of();
-        }
-        return teacherRepository.findByUserIdInAndActive(userIds, true).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public List<TeacherDTO> getActiveTeachersBySchoolIds(List<Long> schoolIds) {
-        if (schoolIds == null || schoolIds.isEmpty()) {
-            return List.of();
-        }
-        return teacherRepository.findBySchoolIdInAndActive(schoolIds, true).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public List<TeacherDTO> getActiveTeachersByRegionIds(List<Long> regionIds) {
-        if (regionIds == null || regionIds.isEmpty()) {
-            return List.of();
-        }
-        return teacherRepository.findByRegionIdInAndActive(regionIds, true).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public List<TeacherDTO> getActiveTeachersByTeacherIds(List<Long> teacherIds) {
-        if (teacherIds == null || teacherIds.isEmpty()) {
-            return List.of();
-        }
-        return teacherRepository.findByIdInAndActive(teacherIds, true).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public List<TeacherDTO> getActiveTeachersByUserIds(List<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return List.of();
-        }
-        return teacherRepository.findByUserIdInAndActive(userIds, true).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public List<TeacherDTO> getTeachersByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> userIds) {
-        return teacherRepository.findByMultiScopeAccess(
-                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
-                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
-                userIds == null || userIds.isEmpty() ? List.of(-1L) : userIds
-        ).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public List<TeacherDTO> getActiveTeachersByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> userIds) {
-        return teacherRepository.findByMultiScopeAccessAndActive(
-                schoolIds == null || schoolIds.isEmpty() ? List.of(-1L) : schoolIds,
-                regionIds == null || regionIds.isEmpty() ? List.of(-1L) : regionIds,
-                userIds == null || userIds.isEmpty() ? List.of(-1L) : userIds,
-                true
-        ).stream()
-                .map(teacherMapper::toDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
     public List<TeacherDTO> getTeachersByCourseIdAndAccessibleScopes(Long courseId, Long currentUserId) {
         try {
             List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
@@ -511,6 +407,62 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<TeacherDTO> getTeachersByDepartmentId(Long departmentId) {
+        // TODO: Implement department filtering in repository
+        return List.of();
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<TeacherDTO> getTeachersByDepartmentIdAndAccessibleScopes(Long departmentId, Long currentUserId) {
+        // TODO: Implement department and school filtering in repository
+        return List.of();
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<TeacherDTO> getTeachersBySchoolIdAndAccessibleScopes(Long schoolId, Long currentUserId) {
+        try {
+            boolean hasSchoolAccess = accessControlService.hasAccess(currentUserId, AccessScope.SCHOOL, schoolId);
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess || hasSchoolAccess) {
+                return teacherRepository.findBySchool_Id(schoolId).stream()
+                        .map(teacherMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting teachers by school and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<TeacherDTO> getTeachersByRegionIdAndAccessibleScopes(Long regionId, Long currentUserId) {
+        try {
+            boolean hasRegionAccess = accessControlService.hasAccess(currentUserId, AccessScope.REGION, regionId);
+            boolean hasGlobalAccess = accessControlService.hasAccess(currentUserId, AccessScope.GLOBAL, null);
+            
+            if (hasGlobalAccess || hasRegionAccess) {
+                return teacherRepository.findActiveTeachersByRegionId(regionId).stream()
+                        .map(teacherMapper::toDto)
+                        .collect(Collectors.toList());
+            }
+            
+            return List.of();
+                    
+        } catch (Exception e) {
+            log.error("Error getting teachers by region and accessible scopes for user {}: {}", currentUserId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    @Override
     protected Long extractSchoolId(Teacher entity) {
         return entity.getSchool() != null ? entity.getSchool().getId() : null;
     }
@@ -519,5 +471,75 @@ public class TeacherServiceImpl extends BaseServiceImpl<Teacher, TeacherDTO, Lon
     protected Long extractRegionId(Teacher entity) {
         return entity.getSchool() != null && entity.getSchool().getRegion() != null ? 
             entity.getSchool().getRegion().getId() : null;
+    }
+
+    @Override
+    @Transactional
+    public TeacherDTO onboardTeacher(TeacherOnboardingDTO onboardingDTO) {
+        log.info("Starting teacher onboarding for email: {}", onboardingDTO.email());
+        
+        // Validate that teacher doesn't already exist
+        if (teacherRepository.existsByStaffId(onboardingDTO.staffId())) {
+            throw new IllegalArgumentException("Teacher with staff ID " + onboardingDTO.staffId() + " already exists");
+        }
+        
+        if (teacherRepository.existsByEmail(onboardingDTO.email())) {
+            throw new IllegalArgumentException("Teacher with email " + onboardingDTO.email() + " already exists");
+        }
+        
+        if (userRepository.existsByEmail(onboardingDTO.email())) {
+            throw new IllegalArgumentException("User with email " + onboardingDTO.email() + " already exists");
+        }
+        
+        // Username uniqueness check (not supported by repository, skipping for now)
+        // if (userRepository.existsByUsername(onboardingDTO.username())) {
+        //     throw new IllegalArgumentException("User with username " + onboardingDTO.username() + " already exists");
+        // }
+        
+        // Validate school exists
+        School school = schoolRepository.findById(onboardingDTO.schoolId())
+            .orElseThrow(() -> new ResourceNotFoundException("School not found with id: " + onboardingDTO.schoolId()));
+        
+        // Create Person entity first
+        Person person = new Person();
+        person.setFirstName(onboardingDTO.firstName());
+        person.setSurname(onboardingDTO.lastName());
+        person.setIdentityNumber(onboardingDTO.identityNumber());
+        person.setNationality(onboardingDTO.nationality());
+        person.setGender(onboardingDTO.gender());
+        person.setDateOfBirth(onboardingDTO.dateOfBirth());
+        
+        // Create user account
+        User user = new User();
+        user.setUsername(onboardingDTO.username());
+        user.setEmail(onboardingDTO.email());
+        user.setPassword(passwordEncoder.encode(onboardingDTO.password()));
+        user.setFirstName(onboardingDTO.firstName());
+        user.setLastName(onboardingDTO.lastName());
+        user.setRole(UserRole.TEACHER);
+        user.setActive(onboardingDTO.active());
+        user.setSchool(school);
+        user.setQualification(onboardingDTO.qualification());
+        user.setPerson(person);
+        
+        User savedUser = userRepository.save(user);
+        
+        // Create teacher profile
+        TeacherDTO teacherDTO = new TeacherDTO(
+            null, // id
+            onboardingDTO.staffId(),
+            onboardingDTO.firstName(),
+            onboardingDTO.lastName(),
+            onboardingDTO.email(),
+            onboardingDTO.qualification(),
+            onboardingDTO.schoolId(),
+            savedUser.getId(),
+            onboardingDTO.active()
+        );
+        
+        TeacherDTO createdTeacher = createTeacher(teacherDTO);
+        
+        log.info("Teacher onboarding completed successfully for email: {}", onboardingDTO.email());
+        return createdTeacher;
     }
 } 

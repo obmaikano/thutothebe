@@ -5,8 +5,11 @@ import com.ohma.thutothebe.dto.ClassWithTeachersDTO;
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.entity.Class;
+import com.ohma.thutothebe.entity.Teacher;
 import com.ohma.thutothebe.entity.enums.GradeLevel;
 import com.ohma.thutothebe.repository.ClassRepository;
+import com.ohma.thutothebe.repository.TeacherRepository;
+import com.ohma.thutothebe.service.impl.RuleBasedAccessControlServiceImpl;
 import com.ohma.thutothebe.service.ClassService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,10 +21,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.HashMap;
 
 @Slf4j
 @RestController
@@ -31,12 +35,16 @@ public class ClassController extends BaseController<ClassDTO, Long> {
 
     private final ClassService classService;
     private final ClassRepository classRepository;
+    private final TeacherRepository teacherRepository;
+    private final RuleBasedAccessControlServiceImpl accessControlService;
 
     @Autowired
-    public ClassController(ClassService classService, ClassRepository classRepository) {
+    public ClassController(ClassService classService, ClassRepository classRepository, TeacherRepository teacherRepository, RuleBasedAccessControlServiceImpl accessControlService) {
         super(classService);
         this.classService = classService;
         this.classRepository = classRepository;
+        this.teacherRepository = teacherRepository;
+        this.accessControlService = accessControlService;
     }
 
     // ==================== SECURE MULTI-TENANT OVERRIDES ====================
@@ -644,6 +652,61 @@ public class ClassController extends BaseController<ClassDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Grade levels retrieved successfully", gradeLevels, null));
         } catch (Exception e) {
             log.error("Error retrieving grade levels: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @GetMapping("/teacher/{teacherId}/debug")
+    @Operation(summary = "Debug endpoint to check teacher-class assignments and access control")
+    public ResponseEntity<OhmaApiResponse<Map<String, Object>>> debugTeacherClasses(@PathVariable Long teacherId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            Map<String, Object> debugInfo = new HashMap<>();
+            
+            // Check if teacher exists
+            Optional<Teacher> teacherOpt = teacherRepository.findById(teacherId);
+            debugInfo.put("teacherExists", teacherOpt.isPresent());
+            
+            if (teacherOpt.isPresent()) {
+                Teacher teacher = teacherOpt.get();
+                debugInfo.put("teacherId", teacher.getId());
+                debugInfo.put("teacherName", teacher.getFirstName() + " " + teacher.getLastName());
+                debugInfo.put("teacherSchoolId", teacher.getSchool() != null ? teacher.getSchool().getId() : null);
+                debugInfo.put("teacherActive", teacher.isActive());
+            }
+            
+            // Check all classes this teacher is assigned to (without access control)
+            List<Class> allTeacherClasses = classRepository.findByTeacherId(teacherId);
+            debugInfo.put("totalClassesAssigned", allTeacherClasses.size());
+            debugInfo.put("assignedClasses", allTeacherClasses.stream()
+                .map(c -> Map.of(
+                    "id", c.getId(),
+                    "name", c.getName(),
+                    "schoolId", c.getSchool() != null ? c.getSchool().getId() : null,
+                    "active", c.isActive()
+                ))
+                .collect(Collectors.toList()));
+            
+            // Check accessible school IDs for current user
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(currentUserId, AccessScope.REGION);
+            debugInfo.put("accessibleSchoolIds", accessibleSchoolIds);
+            debugInfo.put("accessibleRegionIds", accessibleRegionIds);
+            
+            // Check classes with access control
+            List<ClassDTO> accessibleClasses = classService.getClassesByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
+            debugInfo.put("accessibleClassesCount", accessibleClasses.size());
+            debugInfo.put("accessibleClasses", accessibleClasses);
+            
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Debug information retrieved", debugInfo, null));
+        } catch (Exception e) {
+            log.error("Error in debug endpoint: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

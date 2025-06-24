@@ -8,6 +8,7 @@ import com.ohma.thutothebe.service.MessageChannelService;
 import com.ohma.thutothebe.service.RealTimeMessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "spring.data.redis.enabled", havingValue = "true", matchIfMissing = true)
 public class RealTimeMessageServiceImpl implements RealTimeMessageService {
 
     private final SimpMessagingTemplate messagingTemplate;

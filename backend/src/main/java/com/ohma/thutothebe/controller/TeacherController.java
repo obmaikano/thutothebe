@@ -2,6 +2,7 @@ package com.ohma.thutothebe.controller;
 
 import com.ohma.thutothebe.dto.OhmaApiResponse;
 import com.ohma.thutothebe.dto.TeacherDTO;
+import com.ohma.thutothebe.dto.TeacherOnboardingDTO;
 import com.ohma.thutothebe.entity.AccessScope;
 import com.ohma.thutothebe.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -286,6 +288,27 @@ public class TeacherController extends BaseController<TeacherDTO, Long> {
             return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher activated successfully", null, null));
         } catch (Exception e) {
             log.error("Error activating teacher: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/onboard")
+    @Operation(summary = "Onboard a new teacher (create user and teacher profile)")
+    public ResponseEntity<OhmaApiResponse<TeacherDTO>> onboardTeacher(@Validated @RequestBody TeacherOnboardingDTO onboardingDTO) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return createUnauthorizedResponse();
+            }
+            // Only admin or higher can onboard teachers
+            if (!hasAccess(AccessScope.SCHOOL, onboardingDTO.schoolId()) && !hasAccess(AccessScope.GLOBAL, null)) {
+                return createAccessDeniedResponse();
+            }
+            TeacherDTO created = teacherService.onboardTeacher(onboardingDTO);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "Teacher onboarded successfully", created, null));
+        } catch (Exception e) {
+            log.error("Error onboarding teacher: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
         }

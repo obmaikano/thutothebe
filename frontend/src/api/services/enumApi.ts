@@ -63,6 +63,13 @@ export const NATIONALITY_LABELS: Record<string, string> = {
   'OTHER': 'Other'
 };
 
+// Gender mapping from backend Gender.java enum
+export const GENDER_LABELS: Record<string, string> = {
+  'MALE': 'Male',
+  'FEMALE': 'Female',
+  'OTHER': 'Other'
+};
+
 /**
  * API service for fetching enum values from the backend
  */
@@ -97,6 +104,22 @@ const enumApi = {
    */
   getUserRoles: async (): Promise<AxiosResponse<EnumResponse>> => {
     return api.get('/enums/user-roles');
+  },
+
+  /**
+   * Get all nationalities
+   * @returns Response with nationality enum values
+   */
+  getNationalities: async (): Promise<AxiosResponse<EnumResponse>> => {
+    return api.get('/common/nationalities');
+  },
+
+  /**
+   * Get all genders
+   * @returns Response with gender enum values
+   */
+  getGenders: async (): Promise<AxiosResponse<EnumResponse>> => {
+    return api.get('/common/genders');
   }
 };
 
@@ -127,6 +150,26 @@ export const getCurriculumStatusOptions = (statuses: string[]): GradeLevelOption
   return statuses.map(status => ({
     value: status,
     label: CURRICULUM_STATUS_LABELS[status] || status
+  }));
+};
+
+/**
+ * Helper function to convert nationality enum values to options
+ */
+export const getNationalityOptions = (nationalities: string[]): GradeLevelOption[] => {
+  return nationalities.map(nationality => ({
+    value: nationality,
+    label: NATIONALITY_LABELS[nationality] || nationality
+  }));
+};
+
+/**
+ * Helper function to convert gender enum values to options
+ */
+export const getGenderOptions = (genders: string[]): GradeLevelOption[] => {
+  return genders.map(gender => ({
+    value: gender,
+    label: GENDER_LABELS[gender] || gender
   }));
 };
 

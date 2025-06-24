@@ -60,7 +60,8 @@ public class SecurityConfig {
                     new AntPathRequestMatcher("/swagger-ui/**"),
                     new AntPathRequestMatcher("/swagger-ui.html"),
                     new AntPathRequestMatcher("/ws/**"),
-                    new AntPathRequestMatcher("/ws")
+                    new AntPathRequestMatcher("/ws"),
+                    new AntPathRequestMatcher("/api/v1/common/**")
                 ).permitAll()
                 .anyRequest().authenticated()
             )

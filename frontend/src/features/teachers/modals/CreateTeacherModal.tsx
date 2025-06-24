@@ -5,6 +5,7 @@ import { fetchTeachers } from '../teachersSlice';
 import { Teacher } from '../../../api/services/teacherApi';
 import TeacherForm from '../components/TeacherForm';
 import { Users, Plus } from 'lucide-react';
+import { OnboardTeacherModal } from './OnboardTeacherModal';
 
 interface CreateTeacherModalProps {
   extraObject?: any;
@@ -13,6 +14,7 @@ interface CreateTeacherModalProps {
 export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({ extraObject }) => {
   const dispatch = useAppDispatch();
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showOnboardModal, setShowOnboardModal] = useState(false);
 
   const handleClose = () => {
     dispatch(closeModal({}));
@@ -35,6 +37,10 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({ extraObj
       setIsSuccess(false);
     }
   };
+
+  if (showOnboardModal) {
+    return <OnboardTeacherModal />;
+  }
 
   if (isSuccess) {
     return (
@@ -61,6 +67,17 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({ extraObj
           <h3 className="text-lg font-semibold text-gray-900">Create New Teacher</h3>
           <p className="text-sm text-gray-600">Add a new teacher to your staff</p>
         </div>
+      </div>
+
+      {/* Onboard Teacher Button */}
+      <div className="mb-4">
+        <button
+          type="button"
+          className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          onClick={() => setShowOnboardModal(true)}
+        >
+          Onboard Teacher (User + Profile)
+        </button>
       </div>
 
       {/* Form */}

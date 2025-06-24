@@ -12,15 +12,48 @@ export interface Teacher {
   active: boolean;
 }
 
+export interface CreateTeacherRequest {
+  staffId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  qualification: string;
+  schoolId: number;
+  active: boolean;
+}
+
+export interface UpdateTeacherRequest {
+  staffId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  qualification: string;
+  schoolId: number;
+  active: boolean;
+}
+
+export interface TeacherOnboardingRequest {
+  staffId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  qualification: string;
+  schoolId: number;
+  identityNumber: string;
+  nationality: string;
+  gender: string;
+  dateOfBirth: string;
+  username: string;
+  password: string;
+  active: boolean;
+}
+
 export interface TeacherResponse {
   status: string;
   message: string;
-  data: Teacher | Teacher[] | null;
-  timestamp: string | null;
+  data: Teacher | Teacher[];
+  timestamp?: string;
 }
-
-export type CreateTeacherRequest = Omit<Teacher, 'id'>;
-export type UpdateTeacherRequest = Partial<Teacher>;
 
 /**
  * API service for interacting with teacher endpoints
@@ -76,6 +109,15 @@ const teacherApi = {
    */
   create: async (teacherData: CreateTeacherRequest): Promise<AxiosResponse<TeacherResponse>> => {
     return api.post('/teachers', teacherData);
+  },
+
+  /**
+   * Onboard a new teacher (create user and teacher profile)
+   * @param onboardingData Teacher onboarding data including user credentials
+   * @returns Response with created teacher details
+   */
+  onboard: async (onboardingData: TeacherOnboardingRequest): Promise<AxiosResponse<TeacherResponse>> => {
+    return api.post('/teachers/onboard', onboardingData);
   },
 
   /**

@@ -633,4 +633,12 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserDTO, Long> implem
         return entity.getSchool() != null && entity.getSchool().getRegion() != null 
             ? entity.getSchool().getRegion().getId() : null;
     }
+
+//    @Override
+//    protected void beforeCreate(User user) {
+//        super.beforeCreate(user); // Sets createdAt and modifiedAt to LocalDateTime.now()
+//        // Explicitly set audit columns if needed (example: force to now)
+//        user.setCreatedAt(java.time.LocalDateTime.now());
+//        user.setModifiedAt(java.time.LocalDateTime.now());
+//    }
 } 

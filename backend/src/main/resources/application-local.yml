@@ -1,0 +1,110 @@
+spring:
+  application:
+    name: thutoLms
+  datasource:
+    url: jdbc:postgresql://52.23.212.18:5432/thutothebe
+    username: postgres
+    password: TsaMmerekoC180!
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+      auto-commit: true
+      pool-name: ThutoLMSHikariPool
+      validation-timeout: 5000
+      connection-test-query: SELECT 1
+    read:
+      url: jdbc:postgresql://52.23.212.18:5432/thutolms
+      username: postgres
+      password: TsaMmerekoC180!
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 30
+        minimum-idle: 5
+        idle-timeout: 300000
+        connection-timeout: 20000
+        max-lifetime: 1200000
+        auto-commit: true
+        pool-name: ThutoLMSReadHikariPool
+        validation-timeout: 5000
+        connection-test-query: SELECT 1
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        cache:
+          use_second_level_cache: true
+          region:
+            factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
+        javax:
+          cache:
+            provider: org.ehcache.jsr107.EhcacheCachingProvider
+            uri: classpath:ehcache.xml
+  flyway:
+    enabled: false
+    baseline-on-migrate: false
+    locations: classpath:db/migration
+  cache:
+    type: jcache
+    jcache:
+      config: classpath:ehcache.xml
+
+  # Disable Redis for local development
+  data:
+    redis:
+      enabled: false
+
+  # File Upload Configuration
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      enabled: true
+
+  # Disable Redis auto-configuration
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+    filter: true
+
+jwt:
+  secret: ${JWT_SECRET:5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437}
+  expiration: 86400000 # 24 hours in milliseconds
+
+logging:
+  level:
+    org.springframework: INFO
+    com.ohma: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.security: DEBUG
+    com.ohma.thutothebe: DEBUG
+    org.springframework.web: DEBUG
+
+security:
+  user:
+    name: admin
+    password: admin 

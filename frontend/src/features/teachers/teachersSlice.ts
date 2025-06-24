@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import teacherApi, { Teacher, CreateTeacherRequest, UpdateTeacherRequest } from '../../api/services/teacherApi';
+import teacherApi, { Teacher, CreateTeacherRequest, UpdateTeacherRequest, TeacherOnboardingRequest } from '../../api/services/teacherApi';
 
 export interface TeachersState {
   teachers: Teacher[];
@@ -76,6 +76,18 @@ export const createTeacher = createAsyncThunk(
   }
 );
 
+export const onboardTeacher = createAsyncThunk(
+  'teachers/onboardTeacher',
+  async (onboardingData: TeacherOnboardingRequest, { rejectWithValue }) => {
+    try {
+      const response = await teacherApi.onboard(onboardingData);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to onboard teacher');
+    }
+  }
+);
+
 export const updateTeacher = createAsyncThunk(
   'teachers/updateTeacher',
   async ({ id, teacherData }: { id: number; teacherData: UpdateTeacherRequest }, { rejectWithValue }) => {
@@ -92,8 +104,8 @@ export const deleteTeacher = createAsyncThunk(
   'teachers/deleteTeacher',
   async (id: number, { rejectWithValue }) => {
     try {
-      const response = await teacherApi.delete(id);
-      return { id, ...response.data.data };
+      await teacherApi.delete(id);
+      return id;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to delete teacher');
     }
@@ -208,6 +220,23 @@ const teachersSlice = createSlice({
         state.error = action.payload as string || 'Failed to create teacher';
       })
 
+      // Onboard teacher
+      .addCase(onboardTeacher.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(onboardTeacher.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        const teacher = Array.isArray(action.payload) ? action.payload[0] : action.payload;
+        if (teacher) {
+          state.teachers.push(teacher);
+        }
+      })
+      .addCase(onboardTeacher.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string;
+      })
+
       // Update teacher
       .addCase(updateTeacher.pending, (state) => {
         state.status = 'loading';
@@ -215,16 +244,20 @@ const teachersSlice = createSlice({
       })
       .addCase(updateTeacher.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        const updatedTeacher = action.payload as Teacher;
-        const index = state.teachers.findIndex(teacher => teacher.id === updatedTeacher.id);
-        if (index !== -1) {
-          state.teachers[index] = updatedTeacher;
+        const teacher = Array.isArray(action.payload) ? action.payload[0] : action.payload;
+        if (teacher) {
+          const index = state.teachers.findIndex(t => t.id === teacher.id);
+          if (index !== -1) {
+            state.teachers[index] = teacher;
+          }
+          if (state.currentTeacher?.id === teacher.id) {
+            state.currentTeacher = teacher;
+          }
         }
-        state.currentTeacher = updatedTeacher;
       })
       .addCase(updateTeacher.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.payload as string || 'Failed to update teacher';
+        state.error = action.payload as string;
       })
 
       // Delete teacher
@@ -234,15 +267,14 @@ const teachersSlice = createSlice({
       })
       .addCase(deleteTeacher.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        const { id } = action.payload as { id: number };
-        state.teachers = state.teachers.filter(teacher => teacher.id !== id);
-        if (state.currentTeacher?.id === id) {
+        state.teachers = state.teachers.filter(teacher => teacher.id !== action.payload);
+        if (state.currentTeacher?.id === action.payload) {
           state.currentTeacher = null;
         }
       })
       .addCase(deleteTeacher.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.payload as string || 'Failed to delete teacher';
+        state.error = action.payload as string;
       })
 
       // Activate teacher

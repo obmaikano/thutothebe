@@ -399,8 +399,6 @@ class ContentIntegrationTest {
             user.setRole(role);
             user.setFirstName("First");
             user.setLastName("Last");
-            user.setCreatedAt(LocalDateTime.now());
-            user.setUpdatedAt(LocalDateTime.now());
             return userRepository.save(user);
         }
 }

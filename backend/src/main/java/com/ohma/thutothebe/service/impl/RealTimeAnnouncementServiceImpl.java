@@ -6,6 +6,7 @@ import com.ohma.thutothebe.service.AnnouncementGroupService;
 import com.ohma.thutothebe.service.RealTimeAnnouncementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "spring.data.redis.enabled", havingValue = "true", matchIfMissing = true)
 public class RealTimeAnnouncementServiceImpl implements RealTimeAnnouncementService {
 
     private final SimpMessagingTemplate messagingTemplate;

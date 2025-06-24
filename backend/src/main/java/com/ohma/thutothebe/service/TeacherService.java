@@ -1,6 +1,7 @@
 package com.ohma.thutothebe.service;
 
 import com.ohma.thutothebe.dto.TeacherDTO;
+import com.ohma.thutothebe.dto.TeacherOnboardingDTO;
 
 import java.util.List;
 
@@ -35,6 +36,13 @@ public interface TeacherService extends BaseService<TeacherDTO, Long> {
     List<TeacherDTO> getTeachersByClassId(Long classId);
     
     TeacherDTO linkToUser(Long teacherId, Long userId);
+    
+    /**
+     * Onboard a new teacher by creating both user account and teacher profile
+     * @param onboardingDTO Teacher onboarding data including user credentials
+     * @return Created teacher DTO
+     */
+    TeacherDTO onboardTeacher(TeacherOnboardingDTO onboardingDTO);
 
     // ==================== MULTI-TENANT FILTERING METHODS ====================
     
@@ -70,54 +78,24 @@ public interface TeacherService extends BaseService<TeacherDTO, Long> {
     List<TeacherDTO> getActiveTeachersByRegionId(Long regionId);
     
     /**
-     * Get teachers by multiple school IDs (for class-level access across schools)
+     * Get teachers by department ID
      */
-    List<TeacherDTO> getTeachersBySchoolIds(List<Long> schoolIds);
+    List<TeacherDTO> getTeachersByDepartmentId(Long departmentId);
     
     /**
-     * Get teachers by multiple region IDs (for regional access across regions)
+     * Get teachers by department ID with accessible scope filtering
      */
-    List<TeacherDTO> getTeachersByRegionIds(List<Long> regionIds);
+    List<TeacherDTO> getTeachersByDepartmentIdAndAccessibleScopes(Long departmentId, Long currentUserId);
     
     /**
-     * Get teachers by specific teacher IDs (for user-level access)
+     * Get teachers by school ID with accessible scope filtering
      */
-    List<TeacherDTO> getTeachersByTeacherIds(List<Long> teacherIds);
+    List<TeacherDTO> getTeachersBySchoolIdAndAccessibleScopes(Long schoolId, Long currentUserId);
     
     /**
-     * Get teachers by specific user IDs (for user-level access through user relationship)
+     * Get teachers by region ID with accessible scope filtering
      */
-    List<TeacherDTO> getTeachersByUserIds(List<Long> userIds);
-    
-    /**
-     * Get active teachers by multiple school IDs
-     */
-    List<TeacherDTO> getActiveTeachersBySchoolIds(List<Long> schoolIds);
-    
-    /**
-     * Get active teachers by multiple region IDs
-     */
-    List<TeacherDTO> getActiveTeachersByRegionIds(List<Long> regionIds);
-    
-    /**
-     * Get active teachers by specific teacher IDs
-     */
-    List<TeacherDTO> getActiveTeachersByTeacherIds(List<Long> teacherIds);
-    
-    /**
-     * Get active teachers by specific user IDs
-     */
-    List<TeacherDTO> getActiveTeachersByUserIds(List<Long> userIds);
-    
-    /**
-     * Get teachers by multi-scope access (combines school, region, and user level access)
-     */
-    List<TeacherDTO> getTeachersByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> userIds);
-    
-    /**
-     * Get active teachers by multi-scope access
-     */
-    List<TeacherDTO> getActiveTeachersByMultiScopeAccess(List<Long> schoolIds, List<Long> regionIds, List<Long> userIds);
+    List<TeacherDTO> getTeachersByRegionIdAndAccessibleScopes(Long regionId, Long currentUserId);
     
     /**
      * Get teachers by course and accessible scopes (secure course instruction)
