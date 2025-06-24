@@ -33,13 +33,13 @@ public interface ClassRepository extends JpaRepository<Class, Long> {
     @Query("SELECT c FROM Class c LEFT JOIN FETCH c.teachers WHERE c.school.id = :schoolId")
     List<Class> findBySchoolIdWithTeachers(Long schoolId);
     
-    @Query("SELECT c FROM Class c WHERE c.school.id = :schoolId AND :teacherId MEMBER OF c.teachers")
+    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE c.school.id = :schoolId AND t.id = :teacherId")
     List<Class> findBySchoolIdAndTeacherId(Long schoolId, Long teacherId);
     
-    @Query("SELECT c FROM Class c WHERE :teacherId MEMBER OF c.teachers")
+    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE t.id = :teacherId")
     List<Class> findByTeacherId(@Param("teacherId") Long teacherId);
     
-    @Query("SELECT c FROM Class c WHERE c.school.id = :schoolId AND :studentId MEMBER OF c.students")
+    @Query("SELECT c FROM Class c JOIN c.students s WHERE c.school.id = :schoolId AND s.id = :studentId")
     List<Class> findBySchoolIdAndStudentId(Long schoolId, Long studentId);
     
     @Query("SELECT s.id FROM Class c JOIN c.students s WHERE c.id = :classId")
@@ -108,26 +108,36 @@ public interface ClassRepository extends JpaRepository<Class, Long> {
     
     // Teacher filtering with multi-tenant security
     @EntityGraph(attributePaths = {"school", "school.region", "teachers", "students"})
-    @Query("SELECT c FROM Class c WHERE :teacherId MEMBER OF c.teachers AND c.school.id IN :schoolIds AND c.active = :active")
+    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE t.id = :teacherId AND c.school.id IN :schoolIds AND c.active = :active")
     List<Class> findByTeacherIdAndSchoolIdInAndActive(@Param("teacherId") Long teacherId,
                                                      @Param("schoolIds") List<Long> schoolIds,
                                                      @Param("active") boolean active);
     
     @EntityGraph(attributePaths = {"school", "school.region", "teachers", "students"})
-    @Query("SELECT c FROM Class c WHERE :teacherId MEMBER OF c.teachers AND c.school.region.id IN :regionIds AND c.active = :active")
+    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE t.id = :teacherId AND c.school.id IN :schoolIds")
+    List<Class> findByTeacherIdAndSchoolIdIn(@Param("teacherId") Long teacherId,
+                                            @Param("schoolIds") List<Long> schoolIds);
+    
+    @EntityGraph(attributePaths = {"school", "school.region", "teachers", "students"})
+    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE t.id = :teacherId AND c.school.region.id IN :regionIds AND c.active = :active")
     List<Class> findByTeacherIdAndRegionIdInAndActive(@Param("teacherId") Long teacherId,
                                                      @Param("regionIds") List<Long> regionIds,
                                                      @Param("active") boolean active);
     
+    @EntityGraph(attributePaths = {"school", "school.region", "teachers", "students"})
+    @Query("SELECT c FROM Class c JOIN c.teachers t WHERE t.id = :teacherId AND c.school.region.id IN :regionIds")
+    List<Class> findByTeacherIdAndRegionIdIn(@Param("teacherId") Long teacherId,
+                                            @Param("regionIds") List<Long> regionIds);
+    
     // Student filtering with multi-tenant security
     @EntityGraph(attributePaths = {"school", "school.region", "teachers", "students"})
-    @Query("SELECT c FROM Class c WHERE :studentId MEMBER OF c.students AND c.school.id IN :schoolIds AND c.active = :active")
+    @Query("SELECT c FROM Class c JOIN c.students s WHERE s.id = :studentId AND c.school.id IN :schoolIds AND c.active = :active")
     List<Class> findByStudentIdAndSchoolIdInAndActive(@Param("studentId") Long studentId,
                                                      @Param("schoolIds") List<Long> schoolIds,
                                                      @Param("active") boolean active);
     
     @EntityGraph(attributePaths = {"school", "school.region", "teachers", "students"})
-    @Query("SELECT c FROM Class c WHERE :studentId MEMBER OF c.students AND c.school.region.id IN :regionIds AND c.active = :active")
+    @Query("SELECT c FROM Class c JOIN c.students s WHERE s.id = :studentId AND c.school.region.id IN :regionIds AND c.active = :active")
     List<Class> findByStudentIdAndRegionIdInAndActive(@Param("studentId") Long studentId,
                                                      @Param("regionIds") List<Long> regionIds,
                                                      @Param("active") boolean active);

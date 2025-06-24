@@ -36,7 +36,7 @@ const StaffDetailPage: React.FC = () => {
       setLoading(true);
       
       // Fetch teacher's classes
-      const classesResponse = await classApi.getByTeacher(currentTeacher.id);
+      const classesResponse = await classApi.getAllByTeacher(currentTeacher.id);
       const teacherClasses = Array.isArray(classesResponse.data.data) 
         ? classesResponse.data.data 
         : [];
@@ -415,7 +415,7 @@ const StaffDetailPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <GraduationCap size={14} className="text-gray-400" />
-                          <span>Grade: {classItem.grade}</span>
+                          <span>Grade: {classItem.gradeLevel}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users size={14} className="text-gray-400" />

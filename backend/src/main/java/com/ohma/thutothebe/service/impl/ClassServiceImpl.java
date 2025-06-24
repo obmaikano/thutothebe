@@ -456,6 +456,32 @@ public class ClassServiceImpl extends BaseServiceImpl<Class, ClassDTO, Long> imp
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Error retrieving classes by teacher {} for user {}: {}", teacherId, userId, e.getMessage());
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassDTO> getAllClassesByTeacherIdAndAccessibleScopes(Long teacherId, Long userId) {
+        try {
+            List<Long> accessibleSchoolIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.SCHOOL);
+            List<Long> accessibleRegionIds = accessControlService.getAccessibleScopeIds(userId, AccessScope.REGION);
+            
+            if (accessibleSchoolIds.isEmpty() && accessibleRegionIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+            
+            List<Class> classes = classRepository.findByTeacherIdAndSchoolIdIn(teacherId, accessibleSchoolIds);
+            if (classes.isEmpty() && !accessibleRegionIds.isEmpty()) {
+                classes = classRepository.findByTeacherIdAndRegionIdIn(teacherId, accessibleRegionIds);
+            }
+            
+            return classes.stream()
+                    .map(classMapper::toDto)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error retrieving all classes by teacher {} for user {}: {}", teacherId, userId, e.getMessage());
             return Collections.emptyList();
         }
     }

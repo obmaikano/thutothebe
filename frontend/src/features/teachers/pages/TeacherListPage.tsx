@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import { useNavigate } from 'react-router-dom';
 import { fetchTeachers, clearTeachersError, activateTeacher, deactivateTeacher } from '../teachersSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
@@ -8,6 +9,7 @@ import { Plus, Search, Users, Edit, Trash2, Eye } from 'lucide-react';
 
 const TeacherListPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { teachers, status, error } = useAppSelector(state => state.teachers);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -56,7 +58,7 @@ const TeacherListPage: React.FC = () => {
   };
 
   const handleViewDetails = (teacher: Teacher) => {
-    window.location.href = `/app/teachers/${teacher.id}`;
+    navigate(`/app/teacher-details/${teacher.id}`);
   };
 
   const filteredTeachers = teachers.filter((teacher: Teacher) => {

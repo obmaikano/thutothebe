@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useAppDispatch } from '../../../app/hooks';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { closeModal } from '../../common/modalSlice';
 import { Teacher } from '../../../api/services/teacherApi';
-import classApi, { Class } from '../../../api/services/classApi';
+import { Class } from '../../../api/services/classApi';
 import courseApi, { Course } from '../../../api/services/courseApi';
+import { refreshTeacherClasses } from '../teachersSlice';
+import { 
+  fetchAllClassesByTeacherId,
+  fetchActiveClassesByTeacherId,
+  fetchClassesByTeacherId
+} from '../../classes/classesSlice';
 import { 
   User, Mail, Phone, MapPin, GraduationCap, 
   Calendar, BookOpen, Users, Award, 
@@ -12,17 +18,37 @@ import {
 
 interface TeacherViewDetailsModalProps {
   extraObject?: Teacher;
+  onClassAssigned?: () => void;
 }
 
-export const TeacherViewDetailsModal: React.FC<TeacherViewDetailsModalProps> = ({ extraObject: teacher }) => {
+export const TeacherViewDetailsModal: React.FC<TeacherViewDetailsModalProps> = ({ extraObject: teacher, onClassAssigned }) => {
   const dispatch = useAppDispatch();
-  const [classes, setClasses] = useState<Class[]>([]);
+  const { lastRefreshedTeacherId } = useAppSelector((state) => state.teachers);
+  const { classes, status, error } = useAppSelector((state) => state.classes);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
   const handleClose = () => {
     dispatch(closeModal({}));
   };
+
+  const refreshTeacherClasses = async () => {
+    if (!teacher) return;
+
+    try {
+      // Fetch teacher's classes using Redux
+      dispatch(fetchAllClassesByTeacherId(teacher.id));
+    } catch (error) {
+      console.error('Failed to refresh teacher classes:', error);
+    }
+  };
+
+  // Watch for refresh action
+  useEffect(() => {
+    if (lastRefreshedTeacherId === teacher?.id) {
+      refreshTeacherClasses();
+    }
+  }, [lastRefreshedTeacherId, teacher]);
 
   useEffect(() => {
     const fetchTeacherData = async () => {
@@ -31,12 +57,8 @@ export const TeacherViewDetailsModal: React.FC<TeacherViewDetailsModalProps> = (
       try {
         setLoading(true);
         
-        // Fetch teacher's classes
-        const classesResponse = await classApi.getByTeacher(teacher.id);
-        const teacherClasses = Array.isArray(classesResponse.data.data) 
-          ? classesResponse.data.data 
-          : [];
-        setClasses(teacherClasses);
+        // Fetch teacher's classes using Redux
+        dispatch(fetchAllClassesByTeacherId(teacher.id));
 
         // Fetch teacher's courses
         const coursesResponse = await courseApi.getByTeacher(teacher.id);
@@ -53,7 +75,16 @@ export const TeacherViewDetailsModal: React.FC<TeacherViewDetailsModalProps> = (
     };
 
     fetchTeacherData();
-  }, [teacher]);
+  }, [teacher, dispatch]);
+
+  // Update loading state based on Redux status
+  useEffect(() => {
+    if (status === 'loading') {
+      setLoading(true);
+    } else if (status === 'succeeded' || status === 'failed') {
+      setLoading(false);
+    }
+  }, [status]);
 
   if (!teacher) {
     return (
@@ -215,7 +246,7 @@ export const TeacherViewDetailsModal: React.FC<TeacherViewDetailsModalProps> = (
                 <h5 className="font-medium text-gray-900">{classItem.name}</h5>
                 <p className="text-sm text-gray-600">{classItem.description}</p>
                 <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                  <span>Grade {classItem.grade}</span>
+                  <span>Grade {classItem.gradeLevel}</span>
                   <span>•</span>
                   <span>Capacity: {classItem.capacity || 'Not set'}</span>
                   <span>•</span>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { assignTeacherToClass, fetchClassById, fetchClassesWithTeachers } from '../classesSlice';
 import { closeModal } from '../../common/modalSlice';
@@ -18,15 +18,14 @@ const TeacherAssignClassModal: React.FC<TeacherAssignClassModalProps> = ({ extra
   
   const [selectedTeachers, setSelectedTeachers] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredTeachers, setFilteredTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const classId = extraObject?.classId;
   const availableTeachers = extraObject?.availableTeachers || [];
 
-  useEffect(() => {
-    // Filter teachers based on search term
-    const filtered = availableTeachers.filter(teacher => {
+  // Use useMemo to prevent infinite re-renders
+  const filteredTeachers = useMemo(() => {
+    return availableTeachers.filter(teacher => {
       const matchesSearch = 
         teacher.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         teacher.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -37,9 +36,7 @@ const TeacherAssignClassModal: React.FC<TeacherAssignClassModalProps> = ({ extra
       // Only show active teachers
       return matchesSearch && teacher.active;
     });
-    
-    setFilteredTeachers(filtered);
-  }, [searchTerm, availableTeachers]);
+  }, [availableTeachers, searchTerm]);
 
   const handleTeacherToggle = (teacherId: number) => {
     setSelectedTeachers(prev => 

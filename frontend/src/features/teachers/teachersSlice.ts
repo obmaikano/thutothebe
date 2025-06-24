@@ -6,13 +6,15 @@ export interface TeachersState {
   currentTeacher: Teacher | null;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
+  lastRefreshedTeacherId: number | null;
 }
 
 const initialState: TeachersState = {
   teachers: [],
   currentTeacher: null,
   status: 'idle',
-  error: null
+  error: null,
+  lastRefreshedTeacherId: null
 };
 
 // Async thunks
@@ -145,6 +147,10 @@ const teachersSlice = createSlice({
     },
     clearTeachersError: (state) => {
       state.error = null;
+    },
+    refreshTeacherClasses: (state, action) => {
+      // Store the teacher ID that needs to be refreshed
+      state.lastRefreshedTeacherId = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -247,9 +253,9 @@ const teachersSlice = createSlice({
         const teacher = Array.isArray(action.payload) ? action.payload[0] : action.payload;
         if (teacher) {
           const index = state.teachers.findIndex(t => t.id === teacher.id);
-          if (index !== -1) {
+        if (index !== -1) {
             state.teachers[index] = teacher;
-          }
+        }
           if (state.currentTeacher?.id === teacher.id) {
             state.currentTeacher = teacher;
           }
@@ -321,5 +327,5 @@ const teachersSlice = createSlice({
   }
 });
 
-export const { clearCurrentTeacher, clearTeachersError } = teachersSlice.actions;
+export const { clearCurrentTeacher, clearTeachersError, refreshTeacherClasses } = teachersSlice.actions;
 export default teachersSlice.reducer; 

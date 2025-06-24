@@ -248,7 +248,7 @@ export const DepartmentHeadDashboard: React.FC = () => {
                 {teacherPerformance.map((teacher) => (
                   <tr key={teacher.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <Link to={`/app/staff/${teacher.id}`} className="hover:text-blue-600">
+                      <Link to={`/app/teacher-details/${teacher.id}`} className="hover:text-blue-600">
                         {teacher.name}
                       </Link>
                     </td>

@@ -215,6 +215,164 @@ export const fetchClassesWithTeachers = createAsyncThunk(
   }
 );
 
+// Teacher-related async thunks
+export const fetchClassesByTeacherId = createAsyncThunk(
+  'classes/fetchClassesByTeacherId',
+  async (teacherId: number, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getByTeacher(teacherId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch classes by teacher');
+    }
+  }
+);
+
+export const fetchActiveClassesByTeacherId = createAsyncThunk(
+  'classes/fetchActiveClassesByTeacherId',
+  async (teacherId: number, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getActiveByTeacher(teacherId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch active classes by teacher');
+    }
+  }
+);
+
+export const fetchAllClassesByTeacherId = createAsyncThunk(
+  'classes/fetchAllClassesByTeacherId',
+  async (teacherId: number, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getAllByTeacher(teacherId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch all classes by teacher');
+    }
+  }
+);
+
+// Additional async thunks for other endpoints
+export const fetchClassesByStudentId = createAsyncThunk(
+  'classes/fetchClassesByStudentId',
+  async (studentId: number, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getByStudent(studentId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch classes by student');
+    }
+  }
+);
+
+export const fetchClassesByMinCapacity = createAsyncThunk(
+  'classes/fetchClassesByMinCapacity',
+  async (minCapacity: number, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getByMinCapacity(minCapacity);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch classes by minimum capacity');
+    }
+  }
+);
+
+export const fetchAvailableClasses = createAsyncThunk(
+  'classes/fetchAvailableClasses',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getAvailableClasses();
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch available classes');
+    }
+  }
+);
+
+export const fetchClassesByOverCapacity = createAsyncThunk(
+  'classes/fetchClassesByOverCapacity',
+  async (overCapacity: boolean, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getByOverCapacity(overCapacity);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch classes by over capacity');
+    }
+  }
+);
+
+export const searchClassesByName = createAsyncThunk(
+  'classes/searchClassesByName',
+  async (name: string, { rejectWithValue }) => {
+    try {
+      const response = await classApi.searchByName(name);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to search classes by name');
+    }
+  }
+);
+
+export const fetchClassesByRegionId = createAsyncThunk(
+  'classes/fetchClassesByRegionId',
+  async (regionId: number, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getByRegion(regionId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch classes by region');
+    }
+  }
+);
+
+export const fetchClassesByGradeLevel = createAsyncThunk(
+  'classes/fetchClassesByGradeLevel',
+  async (gradeLevel: string, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getByGradeLevel(gradeLevel);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch classes by grade level');
+    }
+  }
+);
+
+export const fetchClassCount = createAsyncThunk(
+  'classes/fetchClassCount',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getClassCount();
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch class count');
+    }
+  }
+);
+
+export const fetchTotalEnrollment = createAsyncThunk(
+  'classes/fetchTotalEnrollment',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getTotalEnrollment();
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch total enrollment');
+    }
+  }
+);
+
+export const fetchTotalCapacity = createAsyncThunk(
+  'classes/fetchTotalCapacity',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await classApi.getTotalCapacity();
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch total capacity');
+    }
+  }
+);
+
 const classesSlice = createSlice({
   name: 'classes',
   initialState,
@@ -479,6 +637,191 @@ const classesSlice = createSlice({
       .addCase(fetchClassesWithTeachers.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to fetch classes with teachers';
+      })
+
+      // Fetch classes by teacher ID
+      .addCase(fetchClassesByTeacherId.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchClassesByTeacherId.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchClassesByTeacherId.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch classes by teacher';
+      })
+
+      // Fetch active classes by teacher ID
+      .addCase(fetchActiveClassesByTeacherId.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchActiveClassesByTeacherId.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchActiveClassesByTeacherId.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch active classes by teacher';
+      })
+
+      // Fetch all classes by teacher ID
+      .addCase(fetchAllClassesByTeacherId.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchAllClassesByTeacherId.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchAllClassesByTeacherId.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch all classes by teacher';
+      })
+
+      // Fetch classes by student ID
+      .addCase(fetchClassesByStudentId.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchClassesByStudentId.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchClassesByStudentId.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch classes by student';
+      })
+
+      // Fetch classes by minimum capacity
+      .addCase(fetchClassesByMinCapacity.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchClassesByMinCapacity.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchClassesByMinCapacity.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch classes by minimum capacity';
+      })
+
+      // Fetch available classes
+      .addCase(fetchAvailableClasses.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchAvailableClasses.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchAvailableClasses.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch available classes';
+      })
+
+      // Fetch classes by over capacity
+      .addCase(fetchClassesByOverCapacity.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchClassesByOverCapacity.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchClassesByOverCapacity.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch classes by over capacity';
+      })
+
+      // Search classes by name
+      .addCase(searchClassesByName.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(searchClassesByName.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(searchClassesByName.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to search classes by name';
+      })
+
+      // Fetch classes by region ID
+      .addCase(fetchClassesByRegionId.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchClassesByRegionId.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchClassesByRegionId.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch classes by region';
+      })
+
+      // Fetch classes by grade level
+      .addCase(fetchClassesByGradeLevel.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchClassesByGradeLevel.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.classes = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchClassesByGradeLevel.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch classes by grade level';
+      })
+
+      // Fetch class count
+      .addCase(fetchClassCount.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchClassCount.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        // The API returns void, so we don't update the class object here
+        // The UI should refetch the class data if needed
+      })
+      .addCase(fetchClassCount.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch class count';
+      })
+
+      // Fetch total enrollment
+      .addCase(fetchTotalEnrollment.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchTotalEnrollment.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        // The API returns void, so we don't update the class object here
+        // The UI should refetch the class data if needed
+      })
+      .addCase(fetchTotalEnrollment.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch total enrollment';
+      })
+
+      // Fetch total capacity
+      .addCase(fetchTotalCapacity.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchTotalCapacity.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        // The API returns void, so we don't update the class object here
+        // The UI should refetch the class data if needed
+      })
+      .addCase(fetchTotalCapacity.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch total capacity';
       });
   }
 });

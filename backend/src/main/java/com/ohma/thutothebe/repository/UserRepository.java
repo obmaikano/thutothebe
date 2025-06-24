@@ -18,6 +18,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     boolean existsByEmail(String email);
     
+    boolean existsByUsername(String username);
+    
     List<User> findByRole(UserRole role);
     
     @Query("SELECT u FROM User u WHERE u.role = 'TEACHER'")

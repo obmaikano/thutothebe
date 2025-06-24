@@ -63,7 +63,7 @@ const StaffManagementPage: React.FC = () => {
   };
 
   const handleViewDetails = (teacher: Teacher) => {
-    navigate(`/app/staff/${teacher.id}`);
+    navigate(`/app/teacher-details/${teacher.id}`);
   };
 
   const handleExportData = () => {
@@ -115,7 +115,7 @@ const StaffManagementPage: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Staff Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Teacher Management</h1>
           <p className="text-gray-600 mt-2">Manage teaching staff, qualifications, and assignments</p>
         </div>
         <div className="flex gap-3">
@@ -220,7 +220,7 @@ const StaffManagementPage: React.FC = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">{teachers.length}</div>
-                <div className="text-sm text-gray-500">Total Staff</div>
+                <div className="text-sm text-gray-500">Total Teachers</div>
               </div>
             </div>
           </div>
@@ -246,7 +246,7 @@ const StaffManagementPage: React.FC = () => {
                 <div className="text-2xl font-bold text-gray-900">
                   {teachers.filter((t: Teacher) => !t.active).length}
                 </div>
-                <div className="text-sm text-gray-500">Inactive Staff</div>
+                <div className="text-sm text-gray-500">Inactive Teachers</div>
               </div>
             </div>
           </div>

@@ -67,6 +67,7 @@ const DeleteClassModal = lazy(() => import('../../classes/modals/DeleteClassModa
 const ClassViewModal = lazy(() => import('../../classes/modals/ClassViewModal'));
 const StudentAssignClassModal = lazy(() => import('../../classes/modals/StudentAssignClassModal'));
 const TeacherAssignClassModal = lazy(() => import('../../classes/modals/TeacherAssignClassModal'));
+const ClassAssignTeacherModal = lazy(() => import('../../school_admin/modals/ClassAssignTeacherModal'));
 const TakeAttendanceModal = lazy(() => import('../../classes/modals/TakeAttendanceModal'));
 const GenerateReportModal = lazy(() => import('../../classes/modals/GenerateReportModal'));
 const CalendarViewModal = lazy(() => import('../../classes/modals/CalendarViewModal'));
@@ -540,6 +541,13 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <TeacherAssignClassFromTeacherModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.CLASS_ASSIGN_TEACHER:
+      return (
+        <Suspense fallback={fallback}>
+          <ClassAssignTeacherModal extraObject={contentProps} />
         </Suspense>
       );
 

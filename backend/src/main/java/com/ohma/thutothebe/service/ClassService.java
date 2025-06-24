@@ -126,4 +126,12 @@ public interface ClassService extends BaseService<ClassDTO, Long> {
      * Get all classes with their teachers for the current user's accessible scopes
      */
     List<ClassWithTeachersDTO> getClassesWithTeachersByAccessibleScopes(Long userId);
+
+    /**
+     * Get all classes (active and inactive) assigned to a teacher with access control
+     * @param teacherId Teacher ID
+     * @param userId Current user ID for access control
+     * @return List of classes assigned to the teacher
+     */
+    List<ClassDTO> getAllClassesByTeacherIdAndAccessibleScopes(Long teacherId, Long userId);
 } 

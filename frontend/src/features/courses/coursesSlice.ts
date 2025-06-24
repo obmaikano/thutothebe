@@ -132,6 +132,31 @@ export const removeTeacherFromCourse = createAsyncThunk(
   }
 );
 
+// Teacher-related async thunks
+export const fetchCoursesByTeacherId = createAsyncThunk(
+  'courses/fetchCoursesByTeacherId',
+  async (teacherId: number, { rejectWithValue }) => {
+    try {
+      const response = await courseApi.getByTeacher(teacherId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch courses by teacher');
+    }
+  }
+);
+
+export const fetchActiveCoursesByTeacherId = createAsyncThunk(
+  'courses/fetchActiveCoursesByTeacherId',
+  async (teacherId: number, { rejectWithValue }) => {
+    try {
+      const response = await courseApi.getActiveByTeacher(teacherId);
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch active courses by teacher');
+    }
+  }
+);
+
 const coursesSlice = createSlice({
   name: 'courses',
   initialState,
@@ -295,6 +320,34 @@ const coursesSlice = createSlice({
       .addCase(removeTeacherFromCourse.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload as string || 'Failed to remove teacher from course';
+      })
+
+      // Fetch courses by teacher ID
+      .addCase(fetchCoursesByTeacherId.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchCoursesByTeacherId.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.courses = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchCoursesByTeacherId.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch courses by teacher';
+      })
+
+      // Fetch active courses by teacher ID
+      .addCase(fetchActiveCoursesByTeacherId.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(fetchActiveCoursesByTeacherId.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.courses = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(fetchActiveCoursesByTeacherId.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string || 'Failed to fetch active courses by teacher';
       });
   }
 });

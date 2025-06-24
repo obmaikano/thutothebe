@@ -33,7 +33,7 @@ const CourseViewModal: React.FC<CourseViewModalProps> = ({ extraObject }) => {
 
   const getClassName = (classId: number) => {
     const classItem = classes.find(c => c.id === classId);
-    return classItem ? `${classItem.name} (Grade ${classItem.grade})` : `Class ID: ${classId}`;
+    return classItem ? `${classItem.name} (Grade ${classItem.gradeLevel})` : `Class ID: ${classId}`;
   };
 
   if (!extraObject) {

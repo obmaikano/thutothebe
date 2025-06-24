@@ -282,6 +282,25 @@ public class ClassController extends BaseController<ClassDTO, Long> {
         }
     }
 
+    @GetMapping("/teacher/{teacherId}/all")
+    @Operation(summary = "Get all classes (active and inactive) by teacher ID with multi-tenant security")
+    public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getAllClassesByTeacherId(@PathVariable Long teacherId) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            if (currentUserId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new OhmaApiResponse<>("ERROR", "Authentication required", null, null));
+            }
+
+            List<ClassDTO> classes = classService.getAllClassesByTeacherIdAndAccessibleScopes(teacherId, currentUserId);
+            return ResponseEntity.ok(new OhmaApiResponse<>("SUCCESS", "All classes retrieved successfully", classes, null));
+        } catch (Exception e) {
+            log.error("Error retrieving all classes by teacher: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new OhmaApiResponse<>("ERROR", e.getMessage(), null, null));
+        }
+    }
+
     @GetMapping("/student/{studentId}")
     @Operation(summary = "Get classes by student ID with multi-tenant security")
     public ResponseEntity<OhmaApiResponse<List<ClassDTO>>> getClassesByStudentId(@PathVariable Long studentId) {

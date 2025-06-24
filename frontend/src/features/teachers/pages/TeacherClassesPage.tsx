@@ -254,7 +254,7 @@ const TeacherClassesPage: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
                         <GraduationCap size={16} className="mr-2 text-gray-400" />
-                        {classItem.grade ? `Grade ${classItem.grade}` : 'N/A'}
+                        {classItem.gradeLevel ? `Grade ${classItem.gradeLevel}` : 'N/A'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

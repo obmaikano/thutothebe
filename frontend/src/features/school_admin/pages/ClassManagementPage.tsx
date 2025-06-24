@@ -428,11 +428,13 @@ const ClassManagementPage: React.FC = () => {
                         <button
                           onClick={() => dispatch(openModal({
                             title: 'Assign Teacher to Class',
-                            bodyType: MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS,
+                            bodyType: MODAL_BODY_TYPES.CLASS_ASSIGN_TEACHER,
+                            size: 'lg',
                             extraObject: {
                               classId: classItem.id,
                               className: classItem.name,
                               gradeLevel: classItem.gradeLevel,
+                              currentTeacherIds: classItem.teacherIds,
                               availableTeachers: teachers.filter(t => 
                                 !classItem.teacherIds?.includes(t.id)
                               )

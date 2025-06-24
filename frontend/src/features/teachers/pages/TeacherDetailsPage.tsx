@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { fetchTeacherById, clearTeachersError } from '../teachersSlice';
+import { fetchClassesByTeacherId } from '../../classes/classesSlice';
+import { fetchCoursesByTeacherId } from '../../courses/coursesSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
 import { Teacher } from '../../../api/services/teacherApi';
@@ -20,7 +22,9 @@ import {
   Award,
   Building,
   Plus,
-  Eye
+  Eye,
+  Search,
+  Filter
 } from 'lucide-react';
 
 const TeacherDetailsPage: React.FC = () => {
@@ -28,12 +32,18 @@ const TeacherDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentTeacher, status, error } = useAppSelector(state => state.teachers);
+  const { classes, status: classesStatus } = useAppSelector(state => state.classes);
+  const { courses, status: coursesStatus } = useAppSelector(state => state.courses);
   
   const [activeTab, setActiveTab] = useState('overview');
+  const [courseSearchTerm, setCourseSearchTerm] = useState('');
+  const [classSearchTerm, setClassSearchTerm] = useState('');
 
   useEffect(() => {
     if (id) {
       dispatch(fetchTeacherById(parseInt(id)));
+      dispatch(fetchClassesByTeacherId(parseInt(id)));
+      dispatch(fetchCoursesByTeacherId(parseInt(id)));
     }
     return () => {
       dispatch(clearTeachersError());
@@ -80,6 +90,16 @@ const TeacherDetailsPage: React.FC = () => {
     }));
   };
 
+  const filteredCourses = courses.filter(course => 
+    course.name.toLowerCase().includes(courseSearchTerm.toLowerCase()) ||
+    course.code.toLowerCase().includes(courseSearchTerm.toLowerCase())
+  );
+
+  const filteredClasses = classes.filter(classItem => 
+    classItem.name.toLowerCase().includes(classSearchTerm.toLowerCase()) ||
+    (classItem.description && classItem.description.toLowerCase().includes(classSearchTerm.toLowerCase()))
+  );
+
   if (status === 'loading') {
     return (
       <div className="flex justify-center items-center min-h-64">
@@ -122,7 +142,7 @@ const TeacherDetailsPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/app/teachers')}
+            onClick={() => navigate('/app/staff-management')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft size={20} />
@@ -274,14 +294,14 @@ const TeacherDetailsPage: React.FC = () => {
                       <BookOpen className="h-5 w-5 text-blue-600" />
                       <span className="text-sm text-gray-600">Courses</span>
                     </div>
-                    <span className="text-lg font-semibold text-gray-900">0</span>
+                    <span className="text-lg font-semibold text-gray-900">{courses.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <GraduationCap className="h-5 w-5 text-green-600" />
                       <span className="text-sm text-gray-600">Classes</span>
                     </div>
-                    <span className="text-lg font-semibold text-gray-900">0</span>
+                    <span className="text-lg font-semibold text-gray-900">{classes.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -308,13 +328,94 @@ const TeacherDetailsPage: React.FC = () => {
                 Assign Course
               </button>
             </div>
-            <div className="text-center py-8">
-              <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No courses assigned</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                This teacher hasn't been assigned to any courses yet.
-              </p>
+
+            {/* Search and Filters */}
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search courses by name or code..."
+                  value={courseSearchTerm}
+                  onChange={(e) => setCourseSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             </div>
+
+            {coursesStatus === 'loading' ? (
+              <div className="flex justify-center py-8">
+                <div className="loading loading-spinner loading-lg"></div>
+              </div>
+            ) : filteredCourses.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Course Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Code
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Year
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Term
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredCourses.map((course) => (
+                      <tr key={course.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{course.name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{course.code}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{course.year}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{course.term}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            course.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {course.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => navigate(`/app/courses/${course.id}`)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No courses assigned</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  This teacher hasn't been assigned to any courses yet.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -330,13 +431,98 @@ const TeacherDetailsPage: React.FC = () => {
                 Assign Class
               </button>
             </div>
-            <div className="text-center py-8">
-              <GraduationCap className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No classes assigned</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                This teacher hasn't been assigned to any classes yet.
-              </p>
+
+            {/* Search and Filters */}
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search classes by name or description..."
+                  value={classSearchTerm}
+                  onChange={(e) => setClassSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             </div>
+
+            {classesStatus === 'loading' ? (
+              <div className="flex justify-center py-8">
+                <div className="loading loading-spinner loading-lg"></div>
+              </div>
+            ) : filteredClasses.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Class Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Description
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Grade Level
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Capacity
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredClasses.map((classItem) => (
+                      <tr key={classItem.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{classItem.name}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 max-w-xs truncate">
+                            {classItem.description || 'No description'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">Grade {classItem.gradeLevel}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {classItem.capacity || 'Not set'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            classItem.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {classItem.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => navigate(`/app/classes/${classItem.id}`)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <GraduationCap className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No classes assigned</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  This teacher hasn't been assigned to any classes yet.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

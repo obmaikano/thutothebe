@@ -330,7 +330,7 @@ const SchoolAdminHelpPage = () => {
                         <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <button
-                                onClick={() => navigate('/app/staff')}
+                                onClick={() => navigate('/app/staff-management')}
                                 className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow text-left"
                             >
                                 <Users className="h-6 w-6 text-blue-600 mb-2" />

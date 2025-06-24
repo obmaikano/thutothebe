@@ -34,7 +34,7 @@ const CourseListPage: React.FC = () => {
 
   const getClassName = (classId: number) => {
     const classItem = classes.find(c => c.id === classId);
-    return classItem ? `${classItem.name} (G${classItem.grade})` : `Class ${classId}`;
+    return classItem ? `${classItem.name} (G${classItem.gradeLevel})` : `Class ${classId}`;
   };
 
   const handleCreateCourse = () => {

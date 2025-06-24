@@ -38,6 +38,11 @@ const TeacherAssignments = lazy(() => import('../pages/protected/TeacherAssignme
 const TeacherResources = lazy(() => import('../pages/protected/TeacherResources'));
 const TeacherSubmissions = lazy(() => import('../pages/protected/TeacherSubmissions'));
 
+// Teacher management pages
+const TeacherListPage = lazy(() => import('../features/teachers/pages/TeacherListPage'));
+const TeacherDetailsPage = lazy(() => import('../features/teachers/pages/TeacherDetailsPage'));
+const AllStaffManagementPage = lazy(() => import('../features/school_admin/pages/AllStaffManagementPage'));
+
 // Teacher Quiz pages
 const TeacherQuizzes = lazy(() => import('../pages/protected/TeacherQuizzes'));
 const TeacherQuizCreation = lazy(() => import('../pages/protected/TeacherQuizCreation'));
@@ -618,6 +623,19 @@ export const appRoutes = [
   {
     path: 'notifications',
     element: NotificationListPage
+  },
+  // Teacher management routes
+  {
+    path: 'teacher-list',
+    element: TeacherListPage
+  },
+  {
+    path: 'teacher-details/:id',
+    element: TeacherDetailsPage
+  },
+  {
+    path: 'all-staff-management',
+    element: AllStaffManagementPage
   },
   // Catch all route
   {

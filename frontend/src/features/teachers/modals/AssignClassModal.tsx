@@ -63,7 +63,7 @@ const AssignClassModal: React.FC<AssignClassModalProps> = ({ extraObject: teache
     const filtered = availableClasses.filter(classItem => {
       const matchesSearch = 
         classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        classItem.grade.toString().includes(searchTerm.toLowerCase());
+        classItem.gradeLevel.toLowerCase().includes(searchTerm.toLowerCase());
       
       return matchesSearch && classItem.active;
     });
@@ -222,7 +222,7 @@ const AssignClassModal: React.FC<AssignClassModalProps> = ({ extraObject: teache
                           <div className="flex items-center justify-between">
                             <div>
                               <h4 className="text-sm font-medium text-gray-900">{classItem.name}</h4>
-                              <p className="text-sm text-gray-600">Grade: {classItem.grade}</p>
+                              <p className="text-sm text-gray-600">Grade: {classItem.gradeLevel}</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
@@ -255,7 +255,7 @@ const AssignClassModal: React.FC<AssignClassModalProps> = ({ extraObject: teache
                   
                   return (
                     <div key={classId} className="flex items-center justify-between text-sm">
-                      <span className="text-blue-800">{classItem.name} (Grade {classItem.grade})</span>
+                      <span className="text-blue-800">{classItem.name} (Grade {classItem.gradeLevel})</span>
                       <span className="text-blue-600">{classItem.currentEnrollment || 0} students</span>
                     </div>
                   );

@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { closeModal } from '../../common/modalSlice';
 import { assignTeacherToClass } from '../../classes/classesSlice';
 import { fetchClassesWithTeachers } from '../../classes/classesSlice';
+import { refreshTeacherClasses } from '../teachersSlice';
 import { Class } from '../../../api/services/classApi';
 import classApi from '../../../api/services/classApi';
 
@@ -16,9 +17,10 @@ interface TeacherAssignClassModalProps {
       email: string;
     };
   };
+  onClassAssigned?: () => void;
 }
 
-const TeacherAssignClassModal: React.FC<TeacherAssignClassModalProps> = ({ extraObject }) => {
+const TeacherAssignClassModal: React.FC<TeacherAssignClassModalProps> = ({ extraObject, onClassAssigned }) => {
   const dispatch = useAppDispatch();
   const { status, error } = useAppSelector((state) => state.classes);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -32,7 +34,7 @@ const TeacherAssignClassModal: React.FC<TeacherAssignClassModalProps> = ({ extra
       setFetchError(null);
       try {
         const response = await classApi.getActiveClasses();
-        if (response.data.status === 'success' && response.data.data) {
+        if ((response.data.status === 'success' || response.data.status === 'SUCCESS') && response.data.data) {
           const classData = Array.isArray(response.data.data) 
             ? response.data.data 
             : [response.data.data];
@@ -60,7 +62,11 @@ const TeacherAssignClassModal: React.FC<TeacherAssignClassModalProps> = ({ extra
       })).unwrap();
       
       dispatch(fetchClassesWithTeachers());
+      dispatch(refreshTeacherClasses(extraObject.teacherId));
       dispatch(closeModal({}));
+      if (onClassAssigned) {
+        onClassAssigned();
+      }
     } catch (err) {
       console.error('Failed to assign teacher to class:', err);
     }
@@ -97,7 +103,7 @@ const TeacherAssignClassModal: React.FC<TeacherAssignClassModalProps> = ({ extra
               {classes.map((classItem) => (
                 <option key={classItem.id} value={classItem.id}>
                   {classItem.name} - Grade {classItem.gradeLevel} 
-                  {classItem.capacity && ` (${classItem.currentEnrollment || 0}/${classItem.capacity} students)`}
+                  {classItem.capacity && ` (${classItem.totalEnrolled || 0}/${classItem.capacity} students)`}
                 </option>
               ))}
             </select>

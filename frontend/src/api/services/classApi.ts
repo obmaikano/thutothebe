@@ -9,6 +9,7 @@ export interface Class {
   description?: string;
   capacity?: number;
   currentEnrollment?: number;
+  totalEnrolled?: number;
   studentIds?: number[];
   teacherIds?: number[];
   gradeLevel: string;
@@ -185,6 +186,15 @@ const classApi = {
   },
 
   /**
+   * Get all classes (active and inactive) by teacher ID
+   * @param teacherId Teacher ID
+   * @returns Response with all classes assigned to the teacher
+   */
+  getAllByTeacher: async (teacherId: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/teacher/${teacherId}/all`);
+  },
+
+  /**
    * Get active classes by teacher ID
    * @param teacherId Teacher ID
    * @returns Response with active classes assigned to the teacher
@@ -208,6 +218,92 @@ const classApi = {
    */
   getByIdWithTeachers: async (id: number): Promise<AxiosResponse<ClassResponse>> => {
     return api.get(`/classes/${id}/with-teachers`);
+  },
+
+  /**
+   * Get classes by student ID
+   * @param studentId Student ID
+   * @returns Response with classes for the student
+   */
+  getByStudent: async (studentId: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/student/${studentId}`);
+  },
+
+  /**
+   * Get classes by minimum capacity
+   * @param minCapacity Minimum capacity
+   * @returns Response with classes having at least the specified capacity
+   */
+  getByMinCapacity: async (minCapacity: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/capacity/${minCapacity}`);
+  },
+
+  /**
+   * Get available classes (with spots left)
+   * @returns Response with available classes
+   */
+  getAvailableClasses: async (): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get('/classes/available');
+  },
+
+  /**
+   * Get classes by over capacity status
+   * @param overCapacity Whether to get over-capacity classes
+   * @returns Response with classes based on over capacity status
+   */
+  getByOverCapacity: async (overCapacity: boolean): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/over-capacity/${overCapacity}`);
+  },
+
+  /**
+   * Search classes by name
+   * @param name Class name to search for
+   * @returns Response with matching classes
+   */
+  searchByName: async (name: string): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/search?name=${encodeURIComponent(name)}`);
+  },
+
+  /**
+   * Get classes by region ID
+   * @param regionId Region ID
+   * @returns Response with classes in the region
+   */
+  getByRegion: async (regionId: number): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/region/${regionId}`);
+  },
+
+  /**
+   * Get classes by grade level
+   * @param gradeLevel Grade level
+   * @returns Response with classes for the grade level
+   */
+  getByGradeLevel: async (gradeLevel: string): Promise<AxiosResponse<ClassResponse>> => {
+    return api.get(`/classes/grade-level/${gradeLevel}`);
+  },
+
+  /**
+   * Get class count statistics
+   * @returns Response with class count
+   */
+  getClassCount: async (): Promise<AxiosResponse<{ status: string; message: string; data: number }>> => {
+    return api.get('/classes/statistics/count');
+  },
+
+  /**
+   * Get total enrollment statistics
+   * @returns Response with total enrollment
+   */
+  getTotalEnrollment: async (): Promise<AxiosResponse<{ status: string; message: string; data: number }>> => {
+    return api.get('/classes/statistics/enrollment');
+  },
+
+  /**
+   * Get total capacity statistics
+   * @returns Response with total capacity
+   */
+  getTotalCapacity: async (): Promise<AxiosResponse<{ status: string; message: string; data: number }>> => {
+    return api.get('/classes/statistics/capacity');
   },
 
   /**
