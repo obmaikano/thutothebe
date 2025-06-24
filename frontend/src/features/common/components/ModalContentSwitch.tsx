@@ -95,8 +95,8 @@ const CreateTeacherModal = lazy(() => import('../../teachers/modals/CreateTeache
 const EditTeacherModal = lazy(() => import('../../teachers/modals/EditTeacherModal'));
 const DeleteTeacherModal = lazy(() => import('../../teachers/modals/DeleteTeacherModal'));
 const TeacherViewDetailsModal = lazy(() => import('../../teachers/modals/TeacherViewDetailsModal'));
-const AssignCourseModal = lazy(() => import('../../teachers/modals/AssignCourseModal'));
-const AssignClassModal = lazy(() => import('../../teachers/modals/AssignClassModal'));
+const TeacherAssignCourseModal = lazy(() => import('../../teachers/modals/TeacherAssignCourseModal'));
+const TeacherAssignClassFromTeacherModal = lazy(() => import('../../teachers/modals/TeacherAssignClassModal'));
 
 // Schedule management modals
 // Removed non-existent schedule modals
@@ -539,7 +539,21 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
     case MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS:
       return (
         <Suspense fallback={fallback}>
-          <TeacherAssignClassModal extraObject={contentProps} />
+          <TeacherAssignClassFromTeacherModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.TEACHER_ASSIGN_COURSE:
+      return (
+        <Suspense fallback={fallback}>
+          <TeacherAssignCourseModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.TEACHER_ASSIGN_CLASS_FROM_TEACHER:
+      return (
+        <Suspense fallback={fallback}>
+          <TeacherAssignClassFromTeacherModal extraObject={contentProps} />
         </Suspense>
       );
 
