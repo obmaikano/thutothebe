@@ -198,11 +198,11 @@ const departmentApi = {
   /**
    * Assign department head
    * @param departmentId Department ID
-   * @param userId User ID
+   * @param teacherId Teacher ID
    * @returns Response with updated department details
    */
-  assignDepartmentHead: async (departmentId: number, userId: number): Promise<AxiosResponse<DepartmentResponse>> => {
-    return api.post(`/departments/${departmentId}/head/${userId}`);
+  assignDepartmentHead: async (departmentId: number, teacherId: number): Promise<AxiosResponse<DepartmentResponse>> => {
+    return api.post(`/departments/${departmentId}/head/${teacherId}`);
   },
 
   /**

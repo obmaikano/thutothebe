@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { closeModal } from '../../common/modalSlice';
-import { assignTeacherToDepartment, removeTeacherFromDepartment, fetchDepartmentsBySchool, fetchDepartments } from '../departmentsSlice';
+import { assignTeacherToDepartment, removeTeacherFromDepartment, fetchDepartmentsBySchool, fetchDepartments, fetchDepartmentById } from '../departmentsSlice';
 import { Department } from '../../../api/services/departmentApi';
 import { Users, Search, CheckCircle, X, Plus, Minus } from 'lucide-react';
 import teacherApi, { Teacher } from '../../../api/services/teacherApi';
@@ -13,6 +13,7 @@ interface AssignTeacherModalProps {
 export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObject }) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
+  const { currentDepartment } = useAppSelector(state => state.departments);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,8 +21,18 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
   const [activeTab, setActiveTab] = useState<'assign' | 'manage'>('assign');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [assigningTeacherId, setAssigningTeacherId] = useState<number | null>(null);
+  const [removingTeacherId, setRemovingTeacherId] = useState<number | null>(null);
 
-  const department = extraObject;
+  // Use currentDepartment from Redux store if available, otherwise fall back to extraObject
+  const department = currentDepartment?.id === extraObject?.id ? currentDepartment : extraObject;
+
+  useEffect(() => {
+    // Refresh the current department data when modal opens to ensure we have latest data
+    if (extraObject?.id) {
+      dispatch(fetchDepartmentById(extraObject.id));
+    }
+  }, [dispatch, extraObject?.id]);
 
   useEffect(() => {
     const fetchAvailableTeachers = async () => {
@@ -62,7 +73,7 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
     if (!department) return;
 
     try {
-      setIsLoading(true);
+      setAssigningTeacherId(teacherId);
       setError(null);
       setSuccessMessage(null);
       
@@ -80,6 +91,9 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
         await dispatch(fetchDepartments());
       }
       
+      // The Redux slice will automatically update currentDepartment
+      // and the modal will react to the updated state
+      
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
       
@@ -87,7 +101,7 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
       console.error('Failed to assign teacher:', error);
       setError(error.message || error || 'Failed to assign teacher');
     } finally {
-      setIsLoading(false);
+      setAssigningTeacherId(null);
     }
   };
 
@@ -95,7 +109,7 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
     if (!department) return;
 
     try {
-      setIsLoading(true);
+      setRemovingTeacherId(teacherId);
       setError(null);
       setSuccessMessage(null);
       
@@ -113,6 +127,9 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
         await dispatch(fetchDepartments());
       }
       
+      // The Redux slice will automatically update currentDepartment
+      // and the modal will react to the updated state
+      
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
       
@@ -120,7 +137,7 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
       console.error('Failed to remove teacher:', error);
       setError(error.message || error || 'Failed to remove teacher');
     } finally {
-      setIsLoading(false);
+      setRemovingTeacherId(null);
     }
   };
 
@@ -292,10 +309,10 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
                     </div>
                     <button
                       onClick={() => handleAssignTeacher(teacher.id)}
-                      disabled={isLoading}
+                      disabled={assigningTeacherId === teacher.id}
                       className="btn btn-sm btn-primary"
                     >
-                      {isLoading ? (
+                      {assigningTeacherId === teacher.id ? (
                         <span className="loading loading-spinner loading-xs"></span>
                       ) : (
                         <>
@@ -338,10 +355,10 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
                       </div>
                       <button
                         onClick={() => handleRemoveTeacher(teacher.id)}
-                        disabled={isLoading}
+                        disabled={removingTeacherId === teacher.id}
                         className="btn btn-sm btn-error"
                       >
-                        {isLoading ? (
+                        {removingTeacherId === teacher.id ? (
                           <span className="loading loading-spinner loading-xs"></span>
                         ) : (
                           <>
@@ -364,7 +381,6 @@ export const AssignTeacherModal: React.FC<AssignTeacherModalProps> = ({ extraObj
           type="button"
           onClick={handleClose}
           className="btn btn-ghost"
-          disabled={isLoading}
         >
           Close
         </button>

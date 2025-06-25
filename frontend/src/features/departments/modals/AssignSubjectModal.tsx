@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { closeModal } from '../../common/modalSlice';
-import { assignSubjectToDepartment, removeSubjectFromDepartment, fetchDepartmentsBySchool, fetchDepartments } from '../departmentsSlice';
+import { assignSubjectToDepartment, removeSubjectFromDepartment, fetchDepartmentsBySchool, fetchDepartments, fetchDepartmentById } from '../departmentsSlice';
 import { Department } from '../../../api/services/departmentApi';
 import { BookOpen, Search, Plus, Minus } from 'lucide-react';
 import subjectApi, { Subject } from '../../../api/services/subjectApi';
@@ -13,14 +13,26 @@ interface AssignSubjectModalProps {
 export const AssignSubjectModal: React.FC<AssignSubjectModalProps> = ({ extraObject }) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
+  const { currentDepartment } = useAppSelector(state => state.departments);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [availableSubjects, setAvailableSubjects] = useState<Subject[]>([]);
   const [activeTab, setActiveTab] = useState<'assign' | 'manage'>('assign');
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [assigningSubjectId, setAssigningSubjectId] = useState<number | null>(null);
+  const [removingSubjectId, setRemovingSubjectId] = useState<number | null>(null);
 
-  const department = extraObject;
+  // Use currentDepartment from Redux store if available, otherwise fall back to extraObject
+  const department = currentDepartment?.id === extraObject?.id ? currentDepartment : extraObject;
+
+  useEffect(() => {
+    // Refresh the current department data when modal opens to ensure we have latest data
+    if (extraObject?.id) {
+      dispatch(fetchDepartmentById(extraObject.id));
+    }
+  }, [dispatch, extraObject?.id]);
 
   useEffect(() => {
     const fetchAvailableSubjects = async () => {
@@ -57,8 +69,9 @@ export const AssignSubjectModal: React.FC<AssignSubjectModalProps> = ({ extraObj
     if (!department) return;
 
     try {
-      setIsLoading(true);
+      setAssigningSubjectId(subjectId);
       setError(null);
+      setSuccessMessage(null);
       
       await dispatch(assignSubjectToDepartment({ 
         departmentId: department.id, 
@@ -72,11 +85,19 @@ export const AssignSubjectModal: React.FC<AssignSubjectModalProps> = ({ extraObj
         await dispatch(fetchDepartments());
       }
       
+      // The Redux slice will automatically update currentDepartment
+      // and the modal will react to the updated state
+      
+      setSuccessMessage('Subject assigned successfully');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
     } catch (error: any) {
       console.error('Failed to assign subject:', error);
       setError(error || 'Failed to assign subject');
     } finally {
-      setIsLoading(false);
+      setAssigningSubjectId(null);
     }
   };
 
@@ -84,8 +105,9 @@ export const AssignSubjectModal: React.FC<AssignSubjectModalProps> = ({ extraObj
     if (!department) return;
 
     try {
-      setIsLoading(true);
+      setRemovingSubjectId(subjectId);
       setError(null);
+      setSuccessMessage(null);
       
       await dispatch(removeSubjectFromDepartment({ 
         departmentId: department.id, 
@@ -99,11 +121,19 @@ export const AssignSubjectModal: React.FC<AssignSubjectModalProps> = ({ extraObj
         await dispatch(fetchDepartments());
       }
       
+      // The Redux slice will automatically update currentDepartment
+      // and the modal will react to the updated state
+      
+      setSuccessMessage('Subject removed successfully');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
     } catch (error: any) {
       console.error('Failed to remove subject:', error);
       setError(error || 'Failed to remove subject');
     } finally {
-      setIsLoading(false);
+      setRemovingSubjectId(null);
     }
   };
 
@@ -159,6 +189,21 @@ export const AssignSubjectModal: React.FC<AssignSubjectModalProps> = ({ extraObj
             <button
               onClick={() => setError(null)}
               className="text-red-500 hover:text-red-700"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Alert */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <div className="flex justify-between items-center">
+            <span>{successMessage}</span>
+            <button
+              onClick={() => setSuccessMessage(null)}
+              className="text-green-500 hover:text-green-700"
             >
               ✕
             </button>
@@ -261,10 +306,10 @@ export const AssignSubjectModal: React.FC<AssignSubjectModalProps> = ({ extraObj
                     </div>
                     <button
                       onClick={() => handleAssignSubject(subject.id)}
-                      disabled={isLoading}
+                      disabled={assigningSubjectId === subject.id}
                       className="btn btn-sm btn-primary"
                     >
-                      {isLoading ? (
+                      {assigningSubjectId === subject.id ? (
                         <span className="loading loading-spinner loading-xs"></span>
                       ) : (
                         <>
@@ -308,10 +353,10 @@ export const AssignSubjectModal: React.FC<AssignSubjectModalProps> = ({ extraObj
                       </div>
                       <button
                         onClick={() => handleRemoveSubject(subject.id)}
-                        disabled={isLoading}
+                        disabled={removingSubjectId === subject.id}
                         className="btn btn-sm btn-error"
                       >
-                        {isLoading ? (
+                        {removingSubjectId === subject.id ? (
                           <span className="loading loading-spinner loading-xs"></span>
                         ) : (
                           <>
@@ -334,7 +379,6 @@ export const AssignSubjectModal: React.FC<AssignSubjectModalProps> = ({ extraObj
           type="button"
           onClick={handleClose}
           className="btn btn-ghost"
-          disabled={isLoading}
         >
           Close
         </button>

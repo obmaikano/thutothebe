@@ -4,7 +4,7 @@ import { closeModal } from '../../common/modalSlice';
 import { Department } from '../../../api/services/departmentApi';
 import { assignDepartmentHead, fetchDepartments, fetchDepartmentsBySchool } from '../departmentsSlice';
 import { Users, Search, CheckCircle } from 'lucide-react';
-import userApi, { User } from '../../../api/services/userApi';
+import teacherApi, { Teacher } from '../../../api/services/teacherApi';
 
 interface AssignDepartmentHeadModalProps {
   extraObject?: Department;
@@ -16,45 +16,43 @@ export const AssignDepartmentHeadModal: React.FC<AssignDepartmentHeadModalProps>
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [availableTeachers, setAvailableTeachers] = useState<Teacher[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const department = extraObject;
 
   useEffect(() => {
-    const fetchAvailableUsers = async () => {
+    const fetchAvailableTeachers = async () => {
       try {
         setIsLoadingUsers(true);
         setError(null);
         
-        // Fetch teachers and senior teachers who can be department heads
-        const response = await userApi.getAllTeachers();
+        // Fetch teachers from the same school who can be department heads
+        const response = await teacherApi.getBySchool(department?.schoolId || 0);
         
         if (response.data.data) {
-          const users = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
-          // Filter for users who can be department heads (teachers, senior teachers)
-          const eligibleUsers = users.filter((user: User) => 
-            ['TEACHER', 'SENIOR_TEACHER', 'DEPARTMENT_HEAD'].includes(user.role) &&
-            user.active &&
-            (!user.schoolId || user.schoolId === department?.schoolId)
+          const teachers = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
+          // Filter for active teachers only
+          const eligibleTeachers = teachers.filter((teacher: Teacher) => 
+            teacher.active
           );
-          setAvailableUsers(eligibleUsers);
+          setAvailableTeachers(eligibleTeachers);
         } else {
-          setAvailableUsers([]);
+          setAvailableTeachers([]);
         }
       } catch (error: any) {
-        console.error('Failed to fetch available users:', error);
-        setError(error.response?.data?.message || 'Failed to fetch available users');
-        setAvailableUsers([]);
+        console.error('Failed to fetch available teachers:', error);
+        setError(error.response?.data?.message || 'Failed to fetch available teachers');
+        setAvailableTeachers([]);
       } finally {
         setIsLoadingUsers(false);
       }
     };
 
     if (department) {
-      fetchAvailableUsers();
+      fetchAvailableTeachers();
     }
   }, [department]);
 
@@ -63,7 +61,7 @@ export const AssignDepartmentHeadModal: React.FC<AssignDepartmentHeadModalProps>
   };
 
   const handleAssign = async () => {
-    if (!department || !selectedUserId) return;
+    if (!department || !selectedTeacherId) return;
 
     try {
       setIsLoading(true);
@@ -71,7 +69,7 @@ export const AssignDepartmentHeadModal: React.FC<AssignDepartmentHeadModalProps>
 
       await dispatch(assignDepartmentHead({ 
         departmentId: department.id, 
-        userId: selectedUserId 
+        teacherId: selectedTeacherId 
       })).unwrap();
       
       setIsSuccess(true);
@@ -95,9 +93,9 @@ export const AssignDepartmentHeadModal: React.FC<AssignDepartmentHeadModalProps>
     }
   };
 
-  const filteredUsers = availableUsers.filter(user =>
-    `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTeachers = availableTeachers.filter(teacher =>
+    `${teacher.firstName} ${teacher.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    teacher.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (isSuccess) {
@@ -140,7 +138,7 @@ export const AssignDepartmentHeadModal: React.FC<AssignDepartmentHeadModalProps>
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Assign Department Head</h3>
-          <p className="text-sm text-gray-600">Select a user to be the head of {department.name}</p>
+          <p className="text-sm text-gray-600">Select a teacher to be the head of {department.name}</p>
         </div>
       </div>
 
@@ -183,7 +181,7 @@ export const AssignDepartmentHeadModal: React.FC<AssignDepartmentHeadModalProps>
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
         <input
           type="text"
-          placeholder="Search users..."
+          placeholder="Search teachers..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="input input-bordered w-full pl-10"
@@ -191,45 +189,44 @@ export const AssignDepartmentHeadModal: React.FC<AssignDepartmentHeadModalProps>
         />
       </div>
 
-      {/* User Selection */}
+      {/* Teacher Selection */}
       <div className="space-y-2 max-h-64 overflow-y-auto">
-        <h4 className="font-medium text-gray-900">Available Users</h4>
+        <h4 className="font-medium text-gray-900">Available Teachers</h4>
         
         {isLoadingUsers ? (
           <div className="flex justify-center py-8">
             <span className="loading loading-spinner loading-md"></span>
           </div>
-        ) : filteredUsers.length === 0 ? (
+        ) : filteredTeachers.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500">
-              {searchTerm ? 'No users found matching your search.' : 'No eligible users available.'}
+              {searchTerm ? 'No teachers found matching your search.' : 'No eligible teachers available.'}
             </p>
             {!searchTerm && (
               <p className="text-sm text-gray-400 mt-2">
-                Only teachers and senior teachers can be assigned as department heads.
+                Only active teachers can be assigned as department heads.
               </p>
             )}
           </div>
         ) : (
-          filteredUsers.map((user) => (
+          filteredTeachers.map((teacher) => (
             <div
-              key={user.id}
+              key={teacher.id}
               className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                selectedUserId === user.id
+                selectedTeacherId === teacher.id
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
-              onClick={() => setSelectedUserId(user.id)}
+              onClick={() => setSelectedTeacherId(teacher.id)}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium text-gray-900">
-                    {user.firstName} {user.lastName}
+                    {teacher.firstName} {teacher.lastName}
                   </div>
-                  <div className="text-sm text-gray-600">{user.email}</div>
-                  <div className="text-xs text-gray-500">{user.role.replace('_', ' ')}</div>
+                  <div className="text-sm text-gray-600">{teacher.email}</div>
                 </div>
-                {selectedUserId === user.id && (
+                {selectedTeacherId === teacher.id && (
                   <CheckCircle className="h-5 w-5 text-blue-600" />
                 )}
               </div>
@@ -252,7 +249,7 @@ export const AssignDepartmentHeadModal: React.FC<AssignDepartmentHeadModalProps>
           type="button"
           onClick={handleAssign}
           className="btn btn-primary"
-          disabled={isLoading || !selectedUserId || isLoadingUsers}
+          disabled={isLoading || !selectedTeacherId || isLoadingUsers}
         >
           {isLoading ? (
             <>

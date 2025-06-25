@@ -32,10 +32,11 @@ const TeacherAssignCourseModal: React.FC<TeacherAssignCourseModalProps> = ({ ext
       setFetchError(null);
       try {
         const response = await courseApi.getActiveCourses();
-        if (response.data.status === 'success' && response.data.data) {
+        if (response.data.status === 'SUCCESS' && response.data.data) {
           const courseData = Array.isArray(response.data.data) 
             ? response.data.data 
             : [response.data.data];
+          console.log('Fetched courses:', courseData);
           setCourses(courseData);
         }
       } catch (err) {
@@ -96,7 +97,7 @@ const TeacherAssignCourseModal: React.FC<TeacherAssignCourseModalProps> = ({ ext
               <option value="">Select a course</option>
               {courses.map((course) => (
                 <option key={course.id} value={course.id}>
-                  {course.code} - {course.name} ({course.type})
+                  {course.code} - {course.name} ({course.term}{course.year ? ` ${course.year}` : ''}{course.type ? ` - ${course.type}` : ''})
                 </option>
               ))}
             </select>

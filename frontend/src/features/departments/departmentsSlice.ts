@@ -186,9 +186,9 @@ export const deactivateDepartment = createAsyncThunk(
 
 export const assignDepartmentHead = createAsyncThunk(
   'departments/assignDepartmentHead',
-  async ({ departmentId, userId }: { departmentId: number; userId: number }, { rejectWithValue }) => {
+  async ({ departmentId, teacherId }: { departmentId: number; teacherId: number }, { rejectWithValue }) => {
     try {
-      const response = await departmentApi.assignDepartmentHead(departmentId, userId);
+      const response = await departmentApi.assignDepartmentHead(departmentId, teacherId);
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to assign department head');
