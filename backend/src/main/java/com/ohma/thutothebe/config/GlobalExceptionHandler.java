@@ -15,6 +15,11 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    public static <T> ResponseEntity<OhmaApiResponse<T>> errorResponseEntity(String message, HttpStatus status) {
+        OhmaApiResponse<T> response = new OhmaApiResponse<>("error", message, null, LocalDateTime.now());
+        return new ResponseEntity<>(response, status);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<OhmaApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         // Traverse causes to find an IllegalArgumentException (validation)

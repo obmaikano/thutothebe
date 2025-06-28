@@ -3,221 +3,416 @@ import { AxiosResponse } from 'axios';
 
 // ==================== INTERFACES ====================
 
-export interface CurriculumProgressDTO {
+export interface CurriculumProgress {
   id: number;
+  studentId: number;
+  studentName?: string;
+  courseId: number;
+  courseName?: string;
   curriculumId: number;
-  curriculumTitle?: string;
-  schoolId: number;
-  schoolName?: string;
-  regionId?: number;
-  regionName?: string;
-  implementationStatus: 'NOT_STARTED' | 'PLANNING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
+  curriculumName?: string;
   progressPercentage: number;
+  completedLessons: number;
+  totalLessons: number;
+  completedAssessments: number;
+  totalAssessments: number;
+  averageScore: number;
+  lastActivityDate?: string;
   startDate: string;
-  expectedEndDate: string;
-  actualEndDate?: string;
-  assignedTeacherId?: number;
-  assignedTeacherName?: string;
-  supervisorId?: number;
-  supervisorName?: string;
+  expectedCompletionDate?: string;
+  actualCompletionDate?: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'DROPPED';
   notes?: string;
-  challenges?: string;
-  achievements?: string;
-  resourcesNeeded?: string;
-  lastUpdatedById: number;
-  lastUpdatedByName?: string;
+  active: boolean;
   createdAt: string;
-  updatedAt: string;
-  isOverdue: boolean;
-  daysOverdue?: number;
-  milestones?: {
-    id: number;
-    title: string;
-    description?: string;
-    targetDate: string;
-    completedDate?: string;
-    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'DELAYED';
-    progressPercentage: number;
-  }[];
+  modifiedAt: string;
 }
 
-export interface ApiResponse<T> {
+export interface CreateCurriculumProgressRequest {
+  studentId: number;
+  courseId: number;
+  curriculumId: number;
+  startDate: string;
+  expectedCompletionDate?: string;
+  notes?: string;
+}
+
+export interface UpdateCurriculumProgressRequest {
+  progressPercentage?: number;
+  completedLessons?: number;
+  totalLessons?: number;
+  completedAssessments?: number;
+  totalAssessments?: number;
+  averageScore?: number;
+  lastActivityDate?: string;
+  expectedCompletionDate?: string;
+  actualCompletionDate?: string;
+  status?: CurriculumProgress['status'];
+  notes?: string;
+  active?: boolean;
+}
+
+export interface CurriculumProgressResponse {
   status: string;
   message: string;
-  data: T;
-  timestamp: string | null;
+  data: CurriculumProgress;
+  errors?: string[];
+}
+
+export interface CurriculumProgressListResponse {
+  status: string;
+  message: string;
+  data: CurriculumProgress[];
+  errors?: string[];
+}
+
+export interface CurriculumProgressAnalyticsResponse {
+  status: string;
+  message: string;
+  data: {
+    totalProgress: number;
+    notStartedProgress: number;
+    inProgressProgress: number;
+    completedProgress: number;
+    pausedProgress: number;
+    droppedProgress: number;
+    averageProgressPercentage: number;
+    averageCompletionTime: number;
+    completionRate: number;
+  };
+  errors?: string[];
 }
 
 // ==================== API SERVICE ====================
 
 const curriculumProgressApi = {
   /**
-   * Get all curriculum progress records
+   * Get all curriculum progress
+   * @returns Response with all curriculum progress
    */
-  getAll: async (): Promise<AxiosResponse<ApiResponse<CurriculumProgressDTO[]>>> => {
+  getAll: async (): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
     return api.get('/curriculum-progress');
   },
 
   /**
    * Get curriculum progress by ID
+   * @param id Curriculum progress ID
+   * @returns Response with curriculum progress details
    */
-  getById: async (id: number): Promise<AxiosResponse<ApiResponse<CurriculumProgressDTO>>> => {
+  getById: async (id: number): Promise<AxiosResponse<CurriculumProgressResponse>> => {
     return api.get(`/curriculum-progress/${id}`);
   },
 
   /**
-   * Create new curriculum progress record
+   * Create a new curriculum progress
+   * @param progressData Curriculum progress data
+   * @returns Response with created curriculum progress details
    */
-  create: async (progressData: Omit<CurriculumProgressDTO, 'id' | 'createdAt' | 'updatedAt' | 'isOverdue' | 'daysOverdue' | 'curriculumTitle' | 'schoolName' | 'regionName' | 'assignedTeacherName' | 'supervisorName' | 'lastUpdatedByName'>): Promise<AxiosResponse<ApiResponse<CurriculumProgressDTO>>> => {
+  create: async (progressData: CreateCurriculumProgressRequest): Promise<AxiosResponse<CurriculumProgressResponse>> => {
     return api.post('/curriculum-progress', progressData);
   },
 
   /**
-   * Update curriculum progress record
+   * Update curriculum progress
+   * @param id Curriculum progress ID
+   * @param progressData Curriculum progress data to update
+   * @returns Response with updated curriculum progress details
    */
-  update: async (id: number, progressData: Partial<CurriculumProgressDTO>): Promise<AxiosResponse<ApiResponse<CurriculumProgressDTO>>> => {
+  update: async (id: number, progressData: UpdateCurriculumProgressRequest): Promise<AxiosResponse<CurriculumProgressResponse>> => {
     return api.put(`/curriculum-progress/${id}`, progressData);
   },
 
   /**
-   * Delete curriculum progress record
+   * Delete curriculum progress
+   * @param id Curriculum progress ID
+   * @returns Response with deletion status
    */
-  delete: async (id: number): Promise<AxiosResponse<ApiResponse<any>>> => {
+  delete: async (id: number): Promise<AxiosResponse<{ status: string; message: string }>> => {
     return api.delete(`/curriculum-progress/${id}`);
   },
 
   /**
-   * Get progress for a specific curriculum
+   * Get curriculum progress by student ID
+   * @param studentId Student ID
+   * @returns Response with curriculum progress for the student
    */
-  getByCurriculumId: async (curriculumId: number): Promise<AxiosResponse<ApiResponse<CurriculumProgressDTO[]>>> => {
+  getByStudentId: async (studentId: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/student/${studentId}`);
+  },
+
+  /**
+   * Get curriculum progress by course ID
+   * @param courseId Course ID
+   * @returns Response with curriculum progress for the course
+   */
+  getByCourseId: async (courseId: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/course/${courseId}`);
+  },
+
+  /**
+   * Get curriculum progress by curriculum ID
+   * @param curriculumId Curriculum ID
+   * @returns Response with curriculum progress for the curriculum
+   */
+  getByCurriculumId: async (curriculumId: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
     return api.get(`/curriculum-progress/curriculum/${curriculumId}`);
   },
 
   /**
-   * Get progress for a specific school
+   * Get curriculum progress by student ID and course ID
+   * @param studentId Student ID
+   * @param courseId Course ID
+   * @returns Response with curriculum progress details
    */
-  getBySchoolId: async (schoolId: number): Promise<AxiosResponse<ApiResponse<CurriculumProgressDTO[]>>> => {
-    return api.get(`/curriculum-progress/school/${schoolId}`);
+  getByStudentIdAndCourseId: async (studentId: number, courseId: number): Promise<AxiosResponse<CurriculumProgressResponse>> => {
+    return api.get(`/curriculum-progress/student/${studentId}/course/${courseId}`);
   },
 
   /**
-   * Get overdue curriculum implementations
+   * Get curriculum progress by student ID and curriculum ID
+   * @param studentId Student ID
+   * @param curriculumId Curriculum ID
+   * @returns Response with curriculum progress details
    */
-  getOverdueProgress: async (date?: string): Promise<AxiosResponse<ApiResponse<CurriculumProgressDTO[]>>> => {
-    const params = date ? `?date=${date}` : '';
-    return api.get(`/curriculum-progress/overdue${params}`);
+  getByStudentIdAndCurriculumId: async (studentId: number, curriculumId: number): Promise<AxiosResponse<CurriculumProgressResponse>> => {
+    return api.get(`/curriculum-progress/student/${studentId}/curriculum/${curriculumId}`);
   },
 
   /**
-   * Update implementation status
+   * Get curriculum progress by status
+   * @param status Curriculum progress status
+   * @returns Response with curriculum progress by status
    */
-  updateImplementationStatus: async (
-    progressId: number,
-    status: CurriculumProgressDTO['implementationStatus'],
-    progressPercentage?: number,
-    updatedById: number = 1
-  ): Promise<AxiosResponse<ApiResponse<CurriculumProgressDTO>>> => {
-    const params = new URLSearchParams({
-      status,
-      updatedById: updatedById.toString()
-    });
-    if (progressPercentage !== undefined) {
-      params.append('progressPercentage', progressPercentage.toString());
-    }
-    
-    return api.post(`/curriculum-progress/${progressId}/update-status?${params.toString()}`);
-  },
-
-  // ==================== ADDITIONAL HELPER METHODS ====================
-
-  /**
-   * Get progress summary for a curriculum
-   */
-  getProgressSummary: async (curriculumId: number): Promise<{
-    totalSchools: number;
-    completedSchools: number;
-    inProgressSchools: number;
-    notStartedSchools: number;
-    overdueSchools: number;
-    averageProgress: number;
-  }> => {
-    const response = await curriculumProgressApi.getByCurriculumId(curriculumId);
-    const progressData = response.data.data;
-    
-    const summary = {
-      totalSchools: progressData.length,
-      completedSchools: progressData.filter(p => p.implementationStatus === 'COMPLETED').length,
-      inProgressSchools: progressData.filter(p => p.implementationStatus === 'IN_PROGRESS').length,
-      notStartedSchools: progressData.filter(p => p.implementationStatus === 'NOT_STARTED').length,
-      overdueSchools: progressData.filter(p => p.isOverdue).length,
-      averageProgress: progressData.length > 0 
-        ? progressData.reduce((sum, p) => sum + p.progressPercentage, 0) / progressData.length 
-        : 0
-    };
-    
-    return summary;
+  getByStatus: async (status: CurriculumProgress['status']): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/status/${status}`);
   },
 
   /**
-   * Get progress by region
+   * Get curriculum progress by student ID and status
+   * @param studentId Student ID
+   * @param status Curriculum progress status
+   * @returns Response with curriculum progress by student and status
    */
-  getProgressByRegion: async (regionId: number): Promise<AxiosResponse<ApiResponse<CurriculumProgressDTO[]>>> => {
-    // This would need to be implemented on the backend or filtered client-side
-    const response = await curriculumProgressApi.getAll();
-    const filteredData = response.data.data.filter(p => p.regionId === regionId);
-    
-    return {
-      ...response,
-      data: {
-        ...response.data,
-        data: filteredData
-      }
-    };
+  getByStudentIdAndStatus: async (studentId: number, status: CurriculumProgress['status']): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/student/${studentId}/status/${status}`);
   },
 
   /**
-   * Get progress statistics for dashboard
+   * Get curriculum progress by course ID and status
+   * @param courseId Course ID
+   * @param status Curriculum progress status
+   * @returns Response with curriculum progress by course and status
    */
-  getProgressStatistics: async (): Promise<{
-    totalImplementations: number;
-    completedImplementations: number;
-    inProgressImplementations: number;
-    overdueImplementations: number;
-    averageCompletionTime: number;
-    successRate: number;
-  }> => {
-    const response = await curriculumProgressApi.getAll();
-    const allProgress = response.data.data;
-    
-    const completed = allProgress.filter(p => p.implementationStatus === 'COMPLETED');
-    const inProgress = allProgress.filter(p => p.implementationStatus === 'IN_PROGRESS');
-    const overdue = allProgress.filter(p => p.isOverdue);
-    
-    // Calculate average completion time for completed implementations
-    const completionTimes = completed
-      .filter(p => p.actualEndDate)
-      .map(p => {
-        const start = new Date(p.startDate);
-        const end = new Date(p.actualEndDate!);
-        return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)); // days
-      });
-    
-    const averageCompletionTime = completionTimes.length > 0
-      ? completionTimes.reduce((sum, time) => sum + time, 0) / completionTimes.length
-      : 0;
-    
-    const successRate = allProgress.length > 0
-      ? (completed.length / allProgress.length) * 100
-      : 0;
-    
-    return {
-      totalImplementations: allProgress.length,
-      completedImplementations: completed.length,
-      inProgressImplementations: inProgress.length,
-      overdueImplementations: overdue.length,
-      averageCompletionTime: Math.round(averageCompletionTime),
-      successRate: Math.round(successRate * 100) / 100
-    };
+  getByCourseIdAndStatus: async (courseId: number, status: CurriculumProgress['status']): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/course/${courseId}/status/${status}`);
+  },
+
+  /**
+   * Count curriculum progress by student ID
+   * @param studentId Student ID
+   * @returns Response with curriculum progress count
+   */
+  countByStudentId: async (studentId: number): Promise<AxiosResponse<{ data: number }>> => {
+    return api.get(`/curriculum-progress/student/${studentId}/count`);
+  },
+
+  /**
+   * Count curriculum progress by course ID
+   * @param courseId Course ID
+   * @returns Response with curriculum progress count
+   */
+  countByCourseId: async (courseId: number): Promise<AxiosResponse<{ data: number }>> => {
+    return api.get(`/curriculum-progress/course/${courseId}/count`);
+  },
+
+  /**
+   * Count curriculum progress by student ID and status
+   * @param studentId Student ID
+   * @param status Curriculum progress status
+   * @returns Response with curriculum progress count
+   */
+  countByStudentIdAndStatus: async (studentId: number, status: CurriculumProgress['status']): Promise<AxiosResponse<{ data: number }>> => {
+    return api.get(`/curriculum-progress/student/${studentId}/status/${status}/count`);
+  },
+
+  /**
+   * Count curriculum progress by course ID and status
+   * @param courseId Course ID
+   * @param status Curriculum progress status
+   * @returns Response with curriculum progress count
+   */
+  countByCourseIdAndStatus: async (courseId: number, status: CurriculumProgress['status']): Promise<AxiosResponse<{ data: number }>> => {
+    return api.get(`/curriculum-progress/course/${courseId}/status/${status}/count`);
+  },
+
+  /**
+   * Get curriculum progress by progress percentage range
+   * @param minPercentage Minimum percentage
+   * @param maxPercentage Maximum percentage
+   * @returns Response with curriculum progress in percentage range
+   */
+  getByProgressPercentageBetween: async (minPercentage: number, maxPercentage: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/progress-between?minPercentage=${minPercentage}&maxPercentage=${maxPercentage}`);
+  },
+
+  /**
+   * Get curriculum progress by student ID and progress percentage range
+   * @param studentId Student ID
+   * @param minPercentage Minimum percentage
+   * @param maxPercentage Maximum percentage
+   * @returns Response with curriculum progress in percentage range
+   */
+  getByStudentIdAndProgressPercentageBetween: async (studentId: number, minPercentage: number, maxPercentage: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/student/${studentId}/progress-between?minPercentage=${minPercentage}&maxPercentage=${maxPercentage}`);
+  },
+
+  /**
+   * Get curriculum progress by course ID and progress percentage range
+   * @param courseId Course ID
+   * @param minPercentage Minimum percentage
+   * @param maxPercentage Maximum percentage
+   * @returns Response with curriculum progress in percentage range
+   */
+  getByCourseIdAndProgressPercentageBetween: async (courseId: number, minPercentage: number, maxPercentage: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/course/${courseId}/progress-between?minPercentage=${minPercentage}&maxPercentage=${maxPercentage}`);
+  },
+
+  /**
+   * Get completed curriculum progress by student ID
+   * @param studentId Student ID
+   * @returns Response with completed curriculum progress
+   */
+  getCompletedByStudentId: async (studentId: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/student/${studentId}/completed`);
+  },
+
+  /**
+   * Get completed curriculum progress by course ID
+   * @param courseId Course ID
+   * @returns Response with completed curriculum progress
+   */
+  getCompletedByCourseId: async (courseId: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/course/${courseId}/completed`);
+  },
+
+  /**
+   * Get curriculum progress with scores above threshold
+   * @param courseId Course ID
+   * @param minScore Minimum score
+   * @returns Response with curriculum progress above score threshold
+   */
+  getByCourseIdAndScoreAbove: async (courseId: number, minScore: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/course/${courseId}/score-above/${minScore}`);
+  },
+
+  /**
+   * Get curriculum progress with scores below threshold
+   * @param courseId Course ID
+   * @param maxScore Maximum score
+   * @returns Response with curriculum progress below score threshold
+   */
+  getByCourseIdAndScoreBelow: async (courseId: number, maxScore: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/course/${courseId}/score-below/${maxScore}`);
+  },
+
+  /**
+   * Get curriculum progress by score range
+   * @param courseId Course ID
+   * @param minScore Minimum score
+   * @param maxScore Maximum score
+   * @returns Response with curriculum progress in score range
+   */
+  getByCourseIdAndScoreBetween: async (courseId: number, minScore: number, maxScore: number): Promise<AxiosResponse<CurriculumProgressListResponse>> => {
+    return api.get(`/curriculum-progress/course/${courseId}/score-between?minScore=${minScore}&maxScore=${maxScore}`);
+  },
+
+  /**
+   * Start curriculum progress
+   * @param studentId Student ID
+   * @param courseId Course ID
+   * @param curriculumId Curriculum ID
+   * @returns Response with started curriculum progress
+   */
+  startProgress: async (studentId: number, courseId: number, curriculumId: number): Promise<AxiosResponse<CurriculumProgressResponse>> => {
+    return api.post(`/curriculum-progress/student/${studentId}/course/${courseId}/curriculum/${curriculumId}/start`);
+  },
+
+  /**
+   * Update progress percentage
+   * @param progressId Curriculum progress ID
+   * @param progressPercentage Progress percentage
+   * @returns Response with updated curriculum progress
+   */
+  updateProgressPercentage: async (progressId: number, progressPercentage: number): Promise<AxiosResponse<CurriculumProgressResponse>> => {
+    return api.put(`/curriculum-progress/${progressId}/progress`, { progressPercentage });
+  },
+
+  /**
+   * Complete curriculum progress
+   * @param progressId Curriculum progress ID
+   * @param averageScore Average score
+   * @returns Response with completed curriculum progress
+   */
+  completeProgress: async (progressId: number, averageScore: number): Promise<AxiosResponse<CurriculumProgressResponse>> => {
+    return api.put(`/curriculum-progress/${progressId}/complete`, { averageScore });
+  },
+
+  /**
+   * Pause curriculum progress
+   * @param progressId Curriculum progress ID
+   * @param notes Optional notes
+   * @returns Response with paused curriculum progress
+   */
+  pauseProgress: async (progressId: number, notes?: string): Promise<AxiosResponse<CurriculumProgressResponse>> => {
+    return api.put(`/curriculum-progress/${progressId}/pause`, { notes });
+  },
+
+  /**
+   * Resume curriculum progress
+   * @param progressId Curriculum progress ID
+   * @returns Response with resumed curriculum progress
+   */
+  resumeProgress: async (progressId: number): Promise<AxiosResponse<CurriculumProgressResponse>> => {
+    return api.put(`/curriculum-progress/${progressId}/resume`);
+  },
+
+  /**
+   * Drop curriculum progress
+   * @param progressId Curriculum progress ID
+   * @param notes Optional notes
+   * @returns Response with dropped curriculum progress
+   */
+  dropProgress: async (progressId: number, notes?: string): Promise<AxiosResponse<CurriculumProgressResponse>> => {
+    return api.put(`/curriculum-progress/${progressId}/drop`, { notes });
+  },
+
+  /**
+   * Get curriculum progress analytics
+   * @param courseId Course ID
+   * @returns Response with curriculum progress analytics
+   */
+  getCurriculumProgressAnalytics: async (courseId: number): Promise<AxiosResponse<CurriculumProgressAnalyticsResponse>> => {
+    return api.get(`/curriculum-progress/course/${courseId}/analytics`);
+  },
+
+  /**
+   * Get student curriculum progress analytics
+   * @param studentId Student ID
+   * @param startDate Start date
+   * @param endDate End date
+   * @returns Response with student curriculum progress analytics
+   */
+  getStudentCurriculumProgressAnalytics: async (studentId: number, startDate: string, endDate: string): Promise<AxiosResponse<CurriculumProgressAnalyticsResponse>> => {
+    return api.get(`/curriculum-progress/student/${studentId}/analytics?startDate=${startDate}&endDate=${endDate}`);
+  },
+
+  /**
+   * Get curriculum progress analytics
+   * @param curriculumId Curriculum ID
+   * @returns Response with curriculum progress analytics
+   */
+  getCurriculumProgressAnalyticsByCurriculum: async (curriculumId: number): Promise<AxiosResponse<CurriculumProgressAnalyticsResponse>> => {
+    return api.get(`/curriculum-progress/curriculum/${curriculumId}/analytics`);
   }
 };
 

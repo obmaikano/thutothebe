@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../../../store';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { useAuth } from '../../../features/auth/hooks';
 import { 
   fetchCourses, 
@@ -15,6 +15,7 @@ import { fetchTeachers } from '../../teachers/teachersSlice';
 import { fetchSubjects } from '../../subjects/subjectsSlice';
 import { openModal } from '../../common/modalSlice';
 import { MODAL_BODY_TYPES } from '../../../utils/modalConstants';
+import { useSubjectAllocationRealtime } from '../hooks/useSubjectAllocationRealtime';
 import { 
   Plus, 
   Users, 
@@ -28,9 +29,17 @@ import {
   CheckCircle,
   Clock,
   BarChart3,
-  User
+  User,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  AlertCircle
 } from 'lucide-react';
 import courseApi, { Course } from '../../../api/services/courseApi';
+import subjectApi from '../../../api/services/subjectApi';
+import teacherApi from '../../../api/services/teacherApi';
+import classApi from '../../../api/services/classApi';
+import { getRealCourseProgress, getRealTeacherWorkload, CourseProgressData, TeacherWorkloadData } from '../../../utils/subjectAllocationProgressUtils';
 
 // Card component for statistics
 const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className = '' }) => (
@@ -42,29 +51,113 @@ const Card: React.FC<{ children: React.ReactNode, className?: string }> = ({ chi
 export const SubjectAllocationPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAuth();
-  const { classes } = useAppSelector(state => state.classes);
-  const { teachers } = useAppSelector(state => state.teachers);
-  const { subjects } = useAppSelector(state => state.subjects);
   const { courses, status, error } = useAppSelector(state => state.courses);
-  
+  const { teachers } = useAppSelector(state => state.teachers);
+  const { classes } = useAppSelector(state => state.classes);
+  const { subjects } = useAppSelector(state => state.subjects);
+
+  // Real-time data
+  const { connected, workloadStats, allocations: realtimeAllocations, refreshData } = useSubjectAllocationRealtime();
+
+  // Local state
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [courseProgressData, setCourseProgressData] = useState<Map<number, CourseProgressData>>(new Map());
+  const [teacherWorkloadData, setTeacherWorkloadData] = useState<TeacherWorkloadData[]>([]);
 
+  // Transform courses data to allocation format with real backend data
+  const transformCourseToAllocation = async (course: Course) => {
+    const subject = subjects.find(s => s.id === course.subjectId);
+    const classEntity = classes.find(c => c.id === course.classId);
+    const teacher = teachers.find(t => course.instructorIds.includes(t.id));
+    
+    // Get real progress data
+    const progressData = courseProgressData.get(course.id) || await getRealCourseProgress(course);
+    
+    return {
+      id: course.id,
+      subject: subject?.name || 'Unknown Subject',
+      subjectId: course.subjectId,
+      teacher: teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned',
+      teacherId: teacher?.id || 0,
+      class: classEntity?.name || 'Unknown Class',
+      classId: course.classId,
+      term: `${course.term} ${course.year}`,
+      status: course.active ? 'ACTIVE' : 'SUSPENDED',
+      progress: progressData.averageProgress,
+      completedLessons: progressData.completedLessons,
+      totalLessons: progressData.totalLessons,
+      assessments: progressData.completedAssessments,
+      lastUpdate: progressData.lastActivityDate || course.updatedAt || course.createdAt || new Date().toISOString().split('T')[0],
+      courseData: course
+    };
+  };
+
+  // Load real progress data for all courses
+  const loadRealProgressData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load course progress data
+      const progressPromises = courses.map(async (course) => {
+        const progressData = await getRealCourseProgress(course);
+        return [course.id, progressData] as [number, CourseProgressData];
+      });
+      
+      const progressResults = await Promise.all(progressPromises);
+      const progressMap = new Map(progressResults);
+      setCourseProgressData(progressMap);
+      
+      // Load teacher workload data
+      const workloadData = await getRealTeacherWorkload(teachers, courses);
+      setTeacherWorkloadData(workloadData);
+      
+    } catch (error: any) {
+      console.error('Error loading real progress data:', error);
+      setApiError('Failed to load progress data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use real-time allocations if available, otherwise transform courses data
+  const [allocations, setAllocations] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadAllocations = async () => {
+      if (realtimeAllocations.length > 0) {
+        setAllocations(realtimeAllocations);
+      } else {
+        const transformedAllocations = await Promise.all(courses.map(transformCourseToAllocation));
+        setAllocations(transformedAllocations);
+      }
+    };
+
+    if (courses.length > 0 && subjects.length > 0 && classes.length > 0 && teachers.length > 0) {
+      loadAllocations();
+    }
+  }, [courses, subjects, classes, teachers, courseProgressData, realtimeAllocations]);
+
+  // Load initial data
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      setApiError(null);
       try {
         await Promise.all([
           dispatch(fetchCourses()),
-          dispatch(fetchClasses()),
           dispatch(fetchTeachers()),
+          dispatch(fetchClasses()),
           dispatch(fetchSubjects())
         ]);
-      } catch (error) {
-        console.error('Failed to load subject allocation data:', error);
+      } catch (error: any) {
+        console.error('Error loading data:', error);
+        setApiError(error.message || 'Failed to load data');
       } finally {
         setLoading(false);
       }
@@ -73,42 +166,43 @@ export const SubjectAllocationPage: React.FC = () => {
     loadData();
   }, [dispatch]);
 
-  // Transform courses data to match the expected allocation format
-  const allocations = courses.map(course => {
-    const subject = subjects.find(s => s.id === course.subjectId);
-    const classEntity = classes.find(c => c.id === course.classId);
-    const teacher = teachers.find(t => course.instructorIds.includes(t.id));
-    
-    return {
-      id: course.id,
-      subject: subject?.name || 'Unknown Subject',
-      teacher: teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned',
-      teacherId: teacher?.id || 0,
-      class: classEntity?.name || 'Unknown Class',
-      classId: course.classId,
-      term: `${course.term} ${course.year}`,
-      status: course.active ? 'ACTIVE' : 'SUSPENDED',
-      progress: 0, // Will be calculated from curriculum progress when available
-      completedLessons: 0, // Will be calculated from curriculum progress when available
-      totalLessons: 0, // Will be calculated from curriculum progress when available
-      assessments: 0, // Will be calculated from curriculum progress when available
-      lastUpdate: course.updatedAt || course.createdAt || new Date().toISOString().split('T')[0],
-      courseData: course
-    };
-  });
+  // Load real progress data when courses are available
+  useEffect(() => {
+    if (courses.length > 0 && teachers.length > 0) {
+      loadRealProgressData();
+    }
+  }, [courses, teachers]);
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setApiError(null);
+    try {
+      await Promise.all([
+        dispatch(fetchCourses()),
+        dispatch(fetchTeachers()),
+        dispatch(fetchClasses()),
+        dispatch(fetchSubjects()),
+        refreshData(),
+        loadRealProgressData()
+      ]);
+    } catch (error: any) {
+      console.error('Error refreshing data:', error);
+      setApiError(error.message || 'Failed to refresh data');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleAllocateSubject = () => {
-    // For now, we'll use the first subject as an example
-    // In a real implementation, you might want to show a subject selection first
-    const firstSubject = subjects[0];
-    if (!firstSubject) {
-      alert('No subjects available. Please create subjects first.');
+    // Check if we have subjects available
+    if (subjects.length === 0) {
+      setApiError('No subjects available. Please create subjects first.');
       return;
     }
 
-    // Get teachers already assigned to this subject
+    // Get teachers already assigned to subjects
     const assignedTeachers = courses
-      .filter(course => course.subjectId === firstSubject.id)
       .map(course => {
         const teacher = teachers.find(t => course.instructorIds.includes(t.id));
         return teacher;
@@ -119,7 +213,7 @@ export const SubjectAllocationPage: React.FC = () => {
       title: 'Assign Teachers to Subject',
       bodyType: MODAL_BODY_TYPES.SUBJECT_ASSIGN_TEACHER,
       extraObject: { 
-        subject: firstSubject,
+        subjects,
         teachers,
         classes,
         assignedTeachers
@@ -129,10 +223,10 @@ export const SubjectAllocationPage: React.FC = () => {
 
   const handleEditAllocation = (allocation: any) => {
     dispatch(openModal({
-      title: 'Edit Course',
-      bodyType: MODAL_BODY_TYPES.COURSE_EDIT,
+      title: 'Edit Subject Allocation',
+      bodyType: MODAL_BODY_TYPES.SUBJECT_ALLOCATION_EDIT,
       extraObject: { 
-        course: allocation.courseData,
+        allocation,
         classes,
         teachers,
         subjects
@@ -142,20 +236,23 @@ export const SubjectAllocationPage: React.FC = () => {
 
   const handleRemoveAllocation = async (allocation: any) => {
     dispatch(openModal({
-      title: 'Delete Course',
-      bodyType: MODAL_BODY_TYPES.COURSE_DELETE_CONFIRMATION,
+      title: 'Delete Subject Allocation',
+      bodyType: MODAL_BODY_TYPES.SUBJECT_ALLOCATION_DELETE,
       extraObject: { 
-        course: allocation.courseData
+        allocation
       }
     }));
   };
 
   const handleViewProgress = (allocation: any) => {
     dispatch(openModal({
-      title: 'Course Details',
-      bodyType: MODAL_BODY_TYPES.COURSE_VIEW,
+      title: 'Subject Allocation Details',
+      bodyType: MODAL_BODY_TYPES.SUBJECT_ALLOCATION_VIEW,
       extraObject: { 
-        course: allocation.courseData
+        allocation,
+        classes,
+        teachers,
+        subjects
       }
     }));
   };
@@ -232,15 +329,20 @@ export const SubjectAllocationPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (apiError) {
     return (
       <div className="p-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">Error loading data: {error}</p>
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <p className="text-red-800 font-medium">Error loading data</p>
+          </div>
+          <p className="text-red-700 mb-4">{apiError}</p>
           <button 
-            onClick={() => dispatch(fetchCourses())}
-            className="mt-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+            onClick={handleRefresh}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
+            <RefreshCw size={16} />
             Retry
           </button>
         </div>
@@ -573,9 +675,96 @@ export const SubjectAllocationPage: React.FC = () => {
 
       {/* Teacher Workload Overview */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Teacher Workload Overview</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Teacher Workload Overview</h3>
+          <div className="flex items-center gap-3">
+            {/* Connection Status */}
+            <div className="flex items-center gap-2">
+              {connected ? (
+                <Wifi className="h-4 w-4 text-green-600" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-600" />
+              )}
+              <span className={`text-sm ${connected ? 'text-green-600' : 'text-red-600'}`}>
+                {connected ? 'Live Updates' : 'Offline'}
+              </span>
+            </div>
+            
+            {/* Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+        </div>
+        
         <div className="space-y-4">
-          {teachers.slice(0, 5).map(teacher => {
+          {teacherWorkloadData.length > 0 ? teacherWorkloadData.slice(0, 5).map(teacher => (
+            <div key={teacher.teacherId} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="text-blue-600" size={20} />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">{teacher.teacherName}</h4>
+                  <p className="text-sm text-gray-600">{teacher.totalCourses} subjects allocated</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{Math.round(teacher.averageProgress)}% Progress</p>
+                  <div className="w-24 h-2 bg-gray-200 rounded-full mt-1">
+                    <div 
+                      className="h-full bg-blue-600 rounded-full transition-all duration-300" 
+                      style={{ width: `${teacher.averageProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  teacher.workloadLevel === 'LIGHT' ? 'bg-green-100 text-green-800' :
+                  teacher.workloadLevel === 'MODERATE' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {teacher.workloadLevel}
+                </span>
+              </div>
+            </div>
+          )) : workloadStats.length > 0 ? workloadStats.slice(0, 5).map(teacher => (
+            <div key={teacher.teacherId} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User className="text-blue-600" size={20} />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">{teacher.teacherName}</h4>
+                  <p className="text-sm text-gray-600">{teacher.workload} subjects allocated</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{teacher.avgProgress}% Progress</p>
+                  <div className="w-24 h-2 bg-gray-200 rounded-full mt-1">
+                    <div 
+                      className="h-full bg-blue-600 rounded-full transition-all duration-300" 
+                      style={{ width: `${teacher.avgProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  teacher.status === 'LIGHT' ? 'bg-green-100 text-green-800' :
+                  teacher.status === 'MODERATE' ? 'bg-yellow-100 text-yellow-800' :
+                  teacher.status === 'HEAVY' ? 'bg-orange-100 text-orange-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {teacher.status}
+                </span>
+              </div>
+            </div>
+          )) : teachers.slice(0, 5).map(teacher => {
             const teacherAllocations = allocations.filter(a => a.teacherId === teacher.id);
             const workload = teacherAllocations.length;
             const avgProgress = teacherAllocations.length > 0 
@@ -615,6 +804,13 @@ export const SubjectAllocationPage: React.FC = () => {
             );
           })}
         </div>
+        
+        {teacherWorkloadData.length === 0 && workloadStats.length === 0 && teachers.length === 0 && (
+          <div className="text-center py-8">
+            <User className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No teacher data available</p>
+          </div>
+        )}
       </div>
     </div>
   );

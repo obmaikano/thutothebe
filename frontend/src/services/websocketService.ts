@@ -4,6 +4,7 @@ import '../utils/polyfills';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { RealTimeMessage } from '../api/services/messageApi';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 export interface WebSocketConfig {
   url: string;
@@ -198,20 +199,22 @@ class WebSocketService {
    * Subscribe to group channel
    */
   subscribeToGroup(groupId: number): void {
-    this.subscribeToChannel(`/topic/messages/group:${groupId}`, (message) => {
+    console.log('WebSocketService: Subscribing to group channel:', groupId);
+    this.subscribeToChannel(`/topic/groups/${groupId}/messages`, (message) => {
+      console.log('WebSocketService: Received message on group channel:', groupId, message);
       this.handleIncomingMessage(message);
     });
   }
 
   /**
-   * Unsubscribe from a channel
+   * Unsubscribe from a specific channel
    */
   unsubscribeFromChannel(destination: string): void {
     const subscription = this.subscriptions.get(destination);
     if (subscription) {
       subscription.unsubscribe();
       this.subscriptions.delete(destination);
-      console.log(`Unsubscribed from channel: ${destination}`);
+      console.log(`WebSocketService: Unsubscribed from channel: ${destination}`);
     }
   }
 
@@ -221,13 +224,15 @@ class WebSocketService {
   sendTypingIndicator(userId: number, channelId: string, isTyping: boolean): void {
     if (!this.client || !this.isConnected) return;
 
+    const typingData: TypingIndicator = {
+      userId,
+      channelId,
+      isTyping
+    };
+
     this.client.publish({
-      destination: '/app/messages/typing',
-      body: JSON.stringify({
-        userId,
-        channelId,
-        isTyping
-      })
+      destination: `/topic/typing/${channelId}`,
+      body: JSON.stringify(typingData)
     });
   }
 
@@ -237,12 +242,14 @@ class WebSocketService {
   markMessageAsDelivered(messageId: number, userId: number): void {
     if (!this.client || !this.isConnected) return;
 
+    const deliveryData: MessageReadStatus = {
+      messageId,
+      userId
+    };
+
     this.client.publish({
-      destination: '/app/messages/mark-delivered',
-      body: JSON.stringify({
-        messageId,
-        userId
-      })
+      destination: '/topic/message-delivered',
+      body: JSON.stringify(deliveryData)
     });
   }
 
@@ -252,12 +259,14 @@ class WebSocketService {
   markMessageAsRead(messageId: number, userId: number): void {
     if (!this.client || !this.isConnected) return;
 
+    const readData: MessageReadStatus = {
+      messageId,
+      userId
+    };
+
     this.client.publish({
-      destination: '/app/messages/mark-read',
-      body: JSON.stringify({
-        messageId,
-        userId
-      })
+      destination: '/topic/message-read',
+      body: JSON.stringify(readData)
     });
   }
 
@@ -267,130 +276,93 @@ class WebSocketService {
   markConversationAsRead(userId: number, partnerId: number): void {
     if (!this.client || !this.isConnected) return;
 
+    const readData: ConversationReadStatus = {
+      userId,
+      partnerId
+    };
+
     this.client.publish({
-      destination: '/app/messages/mark-conversation-read',
-      body: JSON.stringify({
-        userId,
-        partnerId
-      })
+      destination: '/topic/conversation-read',
+      body: JSON.stringify(readData)
     });
   }
 
   /**
-   * Send ping to check connection
+   * Send ping to keep connection alive
    */
   ping(): void {
     if (!this.client || !this.isConnected) return;
 
     this.client.publish({
-      destination: '/app/messages/ping',
-      body: JSON.stringify({
-        timestamp: Date.now()
-      })
+      destination: '/topic/ping',
+      body: JSON.stringify({ timestamp: new Date().toISOString() })
     });
   }
 
   /**
-   * Handle incoming real-time messages
+   * Handle incoming message
    */
   private handleIncomingMessage(message: IMessage): void {
     try {
-      console.log('WebSocketService: Raw incoming message:', message.body);
       const realTimeMessage: RealTimeMessage = JSON.parse(message.body);
-      console.log('WebSocketService: Parsed real-time message:', realTimeMessage);
-      
-      // Notify all message handlers
-      console.log('WebSocketService: Notifying', this.messageHandlers.size, 'message handlers');
-      this.messageHandlers.forEach(handler => {
-        try {
-          handler(realTimeMessage);
-        } catch (error) {
-          console.error('Error in message handler:', error);
-        }
-      });
-
-      // Handle typing indicators
-      if (realTimeMessage.eventType === 'TYPING') {
-        const typingIndicator: TypingIndicator = {
-          userId: realTimeMessage.typingUserId || realTimeMessage.senderId,
-          channelId: realTimeMessage.channelId,
-          isTyping: realTimeMessage.isTyping
-        };
-        
-        this.typingHandlers.forEach(handler => {
-          try {
-            handler(typingIndicator);
-          } catch (error) {
-            console.error('Error in typing handler:', error);
-          }
-        });
-      }
+      console.log('WebSocketService: Received message:', realTimeMessage);
+      this.notifyMessageHandlers(realTimeMessage);
     } catch (error) {
-      console.error('Error parsing incoming message:', error);
+      console.error('WebSocketService: Error parsing message:', error);
     }
   }
 
   /**
-   * Handle notifications
+   * Handle notification
    */
   private handleNotification(message: IMessage): void {
     try {
       const notification = JSON.parse(message.body);
-      console.log('Received notification:', notification);
-      // Handle notifications as needed
+      console.log('WebSocketService: Received notification:', notification);
+      // Handle notification logic here
     } catch (error) {
-      console.error('Error parsing notification:', error);
+      console.error('WebSocketService: Error parsing notification:', error);
     }
   }
 
   /**
-   * Handle unread count updates
+   * Handle unread count update
    */
   private handleUnreadCountUpdate(message: IMessage): void {
     try {
       const update: UnreadCountUpdate = JSON.parse(message.body);
-      console.log('Received unread count update:', update);
-      
-      this.unreadCountHandlers.forEach(handler => {
-        try {
-          handler(update);
-        } catch (error) {
-          console.error('Error in unread count handler:', error);
-        }
-      });
+      console.log('WebSocketService: Received unread count update:', update);
+      this.notifyUnreadCountHandlers(update);
     } catch (error) {
-      console.error('Error parsing unread count update:', error);
+      console.error('WebSocketService: Error parsing unread count update:', error);
     }
   }
 
   /**
-   * Handle reconnection logic
+   * Handle reconnection
    */
   private handleReconnection(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached');
+      console.error('WebSocketService: Max reconnection attempts reached');
       return;
     }
 
     this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1); // Exponential backoff
-    
-    console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-    
+    console.log(`WebSocketService: Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+
     setTimeout(() => {
       if (this.client && this.currentUserId) {
         this.client.activate();
       }
-    }, delay);
+    }, this.reconnectDelay * this.reconnectAttempts);
   }
 
   /**
    * Clear all subscriptions
    */
   private clearSubscriptions(): void {
-    this.subscriptions.forEach((subscription, destination) => {
+    this.subscriptions.forEach((subscription) => {
       subscription.unsubscribe();
-      console.log(`Unsubscribed from: ${destination}`);
     });
     this.subscriptions.clear();
   }
@@ -399,66 +371,155 @@ class WebSocketService {
    * Notify connection handlers
    */
   private notifyConnectionHandlers(connected: boolean): void {
-    this.connectionHandlers.forEach(handler => {
-      try {
-        handler(connected);
-      } catch (error) {
-        console.error('Error in connection handler:', error);
-      }
-    });
+    this.connectionHandlers.forEach(handler => handler(connected));
   }
 
   /**
    * Generate conversation channel ID
    */
   private generateConversationChannelId(userId1: number, userId2: number): string {
-    const sortedIds = [userId1, userId2].sort((a, b) => a - b);
-    return `conversation:${sortedIds[0]}:${sortedIds[1]}`;
+    return [Math.min(userId1, userId2), Math.max(userId1, userId2)].join('-');
   }
 
-  // Event handler management
+  /**
+   * Add message handler
+   */
   addMessageHandler(handler: MessageEventHandler): void {
     this.messageHandlers.add(handler);
   }
 
+  /**
+   * Remove message handler
+   */
   removeMessageHandler(handler: MessageEventHandler): void {
     this.messageHandlers.delete(handler);
   }
 
+  /**
+   * Add typing handler
+   */
   addTypingHandler(handler: TypingEventHandler): void {
     this.typingHandlers.add(handler);
   }
 
+  /**
+   * Remove typing handler
+   */
   removeTypingHandler(handler: TypingEventHandler): void {
     this.typingHandlers.delete(handler);
   }
 
+  /**
+   * Add unread count handler
+   */
   addUnreadCountHandler(handler: UnreadCountEventHandler): void {
     this.unreadCountHandlers.add(handler);
   }
 
+  /**
+   * Remove unread count handler
+   */
   removeUnreadCountHandler(handler: UnreadCountEventHandler): void {
     this.unreadCountHandlers.delete(handler);
   }
 
+  /**
+   * Add connection handler
+   */
   addConnectionHandler(handler: ConnectionEventHandler): void {
     this.connectionHandlers.add(handler);
   }
 
+  /**
+   * Remove connection handler
+   */
   removeConnectionHandler(handler: ConnectionEventHandler): void {
     this.connectionHandlers.delete(handler);
   }
 
-  // Getters
+  /**
+   * Notify message handlers
+   */
+  private notifyMessageHandlers(message: RealTimeMessage): void {
+    this.messageHandlers.forEach(handler => handler(message));
+  }
+
+  /**
+   * Notify typing handlers
+   */
+  private notifyTypingHandlers(typing: TypingIndicator): void {
+    this.typingHandlers.forEach(handler => handler(typing));
+  }
+
+  /**
+   * Notify unread count handlers
+   */
+  private notifyUnreadCountHandlers(update: UnreadCountUpdate): void {
+    this.unreadCountHandlers.forEach(handler => handler(update));
+  }
+
+  /**
+   * Get connection status
+   */
   get connected(): boolean {
     return this.isConnected;
   }
 
+  /**
+   * Get current user ID
+   */
   get userId(): number | null {
     return this.currentUserId;
   }
 }
 
-// Export singleton instance
-export const webSocketService = new WebSocketService();
+// Create singleton instance
+const webSocketService = new WebSocketService();
+
+// React hook for WebSocket
+export const useWebSocket = () => {
+  const [connected, setConnected] = useState(false);
+  const connectionHandlerRef = useRef<ConnectionEventHandler | null>(null);
+
+  useEffect(() => {
+    // Set up connection handler
+    connectionHandlerRef.current = (isConnected: boolean) => {
+      setConnected(isConnected);
+    };
+
+    webSocketService.addConnectionHandler(connectionHandlerRef.current);
+
+    return () => {
+      if (connectionHandlerRef.current) {
+        webSocketService.removeConnectionHandler(connectionHandlerRef.current);
+      }
+    };
+  }, []);
+
+  const subscribeToChannel = useCallback((destination: string, handler: (message: IMessage) => void) => {
+    webSocketService.subscribeToChannel(destination, handler);
+  }, []);
+
+  const unsubscribeFromChannel = useCallback((destination: string) => {
+    webSocketService.unsubscribeFromChannel(destination);
+  }, []);
+
+  const connect = useCallback((config: WebSocketConfig, userId: number, authToken?: string) => {
+    return webSocketService.connect(config, userId, authToken);
+  }, []);
+
+  const disconnect = useCallback(() => {
+    return webSocketService.disconnect();
+  }, []);
+
+  return {
+    connected,
+    subscribeToChannel,
+    unsubscribeFromChannel,
+    connect,
+    disconnect,
+    webSocketService
+  };
+};
+
 export default webSocketService; 

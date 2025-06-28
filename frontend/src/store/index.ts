@@ -29,8 +29,10 @@ import calendarEventsReducer from '../features/calendar/calendarEventsSlice';
 import contentReducer from '../features/content/contentSlice';
 import curriculumReducer from '../features/curriculum/curriculumSlice';
 import curriculumAdvancedReducer from '../features/curriculum/curriculumAdvancedSlice';
-import curriculumProgressReducer from '../features/curriculum/curriculumProgressSlice';
+import curriculumProgressReducer from '../features/curriculumProgress/curriculumProgressSlice';
 import curriculumSubjectReducer from '../features/curriculum/curriculumSubjectSlice';
+import lessonsReducer from '../features/lessons/lessonsSlice';
+import lessonCompletionsReducer from '../features/lessonCompletions/lessonCompletionsSlice';
 import forumsReducer from '../features/forums/forumsSlice';
 import threadsReducer from '../features/forums/threadsSlice';
 import commentsReducer from '../features/forums/commentsSlice';
@@ -73,6 +75,8 @@ export const store = configureStore({
     curriculumAdvanced: curriculumAdvancedReducer,
     curriculumProgress: curriculumProgressReducer,
     curriculumSubject: curriculumSubjectReducer,
+    lessons: lessonsReducer,
+    lessonCompletions: lessonCompletionsReducer,
     forums: forumsReducer,
     threads: threadsReducer,
     comments: commentsReducer,

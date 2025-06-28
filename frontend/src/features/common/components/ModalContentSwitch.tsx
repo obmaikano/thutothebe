@@ -9,6 +9,11 @@ const EditSubjectModal = lazy(() => import('../../subjects/modals/EditSubjectMod
 const DeleteSubjectModal = lazy(() => import('../../subjects/modals/DeleteSubjectModal'));
 const SubjectAssignTeacherModal = lazy(() => import('../../school_admin/modals/SubjectAssignTeacherModal'));
 
+// Subject Allocation Specific Modals
+const SubjectAllocationViewModal = lazy(() => import('../../school_admin/modals/SubjectAllocationViewModal'));
+const SubjectAllocationEditModal = lazy(() => import('../../school_admin/modals/SubjectAllocationEditModal'));
+const SubjectAllocationDeleteModal = lazy(() => import('../../school_admin/modals/SubjectAllocationDeleteModal'));
+
 // Department management modals
 const CreateDepartmentModal = lazy(() => import('../../departments/modals/CreateDepartmentModal'));
 const EditDepartmentModal = lazy(() => import('../../departments/modals/EditDepartmentModal'));
@@ -153,7 +158,6 @@ const CreateCommentModal = lazy(() => import('../../forums/components/CreateComm
 
 // Messaging modals
 const NewMessageModal = lazy(() => import('../../messaging/modals/NewMessageModal'));
-const CreateGroupModal = lazy(() => import('../../messaging/modals/CreateGroupModal'));
 
 interface ModalContentSwitchProps {
   content: string;
@@ -194,6 +198,28 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <SubjectAssignTeacherModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    // Subject Allocation Specific Modals
+    case MODAL_BODY_TYPES.SUBJECT_ALLOCATION_VIEW:
+      return (
+        <Suspense fallback={fallback}>
+          <SubjectAllocationViewModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SUBJECT_ALLOCATION_EDIT:
+      return (
+        <Suspense fallback={fallback}>
+          <SubjectAllocationEditModal extraObject={contentProps} />
+        </Suspense>
+      );
+
+    case MODAL_BODY_TYPES.SUBJECT_ALLOCATION_DELETE:
+      return (
+        <Suspense fallback={fallback}>
+          <SubjectAllocationDeleteModal extraObject={contentProps} />
         </Suspense>
       );
 
@@ -845,35 +871,35 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       );
       
     // Calendar Event Management Modals
-    case MODAL_BODY_TYPES.CALENDAR_EVENT_ADD_NEW:
+    case MODAL_BODY_TYPES.EVENT_ADD_NEW:
       return (
         <Suspense fallback={fallback}>
           <CreateEventModal extraObject={contentProps} />
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.CALENDAR_EVENT_EDIT:
+    case MODAL_BODY_TYPES.EVENT_EDIT:
       return (
         <Suspense fallback={fallback}>
           <EditEventModal extraObject={contentProps} />
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.CALENDAR_EVENT_VIEW:
+    case MODAL_BODY_TYPES.EVENT_VIEW:
       return (
         <Suspense fallback={fallback}>
           <EventDetailsModal extraObject={contentProps} />
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.CALENDAR_EVENT_DELETE_CONFIRMATION:
+    case MODAL_BODY_TYPES.EVENT_DELETE_CONFIRMATION:
       return (
         <Suspense fallback={fallback}>
           <DeleteEventModal extraObject={contentProps} />
         </Suspense>
       );
 
-    case MODAL_BODY_TYPES.CALENDAR_EVENT_ADD_ATTENDEE:
+    case MODAL_BODY_TYPES.EVENT_ADD_ATTENDEE:
       return (
         <Suspense fallback={fallback}>
           <AddAttendeeModal extraObject={contentProps} />
@@ -1119,13 +1145,6 @@ export const ModalContentSwitch: React.FC<ModalContentSwitchProps> = ({ content,
       return (
         <Suspense fallback={fallback}>
           <NewMessageModal extraObject={contentProps} />
-        </Suspense>
-      );
-
-    case MODAL_BODY_TYPES.MESSAGE_GROUP_CREATE:
-      return (
-        <Suspense fallback={fallback}>
-          <CreateGroupModal extraObject={contentProps} />
         </Suspense>
       );
       
